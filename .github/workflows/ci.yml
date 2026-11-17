@@ -61,6 +61,9 @@ jobs:
           lean --version
           test "$(lean --short-version)" = '4.36.0'
           command -v leanchecker
+          printf 'Stack limits in KiB (soft, hard):\n'
+          ulimit -Ss
+          ulimit -Hs
       - name: Check proofs, axioms, and kernel replay
         run: formal/check.sh
       - name: Build compiler for differential execution
