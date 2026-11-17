@@ -34,7 +34,9 @@ supplied-rank theorem gives a uniform generation height under static typing,
 metadata and environment-length premises. Production
 invariant-loop verification is separately implemented with solver-trusted results.
 Flat tuples have a separate typed runtime model with finite machine correspondence
-and a v2 adapter checked through executable comparisons.
+and a v2 reader whose successful return is proved to yield a typed model input.
+Its execution wrapper excludes invalid outcomes and preserves returned types at
+every budget. Executable comparisons still cover agreement with Rust.
 The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
@@ -170,10 +172,13 @@ whole-value assignment through source, interpretation, v2 interchange and native
 compilation. Tuple verification is explicitly unsupported before tool discovery.
 The separate [runtime model](../formal/PROOFS.md#flat-scalar-products-with-local-state)
 proves inference equivalence, typed finite-trace safety, finite run/step
-correspondence and forward finite LocalState embedding. The v2 adapter is tested
-against Rust on independently specified values, traps and malformed inputs;
-resource-limited cases remain inconclusive. Source/JSON/Rust/native correspondence,
-shared-storage reclamation and termination are not established by those proofs.
+correspondence and forward finite LocalState embedding. Successful decoding by
+the actual Lean v2 reader implies a typed complete model input. Its execution
+wrapper excludes invalid outcomes and preserves returned types at every budget.
+The v2 adapter is also compared with Rust on independently specified values, traps
+and malformed inputs; resource-limited cases remain inconclusive. Source and
+JSON-text interpretation, Rust/native correspondence, compiled Lean execution,
+shared-storage reclamation and termination remain separate obligations.
 This does not complete L03: nested aggregates, arrays, slices, records and
 collections still require their own semantics and evidence.
 

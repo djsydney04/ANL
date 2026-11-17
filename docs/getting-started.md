@@ -277,7 +277,9 @@ The Lean v1 and v2 models instead count machine transitions. Finite values and
 trap kinds can be compared across tools, but exhausted budgets are inconclusive;
 equal fuel numbers do not mean equal available work. The separate
 [v2 adapter and comparison instructions](../formal/README.md#v2-interchange-adapter)
-cover tuples; its decoder and compiled execution remain tested boundaries.
+cover tuples. Successful decoding by the Lean v2 reader is proved to yield a typed
+model input. JSON-text interpretation, compiled execution and agreement with Rust
+remain separate tested boundaries.
 
 Each source file and JSON input is limited to 1 MiB, source tokens per file to
 100000, and core expression depth to 128. Parsing has a separate 128-level

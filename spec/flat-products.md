@@ -196,7 +196,11 @@ receive their structural semantic classification, but this Lean executable alway
 uses the flat-products transition machine. Its fuel is not Rust expression fuel,
 and it does not model Rust allocation/slot/output limits. Executable comparisons
 check finite values, traps and malformed artifacts; resource-limit cases are
-inconclusive. Source lowering, JSON decoding, Rust evaluation and storage
-reclamation, compiled Lean execution and native code remain separate trust or
-correspondence boundaries. Scalar verification-condition proofs do not extend
+inconclusive. The actual Lean reader has a proved acceptance boundary: successful
+`document` or `decode` returns a closed typed expression or a well-typed complete
+function table with a nullary i64 entry. At every fuel budget, `execute` excludes
+invalid outcomes and preserves returned types. Defined traps and resource limits
+remain possible. Source lowering, JSON-text interpretation, Rust evaluation and
+storage reclamation, compiled Lean execution and native code remain separate
+trust or correspondence boundaries. Scalar verification-condition proofs do not extend
 to tuples by inheritance.

@@ -3,7 +3,7 @@
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`), local scalar state (`local-state-2026-11-17`) and flat tuples
 (`flat-products-2026-11-17`). The [proof inventory](../../formal/PROOFS.md) records
-376 audited theorem names and 45 separately replayed modules, including the
+384 audited theorem names and 48 separately replayed modules, including the
 separate tuple runtime model and concrete invariant-loop generator,
 its connection to the actual local-state machine, and a sufficient generation
 height under a supplied call rank. Coverage follows the stated theorem premises
@@ -30,8 +30,11 @@ fixed-production-budget completeness, or Rust/JSON/native correctness.
 
 Flat-tuple execution and v2 interchange have a separate
 [language contract](../../spec/flat-products.md) and the runtime-model guarantees
-below. The scalar and invariant-loop generators do not establish tuple
-verification; none of these models certifies Rust/native correctness.
+below. The acceptance theorem for the actual Lean v2 reader proves that successful
+decoding yields a typed input. Execution excludes invalid outcomes and preserves
+returned types at every budget. The scalar and invariant-loop
+generators do not establish tuple verification. JSON-text interpretation,
+compiled Lean execution and Rust/native correctness remain separate obligations.
 
 ## Two distinct guarantees
 

@@ -113,10 +113,12 @@ For the documented v0/v1 comparison, the Rust exporter and Lean importer are
 trusted adapters until separately verified. The Lean side independently validates
 those imported scalar programs. The separate `anl_formal_v2` executable validates
 v2 artifacts and runs the flat-tuple model, with [independent executable
-comparisons](../../formal/README.md#v2-interchange-adapter). Its decoder and compiled
-execution remain tested trust boundaries. The runtime model proves typed finite
-machine safety and run/step correspondence, not Rust/native correspondence or
-tuple verification. Lean v2 uses transition budgets even for scalar-only v2 input;
+comparisons](../../formal/README.md#v2-interchange-adapter). The actual Lean v2
+reader has a proved acceptance boundary: successful decoding yields a typed model
+input, whose execution excludes invalid outcomes and preserves returned types
+at every budget. JSON-text interpretation and compiled execution remain tested
+trust boundaries. The runtime and reader proofs do not establish Rust/native
+correspondence or tuple verification. Lean v2 uses transition budgets even for scalar-only v2 input;
 resource limits are inconclusive rather than semantic disagreement. A malformed artifact returns `invalid_ir`, not a proved result. The comparison protocol records `value`, `trap`, or `resource_limit`; successful values include their type and canonical representation. Traps include `arithmetic_overflow` or `division_by_zero` and optional source metadata. A negative or exhausted budget is a tool condition.
 
 This protocol does not prove that the parser faithfully represents source code. Source-level conformance fixtures and later refinement proofs cover that separate boundary. A proof about an expression subset must not be advertised as a proof about all imported function programs.

@@ -808,17 +808,48 @@ MIR/native code, ownership and the SMT stack remain separate correspondence or
 trust obligations. No aggregate verification-condition generator is covered by
 these runtime theorems.
 
-The separate `APL.FlatProductsWire` reader and `MainV2` executable connect v2
-artifacts to this machine through tested decoding and type checks. They add no
-audited theorem names or semantic replay targets. `test_flat_products.py` checks
-hand-authored valid/malformed artifacts, source exports and old scalar embeddings
-against independently specified outcomes, including exact JSON field sorts and
-shape. Type rejection precedes evaluation even with zero fuel. Resource probes
-check tool-specific boundaries separately and do not count as finite semantic
-agreements. The suite is run with
+## V2 reader acceptance soundness
+
+`APL/FlatProductsWireSafety.lean` proves acceptance soundness for the actual
+`APL.FlatProductsWire.document`, `decode` and `execute` definitions used by
+`MainV2`. The reader and execution algorithms are unchanged.
+
+`InputTyped` is an independent proposition indexed by the input and its result
+type. Its expression case requires `HasType #[] [] e t`. Its program case requires
+`WellTyped fs`, the actual entry lookup, no entry parameters and an i64 result.
+Every function body is included, whether the entry can reach it or not. The proof
+aligns the signature pass with the reconstructed table before applying inference
+soundness; the alignment is proved rather than assumed.
+
+| Theorem in `APL.FlatProductsWire` | Quantified statement and assumptions |
+| --- | --- |
+| `document_typed`, `decode_typed` | A successful return from the actual document reader or text wrapper implies `InputTyped input t` for some result type. |
+| `document_program_typed`, `decode_program_typed` | Successful program decoding yields a well-typed complete function table and an actual nullary i64 entry. |
+| `execute_typed` | For an `InputTyped` input and every fuel budget, the actual execution wrapper satisfies `ResultTyped`: a successful value has the expected type, defined traps and resource limits are allowed, and invalid is excluded. |
+| `execute_no_invalid`, `execute_value_type` | For an `InputTyped` input, the execution result is never invalid and any successful value has the input's result type. These specialize `execute_typed`. |
+| `decoded_execute_safe` | Successful `decode` supplies a result type and typing proof for the input, with invalid exclusion and returned-value typing at every fuel budget. |
+
+The theorem needs no successful execution, positive fuel, acyclic call graph or
+termination premise. It composes acceptance with the existing typed-machine
+safety theorem. The result establishes model type safety, not trap freedom or
+tuple contract verification.
+
+The text wrapper proof inverts successful size, lexical and JSON steps before
+applying `document_typed`. It does not prove how those steps interpret text or
+that every valid document is accepted. Term reconstruction, serialized metadata,
+JSON-text meaning, source correspondence, Rust behavior, Lean compilation/runtime
+and native execution retain separate obligations. No kernel certificate for
+individual artifact bytes is generated.
+
+`test_flat_products.py` checks hand-authored valid/malformed artifacts, source
+exports and old scalar embeddings against independently specified outcomes,
+including exact JSON field sorts and shape. Type rejection precedes evaluation
+even with zero fuel. Resource probes check tool-specific boundaries separately
+and do not count as finite semantic agreements. Run
 `python3 formal/test_flat_products.py --rust target/debug/anl` after building both
-formal executables and the compiler. Decoder correctness, source correspondence
-and compiled-executable correctness remain unproved by this inventory.
+formal executables and the compiler. These executable comparisons complement
+the reader acceptance theorem without proving the remaining correspondence
+obligations.
 
 ## Axiom dependencies and trust
 
@@ -833,8 +864,8 @@ axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 376 inventoried names are included. The
-check script replays 45 semantic modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 384 inventoried names are included. The
+check script replays 48 modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -847,12 +878,14 @@ model; local state and flat scalar products have the separate scoped results abo
 theorems alone do not establish termination or trap freedom. VCG guarantees
 require accepted logical obligations and the documented expansion boundary.
 No result establishes completeness at fixed CLI resource limits or correctness of source/module elaboration, Rust checking,
-JSON adapters or native compilation. The expression syntax intentionally has no
+JSON-text interpretation or native compilation. The v2 reader acceptance theorem
+establishes typing of its successful model result, with the narrower scope above. The expression syntax intentionally has no
 call constructor; program terms use a separate type to make that boundary visible.
 
-FM-06 is differential and negative testing evidence only. The Lean expression
-checker's soundness theorem does not prove the Rust frontend, checker, serializer,
-or any JSON adapter correct. Source elaboration, including discarded-let
+FM-06 remains open. Source-to-core correspondence has differential and negative
+testing evidence. V2 reader acceptance soundness establishes typing of the
+returned model input; it does not prove the Rust frontend, checker, serializer or
+JSON-text interpretation correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
 FM-07 is partial: the call-free, finite call-expansion, loop-free local-state and

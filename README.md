@@ -19,8 +19,11 @@ safety, and finite evaluator correspondence with sufficient depth and fuel.
 A separate local-state model proves typing and finite machine safety for mutation
 and loops. A separate flat-tuple model proves inference equivalence, finite
 machine type safety and run/transition correspondence, including state and
-recursive calls. Its v2 adapter is checked through executable comparisons;
-resource-limited comparisons are inconclusive. Verification-condition proofs
+recursive calls. Successful decoding by its Lean v2 reader implies a typed
+model input. At every execution budget, that input cannot produce an invalid
+model outcome, and any returned value has the model input's result type. Executable
+comparisons remain evidence for Rust agreement; resource-limited comparisons are
+inconclusive. Verification-condition proofs
 cover call-free terms and finite symbolic
 function-body expansion with ordered callee preconditions when generation succeeds,
 including loop-free local-state updates. The invariant-loop model adds safety

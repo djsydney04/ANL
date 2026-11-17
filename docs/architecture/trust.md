@@ -36,8 +36,12 @@ Flat tuples additionally have executable source, interpreter, v2 interchange
 and native support under their [own contract](../../spec/flat-products.md).
 Their separate runtime model proves inference equivalence, typed finite-trace
 safety, finite run/step correspondence and forward finite LocalState embedding.
-The [v2 adapter](../../formal/README.md#v2-interchange-adapter) has executable
-comparison coverage; decoding and Rust/native correspondence remain unproved.
+The [v2 adapter](../../formal/README.md#v2-interchange-adapter) has a proved
+acceptance boundary. Successful decoding implies a typed expression or a
+well-typed complete function table with a nullary i64 entry. Its model execution
+excludes invalid outcomes and preserves returned types at every budget. JSON-text
+interpretation, Lean compilation/runtime and Rust/native correspondence remain
+unproved; executable comparisons cover those boundaries only for tested cases.
 `verify` still rejects tuple-bearing graphs before tools with
 `trust: "not_established"`; runtime type safety is not tuple contract verification.
 
@@ -52,9 +56,9 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Component | What depends on it | Current evidence and required strengthening |
 | --- | --- | --- |
 | Language definitions and theorem statements | Whether checked mathematics describes intended ANL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
-| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 376 theorem names, and separate kernel replay of 45 semantic modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
+| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 384 theorem names, and separate kernel replay of 48 modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
-| Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. The flat-tuple machine has finite run/step correspondence and forward finite v1 embedding under its stated premises. Typed model runs cannot reach invalid. V1/v2 transition budgets differ from Rust expression/depth/allocation/slot limits; resource comparisons are inconclusive. JSON adapters and Lean compilation/runtime remain trusted or tested boundaries. |
+| Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. The flat-tuple machine has finite run/step correspondence and forward finite v1 embedding under its stated premises. Typed model runs cannot reach invalid. The actual v2 reader's successful return supplies the typing premise, and its execution wrapper preserves that guarantee at every budget. V1/v2 transition budgets differ from Rust expression/depth/allocation/slot limits; resource comparisons are inconclusive. JSON-text interpretation, v0/v1 reader correspondence, Lean compilation and runtime remain trusted or tested boundaries. No per-artifact kernel certificate is produced. |
 | Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs, file modules, and initialized local state, including scope, permissions, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |

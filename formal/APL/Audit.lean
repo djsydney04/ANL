@@ -7,6 +7,7 @@ import APL.LoopAnnotations
 import APL.LoopVCGExamples
 import APL.LoopGenerationExamples
 import APL.FlatProductsExamples
+import APL.FlatProductsWireSafety
 import Lean
 
 open Lean Elab Command in
@@ -344,7 +345,15 @@ run_elab do
     ``APL.FlatProducts.embed_stopped,
     ``APL.FlatProducts.embed_finite_run,
     ``APL.FlatProducts.embed_finite_value,
-    ``APL.FlatProducts.embed_finite_trap]
+    ``APL.FlatProducts.embed_finite_trap,
+    ``APL.FlatProductsWire.document_typed,
+    ``APL.FlatProductsWire.decode_typed,
+    ``APL.FlatProductsWire.document_program_typed,
+    ``APL.FlatProductsWire.decode_program_typed,
+    ``APL.FlatProductsWire.execute_typed,
+    ``APL.FlatProductsWire.execute_no_invalid,
+    ``APL.FlatProductsWire.execute_value_type,
+    ``APL.FlatProductsWire.decoded_execute_safe]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name
