@@ -1,6 +1,10 @@
 # Compiler architecture and integration contracts
 
-Status: design proposal. Implementation and proof status are tracked separately from this design.
+Status: the M1 Rust frontend, typed interpreter, and strict core JSON adapters are
+implemented. Native compilation, modules, ownership/effects, verification, and
+language-server integration remain planned. [Getting started](../getting-started.md)
+documents the working commands; the [proof inventory](../../formal/PROOFS.md)
+covers the Lean expression model, not Rust implementation correctness.
 
 ## Pipeline
 
@@ -24,7 +28,7 @@ flowchart LR
 
 M1 ends at typed core execution and formal comparison. The ownership pass is an explicit extension point with no borrow claims for the scalar M1 language. Native lowering begins in M2. Verifier results annotate obligations; ordinary compilation does not silently certify contracts. A strict verified build mode eventually requires a configured set of proved obligations.
 
-The compiler is a Rust library called by the CLI and language server. The implementation toolchain begins at Rust 1.99.1. Each pass returns a result or structured diagnostics. No pass parses a preceding pass's displayed text.
+The compiler is a Rust library called by the CLI, with language-server integration planned. The implementation toolchain is pinned to Rust 1.99.1. Each pass returns a result or structured diagnostics. No pass parses a preceding pass's displayed text.
 
 ## M1 caller contract
 
@@ -46,11 +50,11 @@ An evaluation budget bounds interpreter work and call depth. The exact budget ac
 
 No serialized representation is trusted merely because it declares itself typed. Imports revalidate tags, numeric ranges, binding indices, call signatures and inferred types. Stable IDs are internal compiler identities; source names remain available for diagnostics. Shared interfaces use owned data and IDs rather than cross-pass references whose lifetimes couple unrelated subsystems.
 
-The initial Rust module boundaries are `syntax`, `resolve`, `types`, `eval`, and `diagnostic`. Add `mir`, `codegen`, and `verify` when those implementations arrive. Organize actual files around these contracts without empty implementations.
+The current Rust module boundaries are internal `syntax` and `resolve`, plus `types`, `core`, `eval`, and `diagnostic`. Checked Program contents are opaque to external mutation and construction; source compilation and core import establish their invariants. Add `mir`, `codegen`, and `verify` when those implementations arrive. Organize actual files around these contracts without empty implementations.
 
 ## Core interchange with formal tools
 
-Use a versioned JSON document headed by `schema: "apl-core-v0"`. Its semantic content is a function table and entry function ID. Each function contains its ID, source name, ordered parameter types, result type, and body. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. Exact JSON member names and a schema fixture must be frozen jointly before adapter implementation.
+Use a versioned JSON document headed by `schema: "apl-core-v0"`. Its semantic content is a function table and entry function ID. Each function contains its ID, source name, ordered parameter types, result type, and body. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `apl dump-core FILE` exports checked source; `apl eval-core FILE` independently validates and evaluates the artifact.
 
 Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID.
 

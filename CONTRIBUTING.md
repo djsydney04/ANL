@@ -2,8 +2,37 @@
 
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
-specifications. Compiler build and proof commands will be documented alongside
-their implementations.
+the M1 scalar checker/interpreter, core JSON adapters, a Lean expression model,
+tests, and specifications for the wider language. Follow [getting started](docs/getting-started.md)
+to build and run source programs; the [proof inventory](formal/PROOFS.md) separates
+checked expression theorems from pending call and implementation proofs.
+
+## Build and check
+
+From the repository root, use the pinned Rust 1.99.1 toolchain selected by rustup:
+
+```sh
+cargo build --release --locked
+cargo fmt --all --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked
+cargo test --locked --release
+python3 -m unittest discover -s benchmarks -p 'test_*.py'
+```
+
+Both test commands include the public API compile-fail doctests. For formal
+changes, install the pinned Lean 4.36.0 tools as described in
+[formal/README.md](formal/README.md), then run:
+
+```sh
+formal/check.sh
+python3 formal/test.py --rust target/release/apl
+```
+
+The proof check rebuilds the model, audits theorem dependencies, and replays
+declarations through Lean's kernel. The comparison command executes the Rust and
+Lean tools against specified outcomes; passing comparisons do not prove the Rust
+implementation correct.
 
 ## Propose a language change
 
@@ -27,12 +56,12 @@ capabilities distinct.
 
 ## Continuous integration
 
-The planned initial documentation checks validate links and required artifacts.
-They establish document consistency, not architecture quality or language correctness.
+The [current workflow](.github/workflows/ci.yml) configures Rust formatting, lint,
+debug/release conformance and public API doctests on Linux and macOS, plus Lean
+proof checks and evaluator comparisons on Linux. A configured job is not evidence
+that it has passed on that platform; inspect the run for the revision under review.
 
-The executable-core milestone adds pinned Rust formatting, lint, unit,
-source-conformance and interpreter checks, plus pinned proof-checker builds.
-Native compilation adds binary execution and differential tests on supported
+Native compilation will add binary execution and differential tests on supported
 platforms. Later checks cover verifier regressions, property testing, fuzzing,
 sanitizers, security analysis, performance, documentation examples, installation
 and release artifact integrity.

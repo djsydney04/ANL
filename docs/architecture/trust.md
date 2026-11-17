@@ -1,6 +1,19 @@
 # Trust boundaries and guarantee ledger
 
-Status: initial trust ledger. No APL implementation, theorem, verifier, or release has been validated by this document. Later changes must replace these initial entries with exact evidence references; architecture review alone cannot change a component to verified.
+Status: M1 evidence ledger for semantic revision `m1-2026-11-16`, with the wider
+language still planned. Rust source checking, interpretation, and strict core
+import/export have executable conformance coverage. Lean's scalar expression
+model has kernel-checked theorems. There is no Rust compiler correctness proof,
+function-call safety theorem, program verifier, native backend, or qualified
+release. Architecture review alone cannot change a component to verified.
+
+Current evidence is available in the [source conformance tests](../../tests/conformance.rs),
+[API and I/O boundary tests](../../tests/boundaries.rs),
+[formal build and comparison instructions](../../formal/README.md), and
+[theorem inventory](../../formal/PROOFS.md). The inventory names the exact theorem
+statements, Lean 4.36.0 toolchain, axiom dependencies, and remaining obligations.
+Local validation is separate from configured cross-platform CI and release
+qualification.
 
 ## What a claim covers
 
@@ -8,21 +21,21 @@ Every claim records the program or formal artifact, property, semantic revision,
 
 For example, a Lean theorem establishing scalar preservation applies to the formal transition relation and the stated typing judgment. It does not prove the Rust parser implements that judgment, the C emitter preserves traps, or an OS executes a binary correctly. Each connection needs its own evidence.
 
-## Initial trusted components
+## Trusted components and current evidence
 
-| Component | What depends on it | Initial evidence and required strengthening |
+| Component | What depends on it | Current evidence and required strengthening |
 | --- | --- | --- |
 | Language definitions and theorem statements | Whether checked mathematics describes intended APL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
-| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Pin version and provenance, audit imported axioms, use clean proof builds and checker replay. Hardware and host integrity remain assumptions. |
+| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the expression inventory is checked by clean builds, transitive axiom audit, and kernel replay. Actual dependencies are recorded in the inventory. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
-| Formal evaluator compilation and JSON reader | Executed reference results | Test against definitions and fixtures. Running an executable built from Lean trusts that compilation and runtime; checking its theorem is different evidence. |
-| Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Initially trusted and tested. Preserve spans, reject ambiguity, test scope and numeric boundaries, and compare serialized core. |
-| Production type checker | Rejection of ill-typed source programs | Initially trusted and tested. The abstract typing relation being sound does not prove this checker sound. |
+| Formal evaluator compilation and JSON reader | Executed reference results | Executable tests compare values, traps, and input rejection. Expression evaluator correspondence is proved in the model; program evaluator correspondence remains FM-05 work. Running compiled Lean still trusts its compilation and runtime, and the JSON adapter is tested rather than proved. |
+| Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for M1, including scope, numeric boundaries, and serialized core comparisons. Source elaboration remains a correspondence obligation. |
+| Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
 | Verification IR construction and VCG | Whether a discharged formula implies the requested source property | Initially unimplemented; trusted once built until a relevant correctness theorem exists. Each unsupported feature must be rejected. |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Pin versions, retain queries, check process status, distinguish unknown and errors. A solver result is trusted until an adequate certificate is independently checked. |
-| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Initially unimplemented; use explicit IR invariants and differential tests, then scoped proofs or translation validators. |
-| C or LLVM backend, assembler, and linker | Machine code correctness | Unverified trusted components initially. Record exact versions and targets. C emission must avoid host undefined behavior; LLVM emission must respect poison and undefined-behavior rules. |
+| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks lower to typed core expressions with tested scope and evaluation order. Optimization and native lowering remain unimplemented; future passes need scoped proofs or translation validators. |
+| C or LLVM backend, assembler, and linker | Machine code correctness | Native APL compilation is unimplemented. Record exact versions and targets when introduced. C emission must avoid host undefined behavior; LLVM emission must respect poison and undefined-behavior rules. |
 | Runtime and allocator | Cleanup, layout, I/O, concurrency, and memory safety | Unimplemented initially. Use module contracts, sanitizers, runtime tests, and independent unsafe-code review. |
 | Unsafe APL and foreign libraries | Any safe abstraction that depends on them | Explicit contracts, versioned dependencies, and reviewed wrappers. Foreign violations can invalidate dependent safety claims. |
 | OS and hardware | Execution, scheduling, memory, I/O, and clock assumptions | Explicit platform support and integration tests. A language proof does not verify these components. |
@@ -35,7 +48,10 @@ The baseline scope follows the distinction in Lean's proof-validation guidance a
 
 `designed` means an accepted specification exists. `implemented` means reachable code exists. `tested` means named tests passed for identified inputs. `type-checked` means the checker accepted a program under a stated language version. `dynamically-checked` describes runtime enforcement on actual executions. `solver-verified` means the supported obligation was discharged under the recorded solver and encoding assumptions. `kernel-checked` identifies an actual theorem and its audited dependencies. `translation-validated` identifies a particular compilation and a validator whose soundness scope is recorded.
 
-Do not collapse these labels into a generic green check. No claim in this initial document has reached the latter categories merely by being written down.
+Do not collapse these labels into a generic green check. Only the named Lean
+expression theorems currently carry the kernel-checked label. Recursive-call
+safety (FM-05), Rust/model correspondence proofs (FM-06), VCG soundness (FM-07),
+and lowering proofs (FM-08) remain open.
 
 ## Proof integrity policy
 

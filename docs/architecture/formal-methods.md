@@ -1,6 +1,12 @@
 # Formal semantics and verification architecture
 
-Status: design proposal. This document defines formal obligations and planned interfaces. It supplies no machine-checked proof. The formal model, verifier and compiler must use the same semantic revision and maintain an explicit proof-coverage inventory.
+Status: formal obligations and planned verification interfaces, with an
+implemented Lean 4.36.0 expression model for semantic revision `m1-2026-11-16`.
+The [proof inventory](../../formal/PROOFS.md) records 21 checked theorems,
+including FM-01 through FM-04 for scalar expressions. Function-call safety and
+evaluator correspondence (FM-05), Rust correspondence proofs, native lowering,
+and the contract verifier remain open. The formal model, verifier and compiler
+must use the same semantic revision and maintain an explicit coverage inventory.
 
 ## Two distinct guarantees
 
@@ -74,13 +80,20 @@ Lean 4 defines untyped core syntax, the typing relation, values, transitions, an
 
 M1 begins with FM-01 through FM-04 for the expression core. FM-05 is separately tracked; mathematical function semantics and executable conformance tests are required even before its proof is complete. A release claim must name exactly which obligations are machine checked. A theorem about an intrinsically typed evaluator alone does not prove that an external untyped program is correctly accepted.
 
+The current expression model has untyped syntax, declarative typing, independently
+proved inference soundness/completeness, typed intermediate machine states, and
+a fuel-free small-step relation. Its expression theorems exclude calls. A separate
+program model defines recursive-call transitions and an executable evaluator;
+those call proofs remain FM-05 work. Source/core comparisons provide testing
+evidence under FM-06 and do not prove the Rust frontend or either JSON adapter.
+
 Every exported theorem has an inventory entry containing its full name, informal claim, covered constructors, assumptions, semantic revision, proof-tool version, and checking command. A clean build must reject incomplete proofs, custom unsound axioms, or skipped checks. Inspect transitive axiom dependencies. The initial permitted Lean axiom set is at most `propext`, `Classical.choice`, and `Quot.sound`; record the actual subset used. Native-evaluation trust axioms are not accepted for the foundational theorem inventory.
 
 Independently review theorem statements and the coverage mapping. Where supported by the pinned toolchain, replay compiled declarations through the proof checker. Lean's validation guide explains why a successful build and an axiom audit answer different questions. [Lean proof validation](https://lean-lang.org/doc/reference/latest/ValidatingProofs/).
 
 ## Compiler-to-formal exchange
 
-The first interoperable format is a JSON document with `schema: "apl-core-v0"`. This is a contract proposal to freeze with Compiler Engineering before serializer implementation. It contains a semantic revision, function table with signatures and resolved bodies, and entry function ID. Integer literals are decimal strings, avoiding host JSON-number precision loss. Local variables use de Bruijn indices with index zero denoting the newest binding; at function entry the final declared parameter has index zero. Function identifiers are integers within the table. Scalar types use `i64`, `bool`, and `unit` tags. Each expression has a constructor tag and only fields required by that constructor. Wire outcomes use `value`, `trap`, `resource_limit`, and `invalid_ir`; trap kinds use `arithmetic_overflow` and `division_by_zero`.
+The first interoperable format is a JSON document with `schema: "apl-core-v0"`. The frozen [core-format contract](../../spec/core-format.md) publishes exact members and fixtures for semantic revision `m1-2026-11-16`; Rust and Lean adapters implement it. It contains a semantic revision, function table with signatures and resolved bodies, and entry function ID. Integer literals are decimal strings, avoiding host JSON-number precision loss. Local variables use de Bruijn indices with index zero denoting the newest binding; at function entry the final declared parameter has index zero. Function identifiers are integers within the table. Scalar types use `i64`, `bool`, and `unit` tags. Each expression has a constructor tag and only fields required by that constructor. Wire outcomes use `value`, `trap`, `resource_limit`, and `invalid_ir`; trap kinds use `arithmetic_overflow` and `division_by_zero`.
 
 Both readers validate schema version, ranges, arities, binding indices, and types. Neither reader trusts a serialized "type checked" flag. Unknown constructors or semantic revisions fail closed. Source spans remain diagnostic metadata and do not affect semantics. A source hash binds results to bytes; it is not evidence that the source-to-core translation is correct.
 
@@ -137,6 +150,6 @@ Agent verification models tools as external transitions with explicit contracts 
 
 ## Implementation acceptance
 
-Before FM-01 work begins, pin Lean and prove that the installed tool can check an induction proof and execute a definition. The first integrated milestone must include expression proofs, normal and trapping execution examples, an explicit coverage inventory, rejected ill-typed programs, and a clean proof build command. The compiler's independent evaluator must match the formal evaluator on the shared corpus. Every documented gap remains in the roadmap.
+The pinned Lean toolchain, expression proofs, normal and trapping execution examples, coverage inventory, and negative cases are present under [formal/](../../formal/README.md). `formal/check.sh` performs a clean build, rejects incomplete proofs, audits transitive axiom dependencies, and replays declarations through Lean's kernel. The compiler's independent evaluator must match the formal evaluator on the shared corpus using the documented comparison command. Every documented gap remains in the roadmap; these checks establish only their stated expression and executable-core coverage, not whole-language correctness.
 
 Before the verifier ships, tests must include a valid contract, a false postcondition, intermediate overflow, division faults, unreachable assumptions, short-circuit behavior, unsupported syntax, timeout, missing solver, malformed solver output, and stale artifact rejection. A deliberately broken VC generator must fail the relevant regression. No benchmark or test count substitutes for FM-07.

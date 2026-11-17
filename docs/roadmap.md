@@ -21,6 +21,14 @@ each implemented feature. M3 can progress alongside native compiler work once M1
 contracts are stable. A phase number expresses dependencies, not a claim that all
 work in prior phases is finished.
 
+Current status: the M1 source checker/interpreter, strict core JSON interchange,
+Lean expression proofs, and executable examples are available. Follow
+[getting started](getting-started.md) to run the tools and the
+[proof instructions](../formal/README.md) to check the formal artifacts. This
+records bounded M1 coverage; the [52 technical release requirements](requirements.md)
+remain open in their full scope. Native compilation and
+the later language, verification, and ecosystem capabilities remain open.
+
 ## M0: architecture
 
 Define compatible syntax, type rules, memory semantics, compiler representations
@@ -34,7 +42,7 @@ its capabilities exist.
 Implement the agreed scalar/function language as one working source-to-execution
 path. It includes a lexer, parser, source spans, AST, name resolution, static
 typing, immutable local inference and deterministic interpretation. The current
-proposal contains `bool`, `i64`, unit, `let`, conditionals, operators and named
+implementation contains `bool`, `i64`, unit, `let`, conditionals, operators and named
 functions including recursion. The ratified grammar and contracts are normative.
 
 Acceptance requires actual source programs, rejection of ill-typed and malformed
@@ -47,6 +55,15 @@ Do not label fuel exhaustion as a language trap or as evidence of divergence.
 Keep the frontend, evaluator and formal model aligned through explicit shared
 contracts. Independently review these contracts and implementations before
 closing M1.
+
+The Rust CLI currently checks, evaluates, exports, and imports that core.
+Source and boundary conformance tests cover valid programs, static rejection,
+arithmetic traps, recursion, scoping, and resource/I/O failures. Lean's
+[theorem inventory](../formal/PROOFS.md) records FM-01 through FM-04 for the
+expression fragment. Mathematical call semantics and a tested program evaluator
+exist, but FM-05 function-call safety and evaluator correspondence remain
+unproved. Rust/model correspondence remains testing evidence under FM-06.
+No expression theorem establishes a Rust compiler or whole-language safety claim.
 
 ## M2: native compiler
 

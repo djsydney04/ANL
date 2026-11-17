@@ -3,19 +3,38 @@
 APL targets a complete systems language and development environment. The
 [language charter](charter.md) defines its purpose and the [roadmap](roadmap.md)
 orders delivery. This specification lists the capabilities and evidence needed
-for a release. All capabilities below remain planned until an implementation and
-its validation are recorded.
+for a release. The M1 implementation covers parts of these requirements; the
+coverage record below does not close any complete-language release requirement.
 
 Evidence categories are distinct. **Designed** means a specification exists.
 **Implemented** means executable code exists. **Tested** identifies passing checks.
 **Machine-checked** names the theorem, formal model, tool version and assumptions.
 **Released** requires qualified installation artifacts. None implies another.
 
+## Current stage coverage
+
+The following evidence applies to semantic revision `m1-2026-11-16`. It records
+implemented slices rather than completion of the broader requirement IDs. All 52
+technical requirements remain in the tables below, including missing features.
+
+| Requirement slices | Current evidence | Remaining scope |
+| --- | --- | --- |
+| L01, L02, L09, C01 | Rust checks and interprets `i64`, `bool`, unit, immutable bindings, blocks, conditionals, operators, and named recursive functions; [source tests](../tests/conformance.rs) cover acceptance, rejection, traps, scope, and sequencing. | Wider types, inference, modules, mutation, loops, and the other language features remain open. |
+| F01, F02 | Lean expression typing, preservation, progress, and finite evaluator correspondence have [inventoried kernel-checked theorems](../formal/PROOFS.md). | Call safety and correspondence (FM-05), memory, ownership, effects, and concurrency proofs remain open. These are not Rust implementation proofs. |
+| F06, F07, C05 | Validated [core interchange](../spec/core-format.md), Rust and Lean evaluators, negative tests, and [executable comparisons](../formal/README.md). | Testing does not discharge compiler/model correspondence, transformation, or native-backend proof obligations. |
+| T01, DOC01, DOC02 | Working `check`, `eval`, `dump-core`, and `eval-core` commands, [getting started](getting-started.md), examples, and contributor/proof instructions. | Native build/run, verification, packages, editor tools, and complete learning/reference material remain open. |
+| Q01 (M1 checks) | [CI configuration](../.github/workflows/ci.yml) runs pinned Rust checks and Lean proof/comparison checks; public API and I/O regressions have [boundary tests](../tests/boundaries.rs). | Platform and proof results must be checked for the revision under review. Fuzzing, native, security, install, and release qualification remain open. |
+
+There is no native-code backend, source-level I/O, ownership, concurrency,
+contract verifier, or qualified installable release. The [roadmap](roadmap.md)
+retains these requirements and the full-language acceptance criteria.
+
 ## Language and execution
 
-All entries below are **planned**, unless an evidence record explicitly updates
-the entry. The milestone column identifies an initial delivery target. Later
-milestones remain required for the complete language.
+Entries below describe the required complete capabilities. The stage coverage
+above is partial; unimplemented portions remain **planned**. The milestone column
+identifies an initial delivery target. Later milestones remain required for the
+complete language.
 
 | ID | Required capabilities | Target milestone | Required evidence |
 | --- | --- | --- | --- |

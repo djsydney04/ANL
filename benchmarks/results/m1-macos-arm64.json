@@ -1,0 +1,2218 @@
+{
+  "schema": "apl-cli-baseline-v1",
+  "recorded_at_utc": "2026-11-17T07:25:14.542284+00:00",
+  "measurement": "wall-clock CLI startup, file read, parsing, checking, and optional evaluation",
+  "comparison": "initial baseline; no speedup or cross-language performance claim",
+  "warmup_rounds": 2,
+  "sample_rounds": 7,
+  "unexpected_failures": 0,
+  "expected_nonzero_jobs": 4,
+  "semantic_preflight": "all explicit outcomes checked before timing samples",
+  "host": {
+    "system": "Darwin",
+    "release": "25.4.0",
+    "machine": "arm64",
+    "logical_cpus": 10,
+    "load_average_at_start": [
+      5.73095703125,
+      7.41748046875,
+      7.73828125
+    ],
+    "load_average_at_end": [
+      5.73095703125,
+      7.41748046875,
+      7.73828125
+    ]
+  },
+  "toolchain": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "compiler_version": "apl 0.1.0",
+  "binary_sha256": "ba7f7d2f066bf67cf6c67cd5b6de9dfddb2101820a28589564ed235e132594e9",
+  "compiler_source_sha256": "c76a47157dff7a7a9396f600f2d110f4fbffa48c8fb3a9e760bdda8e1aa117a1",
+  "git_revision": "14f2defa5e01870865364934193851ccbe6a9fe9",
+  "worktree_dirty": true,
+  "version_control": {
+    "summary": {
+      "count": 7,
+      "median_ms": 1.912792,
+      "min_ms": 1.864833,
+      "max_ms": 1.998167,
+      "median_user_cpu_ms": 0.6110000000000004,
+      "median_system_cpu_ms": 0.5730000000000179
+    },
+    "samples": [
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.906208,
+        "user_cpu_ms": 0.6039999999999934,
+        "system_cpu_ms": 0.5570000000000019
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.864833,
+        "user_cpu_ms": 0.5930000000000102,
+        "system_cpu_ms": 0.5459999999999909
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.998167,
+        "user_cpu_ms": 0.6260000000000154,
+        "system_cpu_ms": 0.5850000000000022
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.912792,
+        "user_cpu_ms": 0.6269999999999887,
+        "system_cpu_ms": 0.5709999999999882
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.877666,
+        "user_cpu_ms": 0.6039999999999934,
+        "system_cpu_ms": 0.5730000000000179
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.913041,
+        "user_cpu_ms": 0.6110000000000004,
+        "system_cpu_ms": 0.6259999999999877
+      },
+      {
+        "exit": 0,
+        "stdout": "apl 0.1.0\n",
+        "stderr": "",
+        "elapsed_ms": 1.933292,
+        "user_cpu_ms": 0.6110000000000004,
+        "system_cpu_ms": 0.6490000000000107
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "name": "factorial/check",
+      "source": "examples/factorial.apl",
+      "source_sha256": "90cb3eb25a68a2d5d65e681a024b0efc0a566b99a6b6f160d0483b7e047a88de",
+      "command": [
+        "target/release/apl",
+        "check",
+        "examples/factorial.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.29975,
+          "user_cpu_ms": 0.6570000000000014,
+          "system_cpu_ms": 0.928
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.123291,
+          "user_cpu_ms": 0.6949999999999943,
+          "system_cpu_ms": 0.6980000000000042
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.194083,
+          "user_cpu_ms": 0.7080000000000003,
+          "system_cpu_ms": 0.7370000000000015
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.042166,
+          "user_cpu_ms": 0.6020000000000053,
+          "system_cpu_ms": 0.5669999999999981
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.010458,
+          "user_cpu_ms": 0.6310000000000066,
+          "system_cpu_ms": 0.5780000000000091
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.104459,
+          "user_cpu_ms": 0.6410000000000027,
+          "system_cpu_ms": 0.6180000000000074
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.896375,
+          "user_cpu_ms": 0.6169999999999926,
+          "system_cpu_ms": 0.5700000000000011
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.187292,
+          "user_cpu_ms": 0.6329999999999947,
+          "system_cpu_ms": 0.6369999999999987
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.035041,
+          "user_cpu_ms": 0.6199999999999956,
+          "system_cpu_ms": 0.6160000000000054
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 141.181208,
+        "user_cpu_ms": 0.816,
+        "system_cpu_ms": 1.1309999999999998
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.042166,
+        "min_ms": 1.896375,
+        "max_ms": 2.194083,
+        "median_user_cpu_ms": 0.6310000000000066,
+        "median_system_cpu_ms": 0.6160000000000054
+      }
+    },
+    {
+      "name": "factorial/eval",
+      "source": "examples/factorial.apl",
+      "source_sha256": "90cb3eb25a68a2d5d65e681a024b0efc0a566b99a6b6f160d0483b7e047a88de",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "examples/factorial.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "3628800\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.049708,
+          "user_cpu_ms": 0.6949999999999994,
+          "system_cpu_ms": 0.6549999999999976
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.276459,
+          "user_cpu_ms": 0.7410000000000055,
+          "system_cpu_ms": 0.7099999999999953
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.246,
+          "user_cpu_ms": 0.7110000000000033,
+          "system_cpu_ms": 0.7989999999999942
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.119292,
+          "user_cpu_ms": 0.6319999999999937,
+          "system_cpu_ms": 0.6299999999999917
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.075208,
+          "user_cpu_ms": 0.6309999999999927,
+          "system_cpu_ms": 0.6139999999999896
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 2.179292,
+          "user_cpu_ms": 0.6130000000000024,
+          "system_cpu_ms": 0.6169999999999926
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 1.925625,
+          "user_cpu_ms": 0.6040000000000073,
+          "system_cpu_ms": 0.5819999999999992
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 1.946125,
+          "user_cpu_ms": 0.6190000000000084,
+          "system_cpu_ms": 0.5889999999999923
+        },
+        {
+          "exit": 0,
+          "stdout": "3628800\n",
+          "stderr": "",
+          "elapsed_ms": 1.896375,
+          "user_cpu_ms": 0.6110000000000004,
+          "system_cpu_ms": 0.5639999999999951
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "3628800\n",
+        "stderr": "",
+        "elapsed_ms": 2.485958,
+        "user_cpu_ms": 0.7529999999999999,
+        "system_cpu_ms": 0.791
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.075208,
+        "min_ms": 1.896375,
+        "max_ms": 2.246,
+        "median_user_cpu_ms": 0.6190000000000084,
+        "median_system_cpu_ms": 0.6139999999999896
+      }
+    },
+    {
+      "name": "gcd/check",
+      "source": "examples/gcd.apl",
+      "source_sha256": "bfa17e6571acbdb3d287a88b4aedec244d77cc2e6cc34651a3dfab2243b4e4e7",
+      "command": [
+        "target/release/apl",
+        "check",
+        "examples/gcd.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.061,
+          "user_cpu_ms": 0.6420000000000002,
+          "system_cpu_ms": 0.6350000000000001
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.002958,
+          "user_cpu_ms": 0.6279999999999966,
+          "system_cpu_ms": 0.6140000000000034
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.271125,
+          "user_cpu_ms": 0.676000000000003,
+          "system_cpu_ms": 0.8610000000000007
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.915375,
+          "user_cpu_ms": 0.6189999999999946,
+          "system_cpu_ms": 0.5950000000000122
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.975083,
+          "user_cpu_ms": 0.6049999999999944,
+          "system_cpu_ms": 0.5760000000000071
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.983458,
+          "user_cpu_ms": 0.6239999999999996,
+          "system_cpu_ms": 0.5830000000000002
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.103333,
+          "user_cpu_ms": 0.6169999999999926,
+          "system_cpu_ms": 0.6029999999999924
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.055917,
+          "user_cpu_ms": 0.6139999999999896,
+          "system_cpu_ms": 0.5880000000000052
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.956625,
+          "user_cpu_ms": 0.6059999999999954,
+          "system_cpu_ms": 0.5789999999999962
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.255208,
+        "user_cpu_ms": 0.707,
+        "system_cpu_ms": 0.6860000000000002
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.983458,
+        "min_ms": 1.915375,
+        "max_ms": 2.271125,
+        "median_user_cpu_ms": 0.6169999999999926,
+        "median_system_cpu_ms": 0.5880000000000052
+      }
+    },
+    {
+      "name": "gcd/eval",
+      "source": "examples/gcd.apl",
+      "source_sha256": "bfa17e6571acbdb3d287a88b4aedec244d77cc2e6cc34651a3dfab2243b4e4e7",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "examples/gcd.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "21\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 2.101959,
+          "user_cpu_ms": 0.6980000000000007,
+          "system_cpu_ms": 0.6580000000000024
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 2.182291,
+          "user_cpu_ms": 0.6559999999999968,
+          "system_cpu_ms": 0.8019999999999972
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 2.387042,
+          "user_cpu_ms": 0.6919999999999982,
+          "system_cpu_ms": 0.9690000000000045
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 1.916334,
+          "user_cpu_ms": 0.6190000000000084,
+          "system_cpu_ms": 0.6479999999999958
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 1.992667,
+          "user_cpu_ms": 0.6170000000000064,
+          "system_cpu_ms": 0.6039999999999934
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 1.971167,
+          "user_cpu_ms": 0.6099999999999994,
+          "system_cpu_ms": 0.6089999999999984
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 1.986083,
+          "user_cpu_ms": 0.6030000000000063,
+          "system_cpu_ms": 0.5980000000000013
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 2.022541,
+          "user_cpu_ms": 0.6180000000000074,
+          "system_cpu_ms": 0.7019999999999943
+        },
+        {
+          "exit": 0,
+          "stdout": "21\n",
+          "stderr": "",
+          "elapsed_ms": 1.9765,
+          "user_cpu_ms": 0.6500000000000117,
+          "system_cpu_ms": 0.6610000000000088
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "21\n",
+        "stderr": "",
+        "elapsed_ms": 2.117917,
+        "user_cpu_ms": 0.6640000000000001,
+        "system_cpu_ms": 0.6999999999999996
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.986083,
+        "min_ms": 1.916334,
+        "max_ms": 2.387042,
+        "median_user_cpu_ms": 0.6180000000000074,
+        "median_system_cpu_ms": 0.6479999999999958
+      }
+    },
+    {
+      "name": "sum-primes/check",
+      "source": "examples/sum-primes.apl",
+      "source_sha256": "fd11a7cb9e7512dcf56a1cdf457c0c4745a5947eadb9e6690fddf450546dbe50",
+      "command": [
+        "target/release/apl",
+        "check",
+        "examples/sum-primes.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.1585,
+          "user_cpu_ms": 0.7349999999999995,
+          "system_cpu_ms": 0.7129999999999983
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.112625,
+          "user_cpu_ms": 0.6530000000000008,
+          "system_cpu_ms": 0.6159999999999985
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.338333,
+          "user_cpu_ms": 0.7679999999999978,
+          "system_cpu_ms": 0.8279999999999954
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.090917,
+          "user_cpu_ms": 0.6400000000000017,
+          "system_cpu_ms": 0.6639999999999979
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.035459,
+          "user_cpu_ms": 0.6410000000000027,
+          "system_cpu_ms": 0.6050000000000083
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.0365,
+          "user_cpu_ms": 0.6639999999999979,
+          "system_cpu_ms": 0.69000000000001
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.218333,
+          "user_cpu_ms": 0.6199999999999956,
+          "system_cpu_ms": 0.7199999999999984
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.998542,
+          "user_cpu_ms": 0.6359999999999977,
+          "system_cpu_ms": 0.5690000000000001
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.971667,
+          "user_cpu_ms": 0.6319999999999937,
+          "system_cpu_ms": 0.6099999999999994
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.15875,
+        "user_cpu_ms": 0.6749999999999998,
+        "system_cpu_ms": 0.631
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.0365,
+        "min_ms": 1.971667,
+        "max_ms": 2.338333,
+        "median_user_cpu_ms": 0.6400000000000017,
+        "median_system_cpu_ms": 0.6639999999999979
+      }
+    },
+    {
+      "name": "sum-primes/eval",
+      "source": "examples/sum-primes.apl",
+      "source_sha256": "fd11a7cb9e7512dcf56a1cdf457c0c4745a5947eadb9e6690fddf450546dbe50",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "examples/sum-primes.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "328\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.1045,
+          "user_cpu_ms": 0.7109999999999999,
+          "system_cpu_ms": 0.6490000000000002
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.276875,
+          "user_cpu_ms": 0.7100000000000023,
+          "system_cpu_ms": 0.7130000000000053
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.264667,
+          "user_cpu_ms": 0.676999999999997,
+          "system_cpu_ms": 0.689000000000002
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 1.988333,
+          "user_cpu_ms": 0.6499999999999978,
+          "system_cpu_ms": 0.5980000000000013
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 1.984375,
+          "user_cpu_ms": 0.6499999999999978,
+          "system_cpu_ms": 0.6469999999999948
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.040167,
+          "user_cpu_ms": 0.6480000000000097,
+          "system_cpu_ms": 0.6209999999999966
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.074417,
+          "user_cpu_ms": 0.6530000000000008,
+          "system_cpu_ms": 0.6919999999999982
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 2.11125,
+          "user_cpu_ms": 0.6659999999999999,
+          "system_cpu_ms": 0.6310000000000066
+        },
+        {
+          "exit": 0,
+          "stdout": "328\n",
+          "stderr": "",
+          "elapsed_ms": 1.990916,
+          "user_cpu_ms": 0.6619999999999959,
+          "system_cpu_ms": 0.6010000000000043
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "328\n",
+        "stderr": "",
+        "elapsed_ms": 2.030125,
+        "user_cpu_ms": 0.6640000000000001,
+        "system_cpu_ms": 0.5789999999999996
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.040167,
+        "min_ms": 1.984375,
+        "max_ms": 2.264667,
+        "median_user_cpu_ms": 0.6530000000000008,
+        "median_system_cpu_ms": 0.6310000000000066
+      }
+    },
+    {
+      "name": "fibonacci/check",
+      "source": "benchmarks/cases/fibonacci.apl",
+      "source_sha256": "c7a7678a8f01c8ec41dc1c0f7964454e8ccfeb233e4d6e064699b5012dbf59e2",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/fibonacci.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.092792,
+          "user_cpu_ms": 0.6819999999999986,
+          "system_cpu_ms": 0.6929999999999992
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.196958,
+          "user_cpu_ms": 0.673,
+          "system_cpu_ms": 0.6419999999999968
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.037958,
+          "user_cpu_ms": 0.677000000000004,
+          "system_cpu_ms": 0.6379999999999997
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.990959,
+          "user_cpu_ms": 0.6319999999999937,
+          "system_cpu_ms": 0.7059999999999983
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.986042,
+          "user_cpu_ms": 0.5980000000000013,
+          "system_cpu_ms": 0.6359999999999977
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.970333,
+          "user_cpu_ms": 0.6199999999999956,
+          "system_cpu_ms": 0.5939999999999973
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.153458,
+          "user_cpu_ms": 0.6459999999999938,
+          "system_cpu_ms": 0.6190000000000084
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.04225,
+          "user_cpu_ms": 0.6219999999999976,
+          "system_cpu_ms": 0.6079999999999974
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.862584,
+          "user_cpu_ms": 0.6020000000000192,
+          "system_cpu_ms": 0.5579999999999891
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.149375,
+        "user_cpu_ms": 0.6760000000000004,
+        "system_cpu_ms": 0.6460000000000008
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.990959,
+        "min_ms": 1.862584,
+        "max_ms": 2.153458,
+        "median_user_cpu_ms": 0.6219999999999976,
+        "median_system_cpu_ms": 0.6190000000000084
+      }
+    },
+    {
+      "name": "fibonacci/eval",
+      "source": "benchmarks/cases/fibonacci.apl",
+      "source_sha256": "c7a7678a8f01c8ec41dc1c0f7964454e8ccfeb233e4d6e064699b5012dbf59e2",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/fibonacci.apl",
+        "--fuel",
+        "1000000"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "2584\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.635042,
+          "user_cpu_ms": 1.0840000000000016,
+          "system_cpu_ms": 0.681000000000001
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.549459,
+          "user_cpu_ms": 1.0840000000000016,
+          "system_cpu_ms": 0.6369999999999987
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.463917,
+          "user_cpu_ms": 1.0980000000000016,
+          "system_cpu_ms": 0.6250000000000006
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.330041,
+          "user_cpu_ms": 1.0360000000000091,
+          "system_cpu_ms": 0.6000000000000033
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.476875,
+          "user_cpu_ms": 1.0459999999999914,
+          "system_cpu_ms": 0.6210000000000104
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.48275,
+          "user_cpu_ms": 1.0899999999999936,
+          "system_cpu_ms": 0.7069999999999993
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.392417,
+          "user_cpu_ms": 1.0370000000000101,
+          "system_cpu_ms": 0.6169999999999926
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.355958,
+          "user_cpu_ms": 1.0490000000000084,
+          "system_cpu_ms": 0.7749999999999979
+        },
+        {
+          "exit": 0,
+          "stdout": "2584\n",
+          "stderr": "",
+          "elapsed_ms": 2.452709,
+          "user_cpu_ms": 1.0699999999999876,
+          "system_cpu_ms": 0.6440000000000057
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "2584\n",
+        "stderr": "",
+        "elapsed_ms": 2.534375,
+        "user_cpu_ms": 1.1669999999999996,
+        "system_cpu_ms": 0.6539999999999992
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.452709,
+        "min_ms": 2.330041,
+        "max_ms": 2.48275,
+        "median_user_cpu_ms": 1.0490000000000084,
+        "median_system_cpu_ms": 0.6250000000000006
+      }
+    },
+    {
+      "name": "sum-squares/check",
+      "source": "benchmarks/cases/sum-squares.apl",
+      "source_sha256": "36537a83e22edca2e1b524b2a352e2381ee5da4f1faf65b76b004444bd53f669",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/sum-squares.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.231083,
+          "user_cpu_ms": 0.6919999999999982,
+          "system_cpu_ms": 0.7719999999999984
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.283333,
+          "user_cpu_ms": 0.6439999999999988,
+          "system_cpu_ms": 0.6659999999999999
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.9925,
+          "user_cpu_ms": 0.6239999999999996,
+          "system_cpu_ms": 0.7049999999999973
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.9755,
+          "user_cpu_ms": 0.6139999999999896,
+          "system_cpu_ms": 0.6049999999999944
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.976875,
+          "user_cpu_ms": 0.6340000000000096,
+          "system_cpu_ms": 0.5799999999999972
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.1685,
+          "user_cpu_ms": 0.6229999999999986,
+          "system_cpu_ms": 0.683000000000003
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.961875,
+          "user_cpu_ms": 0.6279999999999897,
+          "system_cpu_ms": 0.6450000000000067
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.929709,
+          "user_cpu_ms": 0.6250000000000006,
+          "system_cpu_ms": 0.6330000000000086
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.8295,
+          "user_cpu_ms": 0.6110000000000004,
+          "system_cpu_ms": 0.5749999999999922
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 1.936667,
+        "user_cpu_ms": 0.6480000000000001,
+        "system_cpu_ms": 0.5890000000000001
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.9755,
+        "min_ms": 1.8295,
+        "max_ms": 2.1685,
+        "median_user_cpu_ms": 0.6239999999999996,
+        "median_system_cpu_ms": 0.6330000000000086
+      }
+    },
+    {
+      "name": "sum-squares/eval",
+      "source": "benchmarks/cases/sum-squares.apl",
+      "source_sha256": "36537a83e22edca2e1b524b2a352e2381ee5da4f1faf65b76b004444bd53f669",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/sum-squares.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "22140\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 2.596458,
+          "user_cpu_ms": 0.6910000000000006,
+          "system_cpu_ms": 0.9170000000000011
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 2.300708,
+          "user_cpu_ms": 0.6919999999999982,
+          "system_cpu_ms": 0.7339999999999985
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 2.056458,
+          "user_cpu_ms": 0.6629999999999969,
+          "system_cpu_ms": 0.6570000000000048
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 1.898041,
+          "user_cpu_ms": 0.6280000000000036,
+          "system_cpu_ms": 0.5910000000000082
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 2.04125,
+          "user_cpu_ms": 0.6229999999999986,
+          "system_cpu_ms": 0.5899999999999933
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 1.921625,
+          "user_cpu_ms": 0.6190000000000084,
+          "system_cpu_ms": 0.5830000000000002
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 2.003375,
+          "user_cpu_ms": 0.6229999999999986,
+          "system_cpu_ms": 0.5729999999999902
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 1.826875,
+          "user_cpu_ms": 0.6169999999999926,
+          "system_cpu_ms": 0.5639999999999951
+        },
+        {
+          "exit": 0,
+          "stdout": "22140\n",
+          "stderr": "",
+          "elapsed_ms": 1.984666,
+          "user_cpu_ms": 0.6259999999999877,
+          "system_cpu_ms": 0.6110000000000004
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "22140\n",
+        "stderr": "",
+        "elapsed_ms": 1.943292,
+        "user_cpu_ms": 0.6579999999999997,
+        "system_cpu_ms": 0.627
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.984666,
+        "min_ms": 1.826875,
+        "max_ms": 2.056458,
+        "median_user_cpu_ms": 0.6229999999999986,
+        "median_system_cpu_ms": 0.5899999999999933
+      }
+    },
+    {
+      "name": "short-circuit/check",
+      "source": "benchmarks/cases/short-circuit.apl",
+      "source_sha256": "0d0a561c1c5217c6389263f48dcdf73fd83ce9fe129162a77044dfce114f9870",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/short-circuit.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.155917,
+          "user_cpu_ms": 0.6320000000000006,
+          "system_cpu_ms": 0.6519999999999998
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.310833,
+          "user_cpu_ms": 0.688000000000001,
+          "system_cpu_ms": 0.7170000000000023
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.980208,
+          "user_cpu_ms": 0.681000000000001,
+          "system_cpu_ms": 0.6289999999999976
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.969459,
+          "user_cpu_ms": 0.6170000000000064,
+          "system_cpu_ms": 0.5859999999999963
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.950625,
+          "user_cpu_ms": 0.6189999999999946,
+          "system_cpu_ms": 0.6140000000000034
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.829334,
+          "user_cpu_ms": 0.6019999999999914,
+          "system_cpu_ms": 0.5610000000000059
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.937709,
+          "user_cpu_ms": 0.6110000000000004,
+          "system_cpu_ms": 0.6250000000000006
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.869083,
+          "user_cpu_ms": 0.6059999999999954,
+          "system_cpu_ms": 0.5789999999999962
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.021542,
+          "user_cpu_ms": 0.6130000000000024,
+          "system_cpu_ms": 0.6140000000000034
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.045458,
+        "user_cpu_ms": 0.6579999999999997,
+        "system_cpu_ms": 0.6710000000000006
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.950625,
+        "min_ms": 1.829334,
+        "max_ms": 2.021542,
+        "median_user_cpu_ms": 0.6130000000000024,
+        "median_system_cpu_ms": 0.6140000000000034
+      }
+    },
+    {
+      "name": "short-circuit/eval",
+      "source": "benchmarks/cases/short-circuit.apl",
+      "source_sha256": "0d0a561c1c5217c6389263f48dcdf73fd83ce9fe129162a77044dfce114f9870",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/short-circuit.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "42\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.038166,
+          "user_cpu_ms": 0.6259999999999981,
+          "system_cpu_ms": 0.6649999999999989
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.230375,
+          "user_cpu_ms": 0.669999999999997,
+          "system_cpu_ms": 0.68
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.134208,
+          "user_cpu_ms": 0.6359999999999977,
+          "system_cpu_ms": 0.6320000000000006
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.123791,
+          "user_cpu_ms": 0.66999999999999,
+          "system_cpu_ms": 0.7269999999999985
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 1.918125,
+          "user_cpu_ms": 0.6140000000000034,
+          "system_cpu_ms": 0.5860000000000032
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 1.983083,
+          "user_cpu_ms": 0.6330000000000086,
+          "system_cpu_ms": 0.6209999999999966
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 1.899917,
+          "user_cpu_ms": 0.6010000000000043,
+          "system_cpu_ms": 0.5570000000000019
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.041333,
+          "user_cpu_ms": 0.6190000000000084,
+          "system_cpu_ms": 0.6000000000000033
+        },
+        {
+          "exit": 0,
+          "stdout": "42\n",
+          "stderr": "",
+          "elapsed_ms": 2.038083,
+          "user_cpu_ms": 0.6050000000000222,
+          "system_cpu_ms": 0.5670000000000119
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "42\n",
+        "stderr": "",
+        "elapsed_ms": 2.218208,
+        "user_cpu_ms": 0.6779999999999998,
+        "system_cpu_ms": 0.6630000000000004
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.038083,
+        "min_ms": 1.899917,
+        "max_ms": 2.134208,
+        "median_user_cpu_ms": 0.6190000000000084,
+        "median_system_cpu_ms": 0.6000000000000033
+      }
+    },
+    {
+      "name": "many-functions/check",
+      "source": "benchmarks/cases/many-functions.apl",
+      "source_sha256": "fbe5f781d4ce3c89fdf15c3f470eca751813a63d2577f1b03fd6eec5179e3e27",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/many-functions.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.631375,
+          "user_cpu_ms": 0.9390000000000023,
+          "system_cpu_ms": 0.7410000000000021
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.661833,
+          "user_cpu_ms": 0.8780000000000038,
+          "system_cpu_ms": 0.7430000000000005
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.468458,
+          "user_cpu_ms": 0.8610000000000007,
+          "system_cpu_ms": 0.6639999999999979
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.274917,
+          "user_cpu_ms": 0.8380000000000054,
+          "system_cpu_ms": 0.6180000000000005
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.16175,
+          "user_cpu_ms": 0.8299999999999974,
+          "system_cpu_ms": 0.6120000000000014
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.190458,
+          "user_cpu_ms": 0.8179999999999993,
+          "system_cpu_ms": 0.6280000000000036
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.160083,
+          "user_cpu_ms": 0.8279999999999954,
+          "system_cpu_ms": 0.6180000000000074
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.215708,
+          "user_cpu_ms": 0.8319999999999994,
+          "system_cpu_ms": 0.6909999999999972
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.19175,
+          "user_cpu_ms": 0.8269999999999944,
+          "system_cpu_ms": 0.6349999999999967
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.3,
+        "user_cpu_ms": 0.8520000000000003,
+        "system_cpu_ms": 0.6689999999999995
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.19175,
+        "min_ms": 2.160083,
+        "max_ms": 2.468458,
+        "median_user_cpu_ms": 0.8299999999999974,
+        "median_system_cpu_ms": 0.6280000000000036
+      }
+    },
+    {
+      "name": "many-functions/eval",
+      "source": "benchmarks/cases/many-functions.apl",
+      "source_sha256": "fbe5f781d4ce3c89fdf15c3f470eca751813a63d2577f1b03fd6eec5179e3e27",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/many-functions.apl"
+      ],
+      "expected": {
+        "exit": 0,
+        "stdout": "202\n"
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.622833,
+          "user_cpu_ms": 0.8819999999999973,
+          "system_cpu_ms": 0.7409999999999985
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.458625,
+          "user_cpu_ms": 0.8620000000000017,
+          "system_cpu_ms": 0.688000000000001
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.288167,
+          "user_cpu_ms": 0.8700000000000028,
+          "system_cpu_ms": 0.7390000000000035
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.160709,
+          "user_cpu_ms": 0.8229999999999973,
+          "system_cpu_ms": 0.675999999999996
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.22625,
+          "user_cpu_ms": 0.8299999999999974,
+          "system_cpu_ms": 0.6670000000000009
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.304542,
+          "user_cpu_ms": 0.8240000000000053,
+          "system_cpu_ms": 0.6659999999999999
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.265625,
+          "user_cpu_ms": 0.8290000000000103,
+          "system_cpu_ms": 0.6339999999999957
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 2.097792,
+          "user_cpu_ms": 0.8090000000000042,
+          "system_cpu_ms": 0.6150000000000044
+        },
+        {
+          "exit": 0,
+          "stdout": "202\n",
+          "stderr": "",
+          "elapsed_ms": 3.6415,
+          "user_cpu_ms": 0.8219999999999894,
+          "system_cpu_ms": 0.8149999999999824
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "202\n",
+        "stderr": "",
+        "elapsed_ms": 2.370334,
+        "user_cpu_ms": 0.8479999999999998,
+        "system_cpu_ms": 0.697999999999999
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 2.265625,
+        "min_ms": 2.097792,
+        "max_ms": 3.6415,
+        "median_user_cpu_ms": 0.8240000000000053,
+        "median_system_cpu_ms": 0.6670000000000009
+      }
+    },
+    {
+      "name": "overflow/check",
+      "source": "benchmarks/cases/overflow.apl",
+      "source_sha256": "766be8848c4cbfb0120de9f40ef62b532300ba01de139076934ed4ced14805d9",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/overflow.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.910625,
+          "user_cpu_ms": 0.6120000000000014,
+          "system_cpu_ms": 0.6260000000000016
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.169583,
+          "user_cpu_ms": 0.7059999999999983,
+          "system_cpu_ms": 0.7230000000000014
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.059834,
+          "user_cpu_ms": 0.6499999999999978,
+          "system_cpu_ms": 0.6279999999999966
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.922208,
+          "user_cpu_ms": 0.6180000000000005,
+          "system_cpu_ms": 0.5889999999999993
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.919292,
+          "user_cpu_ms": 0.6140000000000034,
+          "system_cpu_ms": 0.5999999999999894
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.846958,
+          "user_cpu_ms": 0.6029999999999924,
+          "system_cpu_ms": 0.5559999999999871
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.036625,
+          "user_cpu_ms": 0.5970000000000003,
+          "system_cpu_ms": 0.6089999999999984
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.992791,
+          "user_cpu_ms": 0.6099999999999994,
+          "system_cpu_ms": 0.6189999999999946
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.222667,
+          "user_cpu_ms": 0.6970000000000032,
+          "system_cpu_ms": 0.6680000000000019
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.07075,
+        "user_cpu_ms": 0.6309999999999996,
+        "system_cpu_ms": 0.5970000000000003
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.992791,
+        "min_ms": 1.846958,
+        "max_ms": 2.222667,
+        "median_user_cpu_ms": 0.6140000000000034,
+        "median_system_cpu_ms": 0.6089999999999984
+      }
+    },
+    {
+      "name": "overflow/eval",
+      "source": "benchmarks/cases/overflow.apl",
+      "source_sha256": "766be8848c4cbfb0120de9f40ef62b532300ba01de139076934ed4ced14805d9",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/overflow.apl"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout": "",
+        "stderr_contains": "arithmetic_overflow"
+      },
+      "warmups": [
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.9125,
+          "user_cpu_ms": 0.6290000000000011,
+          "system_cpu_ms": 0.5830000000000002
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 2.123166,
+          "user_cpu_ms": 0.682999999999996,
+          "system_cpu_ms": 0.68
+        }
+      ],
+      "samples": [
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.910041,
+          "user_cpu_ms": 0.6239999999999996,
+          "system_cpu_ms": 0.5860000000000032
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 2.072375,
+          "user_cpu_ms": 0.6320000000000006,
+          "system_cpu_ms": 0.6570000000000048
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.98,
+          "user_cpu_ms": 0.6239999999999996,
+          "system_cpu_ms": 0.683000000000003
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.888083,
+          "user_cpu_ms": 0.6209999999999966,
+          "system_cpu_ms": 0.5840000000000012
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.88925,
+          "user_cpu_ms": 0.6139999999999896,
+          "system_cpu_ms": 0.5949999999999983
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 1.875083,
+          "user_cpu_ms": 0.6269999999999887,
+          "system_cpu_ms": 0.5720000000000031
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+          "elapsed_ms": 2.165333,
+          "user_cpu_ms": 0.6289999999999907,
+          "system_cpu_ms": 0.6120000000000014
+        }
+      ],
+      "preflight": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "benchmarks/cases/overflow.apl:2:20: error: arithmetic_overflow\n",
+        "elapsed_ms": 2.829292,
+        "user_cpu_ms": 0.9259999999999997,
+        "system_cpu_ms": 0.9650000000000005
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.910041,
+        "min_ms": 1.875083,
+        "max_ms": 2.165333,
+        "median_user_cpu_ms": 0.6239999999999996,
+        "median_system_cpu_ms": 0.5949999999999983
+      }
+    },
+    {
+      "name": "division-by-zero/check",
+      "source": "benchmarks/cases/division-by-zero.apl",
+      "source_sha256": "9c203e9680ed10a88e769fb1211d1df7bb52e50cc4ac62a2ef68e7686ce0f431",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/division-by-zero.apl"
+      ],
+      "expected": {
+        "exit": 0
+      },
+      "warmups": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.1435,
+          "user_cpu_ms": 0.7039999999999997,
+          "system_cpu_ms": 0.6969999999999997
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.016458,
+          "user_cpu_ms": 0.6530000000000008,
+          "system_cpu_ms": 0.6199999999999956
+        }
+      ],
+      "samples": [
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.927417,
+          "user_cpu_ms": 0.6130000000000024,
+          "system_cpu_ms": 0.5959999999999993
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.002458,
+          "user_cpu_ms": 0.6200000000000025,
+          "system_cpu_ms": 0.5799999999999972
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.905917,
+          "user_cpu_ms": 0.6020000000000053,
+          "system_cpu_ms": 0.5959999999999993
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.889542,
+          "user_cpu_ms": 0.6040000000000073,
+          "system_cpu_ms": 0.5780000000000091
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.983125,
+          "user_cpu_ms": 0.6200000000000094,
+          "system_cpu_ms": 0.6310000000000066
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 2.034416,
+          "user_cpu_ms": 0.6110000000000004,
+          "system_cpu_ms": 0.6089999999999984
+        },
+        {
+          "exit": 0,
+          "stdout": "",
+          "stderr": "",
+          "elapsed_ms": 1.901666,
+          "user_cpu_ms": 0.6030000000000202,
+          "system_cpu_ms": 0.5819999999999992
+        }
+      ],
+      "preflight": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": "",
+        "elapsed_ms": 2.334292,
+        "user_cpu_ms": 0.7280000000000012,
+        "system_cpu_ms": 0.7919999999999993
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.927417,
+        "min_ms": 1.889542,
+        "max_ms": 2.034416,
+        "median_user_cpu_ms": 0.6110000000000004,
+        "median_system_cpu_ms": 0.5959999999999993
+      }
+    },
+    {
+      "name": "division-by-zero/eval",
+      "source": "benchmarks/cases/division-by-zero.apl",
+      "source_sha256": "9c203e9680ed10a88e769fb1211d1df7bb52e50cc4ac62a2ef68e7686ce0f431",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/division-by-zero.apl"
+      ],
+      "expected": {
+        "exit": 2,
+        "stdout": "",
+        "stderr_contains": "division_by_zero"
+      },
+      "warmups": [
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 2.582583,
+          "user_cpu_ms": 0.7390000000000001,
+          "system_cpu_ms": 0.8459999999999995
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 2.248625,
+          "user_cpu_ms": 0.7070000000000027,
+          "system_cpu_ms": 0.6850000000000016
+        }
+      ],
+      "samples": [
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 1.933042,
+          "user_cpu_ms": 0.6369999999999987,
+          "system_cpu_ms": 0.6059999999999954
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 1.958959,
+          "user_cpu_ms": 0.6419999999999968,
+          "system_cpu_ms": 0.6180000000000005
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 1.829625,
+          "user_cpu_ms": 0.6059999999999954,
+          "system_cpu_ms": 0.5760000000000071
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 1.91975,
+          "user_cpu_ms": 0.6110000000000004,
+          "system_cpu_ms": 0.6400000000000017
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 1.998375,
+          "user_cpu_ms": 0.6239999999999996,
+          "system_cpu_ms": 0.5840000000000012
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 2.0335,
+          "user_cpu_ms": 0.6180000000000074,
+          "system_cpu_ms": 0.5770000000000081
+        },
+        {
+          "exit": 2,
+          "stdout": "",
+          "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+          "elapsed_ms": 2.062416,
+          "user_cpu_ms": 0.6579999999999919,
+          "system_cpu_ms": 0.6130000000000024
+        }
+      ],
+      "preflight": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "benchmarks/cases/division-by-zero.apl:2:21: error: division_by_zero\n",
+        "elapsed_ms": 2.104,
+        "user_cpu_ms": 0.6549999999999994,
+        "system_cpu_ms": 0.6829999999999996
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.958959,
+        "min_ms": 1.829625,
+        "max_ms": 2.062416,
+        "median_user_cpu_ms": 0.6239999999999996,
+        "median_system_cpu_ms": 0.6059999999999954
+      }
+    },
+    {
+      "name": "invalid-unused/check",
+      "source": "benchmarks/cases/invalid-unused.apl",
+      "source_sha256": "299a2c15cb5c82ebaade0db3e8b6be8c382a74be676cb3d285762032da21d304",
+      "command": [
+        "target/release/apl",
+        "check",
+        "benchmarks/cases/invalid-unused.apl"
+      ],
+      "expected": {
+        "exit": 1,
+        "stdout": ""
+      },
+      "warmups": [
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.485292,
+          "user_cpu_ms": 0.6989999999999983,
+          "system_cpu_ms": 0.8699999999999992
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.148167,
+          "user_cpu_ms": 0.6570000000000014,
+          "system_cpu_ms": 0.6689999999999995
+        }
+      ],
+      "samples": [
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.04725,
+          "user_cpu_ms": 0.6390000000000007,
+          "system_cpu_ms": 0.6180000000000005
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.987542,
+          "user_cpu_ms": 0.6580000000000058,
+          "system_cpu_ms": 0.6260000000000016
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.86875,
+          "user_cpu_ms": 0.6059999999999954,
+          "system_cpu_ms": 0.5830000000000002
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.95375,
+          "user_cpu_ms": 0.6139999999999896,
+          "system_cpu_ms": 0.6099999999999994
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.989375,
+          "user_cpu_ms": 0.6309999999999927,
+          "system_cpu_ms": 0.6670000000000009
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.930709,
+          "user_cpu_ms": 0.6120000000000014,
+          "system_cpu_ms": 0.5840000000000012
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.00875,
+          "user_cpu_ms": 0.6069999999999964,
+          "system_cpu_ms": 0.5840000000000012
+        }
+      ],
+      "preflight": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+        "elapsed_ms": 2.431583,
+        "user_cpu_ms": 0.6820000000000003,
+        "system_cpu_ms": 1.006
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.987542,
+        "min_ms": 1.86875,
+        "max_ms": 2.04725,
+        "median_user_cpu_ms": 0.6139999999999896,
+        "median_system_cpu_ms": 0.6099999999999994
+      }
+    },
+    {
+      "name": "invalid-unused/eval",
+      "source": "benchmarks/cases/invalid-unused.apl",
+      "source_sha256": "299a2c15cb5c82ebaade0db3e8b6be8c382a74be676cb3d285762032da21d304",
+      "command": [
+        "target/release/apl",
+        "eval",
+        "benchmarks/cases/invalid-unused.apl"
+      ],
+      "expected": {
+        "exit": 1,
+        "stdout": ""
+      },
+      "warmups": [
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.318625,
+          "user_cpu_ms": 0.7080000000000003,
+          "system_cpu_ms": 0.723999999999999
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.207458,
+          "user_cpu_ms": 0.723999999999999,
+          "system_cpu_ms": 0.7200000000000019
+        }
+      ],
+      "samples": [
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.890791,
+          "user_cpu_ms": 0.6180000000000005,
+          "system_cpu_ms": 0.6230000000000055
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.065041,
+          "user_cpu_ms": 0.6269999999999956,
+          "system_cpu_ms": 0.6139999999999965
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.958167,
+          "user_cpu_ms": 0.6080000000000113,
+          "system_cpu_ms": 0.5879999999999913
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.905208,
+          "user_cpu_ms": 0.6260000000000016,
+          "system_cpu_ms": 0.6229999999999986
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 1.912208,
+          "user_cpu_ms": 0.6040000000000073,
+          "system_cpu_ms": 0.6099999999999994
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.073667,
+          "user_cpu_ms": 0.6039999999999934,
+          "system_cpu_ms": 0.5869999999999903
+        },
+        {
+          "exit": 1,
+          "stdout": "",
+          "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+          "elapsed_ms": 2.025208,
+          "user_cpu_ms": 0.6069999999999964,
+          "system_cpu_ms": 0.6220000000000114
+        }
+      ],
+      "preflight": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "benchmarks/cases/invalid-unused.apl:2:22: error: expected i64, found bool\nbenchmarks/cases/invalid-unused.apl:2:16: note: function result declared here\n",
+        "elapsed_ms": 1.985708,
+        "user_cpu_ms": 0.6409999999999992,
+        "system_cpu_ms": 0.6260000000000016
+      },
+      "summary": {
+        "count": 7,
+        "median_ms": 1.958167,
+        "min_ms": 1.890791,
+        "max_ms": 2.073667,
+        "median_user_cpu_ms": 0.6080000000000113,
+        "median_system_cpu_ms": 0.6139999999999965
+      }
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 # APL architectural overview
 
-Status: design proposal, pending technical review.
-This document selects an implementation direction. It does not claim implemented
-features, soundness proofs, benchmark results, or release readiness.
+Status: architecture for the complete language, with an implemented M1 scalar
+checker/interpreter and a mechanized expression subset. Later compiler, runtime,
+verification, and ecosystem sections describe planned capabilities. This bounded
+M1 implementation and theorem coverage leave the complete-language release
+requirements open.
 
 The [decision records](decisions.md) summarize alternatives and proof obligations.
 The [bibliography](../research/bibliography.md) lists the supporting literature.
@@ -66,6 +68,15 @@ The core bounds the first implementation and proof task. It is not the planned
 release feature set. Native compilation, contracts, mutable data, memory and
 concurrency extend the same semantic framework in later increments.
 
+The current Rust CLI implements `check`, `eval`, `dump-core`, and `eval-core`.
+It checks every function, interprets checked source, and independently validates
+imported [core JSON](../../spec/core-format.md). [Getting started](../getting-started.md)
+provides build/run commands and executable examples. Lean's
+[proof inventory](../../formal/PROOFS.md) records expression typing, preservation,
+progress, and finite evaluator correspondence. Recursive programs have executable
+conformance coverage and mathematical call semantics; FM-05 call safety and
+correspondence proofs remain open. No theorem proves the Rust implementation.
+
 ## Compiler and formal-methods architecture
 
 ```mermaid
@@ -83,6 +94,10 @@ flowchart TD
   Native --> Link[Linker and runtime]
   Link --> Program[Native executable]
 ```
+
+The source frontend, typed core, Rust evaluator, and Lean model exist today.
+Ownership/effects, verification obligations, MIR, native code generation, and
+runtime linking remain planned stages of this pipeline.
 
 Rust implements the production frontend and toolchain. Lean independently models
 semantics and checks metatheory. This separation supports independent comparison
@@ -195,6 +210,6 @@ review and a requirement ledger that keeps every missing release capability open
 
 Every improvement cycle states a hypothesis and baseline, implements a language
 capability, checks affected proofs and regressions, measures relevant outcomes and
-integrates only accepted changes. The first baseline is an empty implementation;
-it supports no claim of speedup. The first useful result is source that can be
-parsed, rejected when ill-typed, and executed according to the defined core.
+integrates only accepted changes. The [current baseline](../../benchmarks/README.md)
+measures local release-CLI checking and interpretation with explicit outcome
+checks. It is an initial measurement, not a speedup or native-performance claim.
