@@ -146,12 +146,12 @@ private theorem mShort_embed : mShort op (embed v) = shortCircuit op v := by
   cases op <;> cases v <;> try rfl
   all_goals cases ‹Bool› <;> rfl
 
-private theorem short_guard (h : Denotes model a v) :
+theorem short_guard (h : Denotes model a v) :
     (shortGuard op a).Holds model ↔ shortCircuit op v = true := by
   cases op <;> cases v <;> simp_all [shortGuard, Formula.Holds, SymTerm.eval, Denotes, embed, mUnary, shortCircuit]
   all_goals cases ‹Bool› <;> rfl
 
-private theorem not_shortable (h : shortable op = false) : shortCircuit op v = false := by
+theorem not_shortable (h : shortable op = false) : shortCircuit op v = false := by
   cases op <;> cases v <;> simp_all [shortable, shortCircuit]
 
 private theorem sym_unary_eval (h : Denotes model a v) :
@@ -309,7 +309,7 @@ theorem EnvRep.lookup {i : Nat} (h : EnvRep model syms env) (hs : syms[i]? = som
     | zero => simp at hs; subst s; exact ⟨_, rfl, hv⟩
     | succ i => exact ih hs
 
-private theorem unary_wp_sound (h : unaryWP op a post = some formula)
+theorem unary_wp_sound (h : unaryWP op a post = some formula)
     (hf : formula.Holds model) (ha : Denotes model a v) :
     Safe (PostHolds model post) (Program.liftResult (unary op v) fuel) := by
   simp only [unaryWP, bind, Option.bind_eq_some_iff, Option.pure_def] at h
@@ -319,7 +319,7 @@ private theorem unary_wp_sound (h : unaryWP op a post = some formula)
   rw [hr]
   exact ⟨.unary op a, q, hq, hf.2, hd⟩
 
-private theorem binary_wp_sound (h : binaryWP op a b post = some formula)
+theorem binary_wp_sound (h : binaryWP op a b post = some formula)
     (hf : formula.Holds model) (ha : Denotes model a va) (hb : Denotes model b vb)
     (hs : shortCircuit op va = false) :
     Safe (PostHolds model post) (Program.liftResult (binary op va vb) fuel) := by

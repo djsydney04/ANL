@@ -77,7 +77,7 @@ private theorem env_append (ha : EnvRep model a va) (hb : EnvRep model b vb) :
   | nil => exact hb
   | cons h _ ih => exact .cons h ih
 
-private theorem env_reverse (h : EnvRep model syms env) : EnvRep model syms.reverse env.reverse := by
+theorem env_reverse (h : EnvRep model syms env) : EnvRep model syms.reverse env.reverse := by
   induction h with
   | nil => exact .nil
   | cons h _ ih => simpa only [List.reverse_cons] using env_append ih (.cons h .nil)
@@ -157,7 +157,7 @@ def Accepted (types : List Ty) (vc : ContractVC) : Prop :=
   (∀ params : Env, params.map Val.type = types → vc.requiresTruth.Holds (modelOf params) →
     vc.body.Holds (modelOf params))
 
-private theorem typed_parameters_rep {params : Env} (h : params.map Val.type = types) :
+theorem typed_parameters_rep {params : Env} (h : params.map Val.type = types) :
     EnvRep (modelOf params) (parameterSymbols types.length) params := by
   have hlen := congrArg List.length h
   simp only [List.length_map] at hlen

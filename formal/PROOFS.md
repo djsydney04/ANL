@@ -214,10 +214,73 @@ constant-true postcondition expresses the arithmetic-safety-only case.
 | `APL.VCG.contract_steps_no_invalid` | Under those contract assumptions, no finite relation reduction reaches invalid. |
 
 These theorems cover all call-free scalar term constructors and the specified
-mathematical contract grammar. They do not certify acyclic inlining, callee
-precondition obligations, decomposition into named conditions, the Rust VCG,
-source-contract erasure, SMT translation or the solver. Full FM-07 remains
-partial. The runtime semantic revision and all prior 44 theorems are unchanged.
+mathematical contract grammar. The call-aware extension below reuses their
+primitive and specification proofs. All original 61 theorem statements and the
+runtime semantic revision are unchanged.
+
+## Finite call-expansion verification conditions
+
+`wpCalls fs calleePreconditions height e syms post` generates formulas by expanding
+actual function bodies. `height` bounds the expanded syntax tree and decreases
+at each term constructor. It is neither evaluator depth nor execution fuel.
+Successful generation is an explicit theorem premise. The generator returns
+`none` when the bound is exhausted, a function is missing, argument arity differs,
+a symbolic local is missing, or a specification reference cannot be instantiated.
+Both branches and short-circuit operands must generate successfully, even when
+one is not executed. Formula truth still guards their runtime obligations.
+
+`wpArguments` threads argument continuations in source order under the caller's
+symbolic environment. `invokeWP` binds the resulting symbols to the declared
+callee parameters, inserts ordered precondition definedness and full truth, and
+expands the callee body under the reversed symbols. The caller's lexical locals
+do not enter that callee environment. Body expansion proves safety directly and
+does not assume a callee postcondition or any prior execution-safety theorem.
+The ordered `requiresVC` rules apply unchanged, so a clause cannot justify its
+own definedness or use a later clause to justify it.
+
+`generateCallsContract` uses the same independent `Spec` interpretation and
+`Accepted` predicate as the call-free wrapper. Its body formula comes from
+`wpCalls`. Every theorem below quantifies over the actual function and precondition
+tables used during generation. Resource exhaustion remains allowed, and the
+finite-reduction conclusions use the existing evaluator completeness theorems.
+
+| Theorem | Quantified statement and assumptions |
+| --- | --- |
+| `APL.VCG.short_guard` | A symbol denoting a runtime value satisfies the generated short-circuit guard exactly when the runtime operator short-circuits. |
+| `APL.VCG.not_shortable` | An operator outside Boolean conjunction and disjunction never short-circuits. |
+| `APL.VCG.unary_wp_sound` | Successful primitive unary VC generation, formula validity and an operand denotation imply a safe actual primitive result with a postcondition witness. |
+| `APL.VCG.binary_wp_sound` | The corresponding binary statement, additionally assuming the runtime operator does not short-circuit. |
+| `APL.VCG.env_reverse` | Reversing related symbolic and concrete environments preserves `EnvRep`. |
+| `APL.VCG.typed_parameters_rep` | Typed concrete parameter values are represented by the canonical parameter symbols under their own model. |
+| `APL.VCG.invokeWP_preconditions` | Successful invocation-formula generation, related argument symbols and values, and formula validity imply ordered callee precondition definedness and full truth under those concrete arguments. |
+| `APL.VCG.wpCalls_eval_sound` | Successful finite-height generation, related input environments and formula validity imply `Safe (PostHolds model post)` for actual `Program.eval fs depth env e fuel` at every execution depth and fuel. No assumed program safety or termination. |
+| `APL.VCG.wpCalls_value` | Under those generation, representation and validity premises, any actual returned value satisfies `PostHolds`. |
+| `APL.VCG.wpCalls_no_trap` | Under those premises, actual evaluation cannot return an arithmetic trap. |
+| `APL.VCG.wpCalls_no_invalid` | Under those premises, actual evaluation cannot return invalid. |
+| `APL.VCG.wpCalls_steps_value` | Under those premises, any finite `Program.Steps` reduction to `ret v []` satisfies `PostHolds`. |
+| `APL.VCG.wpCalls_steps_no_trap` | Under those premises, no finite relation reduction reaches an arithmetic trap. |
+| `APL.VCG.wpCalls_steps_no_invalid` | Under those premises, no finite relation reduction reaches invalid. |
+| `APL.VCG.calls_contract_eval_sound` | Successful call-aware contract generation, `Accepted`, typed parameters and true entry preconditions imply that actual evaluation returns a value satisfying the independent specification or reaches a resource limit. |
+| `APL.VCG.calls_contract_preconditions_defined` | Successful call-aware generation and `Accepted` imply ordered entry precondition definedness for every typed parameter environment. |
+| `APL.VCG.calls_contract_nonvacuous` | Successful call-aware generation and `Accepted` imply a typed environment satisfying entry preconditions. |
+| `APL.VCG.calls_contract_steps_value` | Under the call-aware contract theorem's premises, every finite returned value satisfies the independent postcondition specification. |
+| `APL.VCG.calls_contract_steps_no_trap` | Under those contract premises, no finite reduction reaches an arithmetic trap. |
+| `APL.VCG.calls_contract_steps_no_invalid` | Under those contract premises, no finite reduction reaches invalid. |
+
+The first six entries expose existing supporting lemmas without changing their
+statements. Kernel-checked examples cover nested calls, declared `bool`, `i64` and
+`unit` argument order and reversed runtime locals, accepted nonvacuous entry contracts,
+left-to-right argument traps even when the callee ignores those arguments, false
+and undefined callee preconditions in both clause orders, missing functions in
+unselected branches, wrong arity, forbidden result references in preconditions,
+recursive expansion exhaustion, and a zero expansion bound.
+
+This establishes soundness of the finite symbolic expansion generator. It does
+not certify a source call-graph checker, prove that every acyclic source program
+has a sufficient expansion bound, or establish equivalence with a separate
+syntax-inlining transformation. Named-condition decomposition, Rust generation,
+source-contract erasure, SMT translation and solver evidence remain unproved.
+Full FM-07 remains partial.
 
 ## Axiom dependencies and trust
 
@@ -225,13 +288,14 @@ The original expression `infer_complete`, `infer_sound`, and `type_unique`
 theorems use exactly `propext` and `Quot.sound`; the other expression theorems
 use exactly `propext`. Every inventoried program theorem uses exactly `propext`
 and `Quot.sound`, except `Program.resume_typed`, which uses only `propext`.
-The VCG theorems use `propext` and `Quot.sound`, except `VCG.EnvRep.lookup`,
-which uses only `propext`. None currently uses `Classical.choice`, although the project policy permits it. No project axiom, incomplete proof, native-evaluation trust
-axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
+The VCG audit reports each theorem's transitive dependencies, which are confined
+to `propext` and `Quot.sound`. None currently uses `Classical.choice`, although the
+project policy permits it. No project axiom, incomplete proof, native-evaluation
+trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 61 inventoried names are included.
+Its allowable set is explicit, and all 81 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -250,9 +314,10 @@ checker's soundness theorem does not prove the Rust frontend, checker, serialize
 or either JSON adapter correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
-FM-07 is partial: the concrete call-free generator and contract-logic soundness
-foundation above are checked. Acyclic inlining preservation, callee precondition
-insertion, named-condition decomposition and the production/SMT/solver bridges
+FM-07 is partial: the call-free and finite call-expansion generators, ordered
+callee precondition obligations, and contract soundness above are checked. Source
+call-graph validation, acyclic expansion completeness, separate syntax-inlining
+preservation, named-condition decomposition and the production/SMT/solver bridges
 remain open. Runtime verification reports therefore remain solver-trusted.
 
 FM-08 is not implemented here. There is no optimization/lowering theorem, native

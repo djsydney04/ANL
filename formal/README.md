@@ -6,9 +6,9 @@ inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
 functions. Finite evaluator correspondence is proved in both directions for
 scalar expressions and recursive programs. Program completeness establishes the
-existence of sufficient depth and fuel for a given finite reduction. A separate
-call-free verification-condition generator proves contract postconditions and
-trap freedom from interpreted logical obligations.
+existence of sufficient depth and fuel for a given finite reduction. Separate
+verification-condition generators prove contract postconditions and trap freedom from interpreted logical obligations for call-free terms and
+finite symbolic expansion of function bodies with callee preconditions.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
@@ -140,6 +140,12 @@ language behavior; they do not establish divergence or type safety.
   include increment and heterogeneous-parameter contracts, rejected
   contradictory/undefined preconditions, discarded overflow, the remainder
   overflow pair, and guarded division.
+- `APL/VCGCalls.lean` extends the generator with ordered arguments, callee
+  preconditions, and expansion of actual function bodies. Its soundness theorem
+  covers the unchanged evaluator at any execution budget and finite reductions.
+  `APL/VCGCallsExamples.lean` checks nested calls with mixed parameter types,
+  argument trap order, rejected undefined or false preconditions, missing
+  functions, wrong arity, and exhausted expansion bounds.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
   and strict interchange. The total program inference function is proved against
   declarative typing; the JSON adapter and executable compilation remain trusted
@@ -150,13 +156,21 @@ language behavior; they do not establish divergence or type safety.
   deterministic generated terms and source-to-core recursive cases when Rust
   comparison is enabled.
 
-The FM-07 foundation covers call-free bodies and one postcondition at a time;
-absence of a requested postcondition can use `true`. Calls are rejected, including
-in unselected branches. Acyclic call expansion, callee precondition insertion,
-named-condition decomposition, Rust generation, SMT encoding and solver evidence
-are not certified by these proofs. The model's `Accepted` predicate means the
-logical obligations hold and a typed satisfying input exists; it is not a theorem
-that a solver response establishes those facts. Runtime contracts remain erased.
+The FM-07 foundation checks one postcondition at a time; absence of a requested
+postcondition can use `true`. The original generator rejects calls. The call-aware
+generator accepts only when symbolic expansion succeeds within a supplied tree
+height, including both conditional branches and short-circuit operands. The bound
+is independent of evaluator depth and fuel. At each call it checks lookup and
+arity, inserts ordered callee precondition definedness and truth, and expands the
+actual body under reversed argument symbols. Callee postconditions are not assumed.
+
+This proves the Lean expansion generator sound when it succeeds. It does not
+prove a source call-graph checker, that every acyclic source program has a
+sufficient expansion bound, or equivalence with a separate syntax-inlining pass.
+Named-condition decomposition, Rust generation, source-contract erasure, SMT
+encoding and solver evidence remain outside these proofs. `Accepted` means the
+logical obligations hold and a typed satisfying input exists; a solver response
+is not itself a proof of those facts. Runtime contracts remain erased.
 
 The exact theorem statements, assumptions, and coverage are recorded in the
 [proof inventory](PROOFS.md). These proofs concern the Lean model. They do not
