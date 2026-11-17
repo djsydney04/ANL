@@ -1,4 +1,6 @@
-# Initial CLI capability and latency baseline
+# Performance baselines
+
+## Initial interpreter CLI baseline
 
 This harness records the wall-clock time a user waits for `apl check` or
 `apl eval`: process launch, source-file reading, parsing, checking, and optional
@@ -43,3 +45,30 @@ performance, memory efficiency, formal correctness, or full-language capability.
 The checked-in result and accompanying notes record the actual local run. CI
 checks correctness of the harness but does not impose machine-dependent latency
 thresholds.
+
+## Native build and execution baseline
+
+The native harness measures `apl build`, warmed generated executables, and the
+release interpreter against the same explicit output oracles. It covers a
+constant control, the three-file module example, and two branching Fibonacci
+inputs. Read the [macOS arm64 result](results/native-macos-arm64.md) for actual
+medians/ranges, linked-binary evidence that recursion remains, separate profiles,
+first-launch observations, and limitations.
+
+```sh
+python3 -m unittest discover -s benchmarks -p 'test_*.py'
+python3 benchmarks/native.py --revision 19d726c --warmup 2 --samples 7 \
+  --output benchmarks/results/native-local.json
+```
+
+The compiler inputs must match the selected Git revision. The harness builds a
+fresh isolated release compiler with cached Cargo dependencies, checks source,
+fixture, tool and artifact hashes, and validates every observed outcome. Native
+build samples use separate outputs from the stable executables used for run
+samples. First launches and validation runs remain in the raw evidence but are
+not mixed into warmed execution samples. Failed or changed-input runs write a
+rejected partial report. The default revision pins this baseline; use
+`--revision` to identify a later committed compiler when measuring it.
+
+Measurements are observational results from a shared host. They do not establish
+cross-language performance, memory efficiency, or a qualified release.
