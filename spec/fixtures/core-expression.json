@@ -1,0 +1,1 @@
+{"schema":"apl-expr-v0","semantic_revision":"m1-2026-11-16","expression":{"tag":"binary","ty":"i64","op":"mul","left":{"tag":"integer","ty":"i64","value":"6"},"right":{"tag":"integer","ty":"i64","value":"7"}}}

@@ -1,0 +1,9 @@
+{
+  "schema": "apl-core-v0",
+  "semantic_revision": "m1-2026-11-16",
+  "functions": [{
+    "id": 0, "name": "main", "params": [], "result": "i64",
+    "body": {"tag":"let","ty":"i64","value":{"tag":"integer","ty":"i64","value":"42"},"body":{"tag":"let","ty":"i64","value":{"tag":"integer","ty":"i64","value":"0"},"body":{"tag":"local","ty":"i64","index":1}}}
+  }],
+  "entry": 0
+}
