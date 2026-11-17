@@ -1,0 +1,10 @@
+fn main() -> i64 {
+heap b: i64[1] = 5 {
+    let p = (3, true, ());
+    let q = read_pair(read b, p);
+    q.0 + b[0]
+} else { -1 }
+}
+fn read_pair(read b: i64[], p: (i64, bool, unit)) -> (i64, bool, unit) {
+    (p.0 + b[0], p.1, p.2)
+}

@@ -1,0 +1,20 @@
+{
+  "companions": {
+    "buffer-edit": "168",
+    "buffer-owners": "76",
+    "buffer-read": "224"
+  },
+  "max_edit_cell": 262147,
+  "max_recurrence_product": 103661183076066,
+  "measured_source_executions": 0,
+  "project_builds": 0,
+  "timings_collected": false,
+  "values": {
+    "buffer-edit": "537014272",
+    "buffer-owners": "1834216",
+    "buffer-read": "7340032",
+    "constant": "42",
+    "recurrence": "1263606197",
+    "tuple-calls": "20000500001"
+  }
+}

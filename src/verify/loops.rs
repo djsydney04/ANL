@@ -1083,6 +1083,11 @@ impl Analysis<'_, '_, '_, '_> {
     ) -> Result<Flow, Failure> {
         self.genr.visit(depth)?;
         let value = match &expr.kind {
+            ExprKind::Memory(_) => {
+                return Err(Failure::Unsupported(
+                    "buffers and views are not supported".into(),
+                ));
+            }
             ExprKind::Tuple(fields) => {
                 let Type::Tuple(shape) = expr.ty else {
                     return Err(invalid("invalid checked tuple type"));

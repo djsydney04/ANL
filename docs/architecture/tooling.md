@@ -1,9 +1,10 @@
 # Toolchain and developer ecosystem architecture
 
-Status: the CLI implements scalar and flat-tuple checking, interpretation, native compilation,
-file modules, local state and loops, v0/v1/v2 core interchange, and scalar
-contract verification with loop invariants and acyclic calls. Verification rejects
-tuple-bearing programs, missing loop invariants and recursion before tools run. Package management, formatting, language-server
+Status: the CLI implements scalar, flat-tuple and scoped-buffer checking,
+interpretation and native compilation, file modules, local state and loops, and
+v0/v1/v2/v3 core interchange. Scalar and flat-tuple contract verification supports
+loop invariants and acyclic calls. Verification rejects memory-bearing graphs,
+missing loop invariants and recursion before tools run. Package management, formatting, language-server
 integration, source debugging, and release distribution below remain design
 proposals unless explicitly identified as implemented.
 
@@ -16,7 +17,12 @@ The current CLI contract is in [compiler architecture](compiler.md). Implemented
 Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. The implemented `verify --json` mode emits `apl-verify-v0` for pure programs and `apl-verify-v1` for local state, with `apl-state-verify-v1` or `apl-loop-verify-v1` distinguishing the attempted rules. Tuples in executable code or clauses select `anl-verify-v3` with
 `anl-flat-products-verify-v1`, structured tuple types and parameter/head-field
 provenance. Successful verification remains `smt-trusted`. Specification-only
-tuples do not change the executable semantic revision.
+tuples do not change the executable semantic revision. Any checked memory graph
+selects `anl-verify-v4` with `anl-owned-buffers-unsupported-v1`, status
+`unsupported`, no obligations and exit 7. It does not discover or launch a solver.
+The separate [evidence tools](../../spec/memory-evidence.md) export actual Core/MIR,
+check their canonical relationship, and run the formal resource-aware reference
+machine; they are developer tools, not additional `anl` subcommands.
 Reports retain structured status and exact source/tool/query identities; diagnostics go to stderr. The executable semantic revision follows the complete checked program and is null for source failures before a program is checked. General JSON diagnostics and the LSP adapter remain planned.
 
 ## Package and module identities

@@ -1,6 +1,6 @@
 name = "anl_formal"
 version = "0.1.0"
-defaultTargets = ["APL", "anl_formal", "anl_formal_v2"]
+defaultTargets = ["APL", "ANL", "anl_formal", "anl_formal_v2", "anl_memory_pair_checker", "anl_memory_raw_probe", "anl_memory_reference_runner"]
 moreLeanArgs = ["-DwarningAsError=true"]
 
 [[lean_lib]]
@@ -13,3 +13,18 @@ root = "Main"
 [[lean_exe]]
 name = "anl_formal_v2"
 root = "MainV2"
+
+[[lean_lib]]
+name = "ANL"
+
+[[lean_exe]]
+name = "anl_memory_pair_checker"
+root = "MemoryPairMain"
+
+[[lean_exe]]
+name = "anl_memory_raw_probe"
+root = "MemoryRawProbe"
+
+[[lean_exe]]
+name = "anl_memory_reference_runner"
+root = "MemoryReferenceMain"

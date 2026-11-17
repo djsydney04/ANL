@@ -1,0 +1,2 @@
+fn main()->i64{heap b:i64[1]=0{read_one(read b,1)}else{0}}
+fn read_one(read b:i64[])->i64{b[0]}

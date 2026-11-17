@@ -1,0 +1,1662 @@
+{
+  "archive": {
+    "bytes": 898872,
+    "sha256": "17a5d05f6290e50abed97f06709a1df1ba2cf14b81fba2ab2beaca6ef91f191d"
+  },
+  "checks": {
+    "assertions": 79962,
+    "file_bindings": 6333
+  },
+  "claims": {
+    "large_reference_evaluation": false,
+    "no_regression": false,
+    "profiling": false,
+    "startup_subtracted": false,
+    "universal_speedup": false
+  },
+  "counts": {
+    "buffer_bundles": 6,
+    "cc_commands": 15,
+    "commands": 519,
+    "historical_v2_commands": 49,
+    "historical_v2_samples": 0,
+    "measurements": 336,
+    "native_binaries": 15,
+    "pair_reports": 6,
+    "phases": {
+      "context": 9,
+      "first": 42,
+      "gate": 132,
+      "sample": 252,
+      "warmup": 84
+    },
+    "reference_companions": 3,
+    "samples": 252,
+    "sealed_files": 1760,
+    "series": 42,
+    "syntax_qualification_checks": 9,
+    "timed_build_artifacts": 72,
+    "warmups": 84
+  },
+  "hosts": {
+    "after": {
+      "environment": {
+        "CC": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/usr/bin:/bin",
+        "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+      },
+      "load_average": [
+        5.8154296875,
+        5.7978515625,
+        5.66162109375
+      ],
+      "logical_cpus": 10,
+      "machine": "arm64",
+      "platform": "macOS-26.4.1-arm64-arm-64bit"
+    },
+    "before": {
+      "environment": {
+        "CC": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/usr/bin:/bin",
+        "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+      },
+      "load_average": [
+        5.22705078125,
+        5.71044921875,
+        5.62451171875
+      ],
+      "logical_cpus": 10,
+      "machine": "arm64",
+      "platform": "macOS-26.4.1-arm64-arm-64bit"
+    },
+    "pre-samples": {
+      "environment": {
+        "CC": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/usr/bin:/bin",
+        "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+      },
+      "load_average": [
+        5.34521484375,
+        5.71923828125,
+        5.62841796875
+      ],
+      "logical_cpus": 10,
+      "machine": "arm64",
+      "platform": "macOS-26.4.1-arm64-arm-64bit"
+    }
+  },
+  "independent_companion_values": {
+    "buffer-edit": 168,
+    "buffer-owners": 76,
+    "buffer-read": 224
+  },
+  "independent_values": {
+    "buffer-edit": 537014272,
+    "buffer-owners": 1834216,
+    "buffer-read": 7340032,
+    "constant": 42,
+    "recurrence": 1263606197,
+    "tuple-calls": 20000500001
+  },
+  "median_ratios": {
+    "buffer-edit/native/candidate_over_c": {
+      "peak_rss_bytes": 1.0116279069767442,
+      "system_cpu_ns": 1.030097498940229,
+      "user_cpu_ns": 0.788829005389515,
+      "wall_ns": 0.9677675157657267
+    },
+    "buffer-owners/native/candidate_over_c": {
+      "peak_rss_bytes": 1.0116279069767442,
+      "system_cpu_ns": 1.0332072299285413,
+      "user_cpu_ns": 0.9865067466266867,
+      "wall_ns": 1.0079941996653654
+    },
+    "buffer-read/native/candidate_over_c": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 1.0438808373590982,
+      "user_cpu_ns": 0.7369668246445498,
+      "wall_ns": 0.9011960454880033
+    },
+    "constant/build/candidate_over_baseline": {
+      "peak_rss_bytes": 0.9988159675236806,
+      "system_cpu_ns": 1.0032138172278093,
+      "user_cpu_ns": 0.9110030365122078,
+      "wall_ns": 0.9935848280915673
+    },
+    "constant/check/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 1.024847250509165,
+      "user_cpu_ns": 1.0165717244950803,
+      "wall_ns": 0.9836022508269667
+    },
+    "constant/eval/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0078125,
+      "system_cpu_ns": 0.9819855884707767,
+      "user_cpu_ns": 0.9698946312092324,
+      "wall_ns": 0.9562086464293702
+    },
+    "constant/native/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 0.9861337683523654,
+      "user_cpu_ns": 0.9833091436865021,
+      "wall_ns": 0.9976637983274754
+    },
+    "constant/native/candidate_over_c": {
+      "peak_rss_bytes": 0.9882352941176471,
+      "system_cpu_ns": 0.9742143432715552,
+      "user_cpu_ns": 1.0218702865761689,
+      "wall_ns": 0.9935961274523689
+    },
+    "recurrence/build/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 1.023678270683219,
+      "user_cpu_ns": 0.9183652389478033,
+      "wall_ns": 1.0080626489882354
+    },
+    "recurrence/check/candidate_over_baseline": {
+      "peak_rss_bytes": 0.9921259842519685,
+      "system_cpu_ns": 1.0093843843843844,
+      "user_cpu_ns": 1.0221784130113356,
+      "wall_ns": 1.0158955332104278
+    },
+    "recurrence/eval/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 0.9319181982914833,
+      "user_cpu_ns": 1.0744358990099183,
+      "wall_ns": 1.0486443929611096
+    },
+    "recurrence/native/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 1.0018846588767434,
+      "user_cpu_ns": 0.9994998749687422,
+      "wall_ns": 1.0249777799650133
+    },
+    "recurrence/native/candidate_over_c": {
+      "peak_rss_bytes": 1.0119047619047619,
+      "system_cpu_ns": 1.0726392251815982,
+      "user_cpu_ns": 0.9997498749374687,
+      "wall_ns": 1.0387970513681974
+    },
+    "tuple-calls/build/candidate_over_baseline": {
+      "peak_rss_bytes": 0.9985959438377535,
+      "system_cpu_ns": 1.0333555010598945,
+      "user_cpu_ns": 0.9508263958940706,
+      "wall_ns": 1.009067972238635
+    },
+    "tuple-calls/check/candidate_over_baseline": {
+      "peak_rss_bytes": 0.9884169884169884,
+      "system_cpu_ns": 1.0578257517347724,
+      "user_cpu_ns": 1.0076701821668264,
+      "wall_ns": 1.1710729330998735
+    },
+    "tuple-calls/eval/candidate_over_baseline": {
+      "peak_rss_bytes": 0.9963369963369964,
+      "system_cpu_ns": 0.8428215014742572,
+      "user_cpu_ns": 1.0337599718736659,
+      "wall_ns": 0.9692753440148311
+    },
+    "tuple-calls/native/candidate_over_baseline": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 0.9858627858627859,
+      "user_cpu_ns": 0.9720327421555253,
+      "wall_ns": 0.9852231307260368
+    },
+    "tuple-calls/native/candidate_over_c": {
+      "peak_rss_bytes": 1.0,
+      "system_cpu_ns": 0.9953820319059614,
+      "user_cpu_ns": 1.0028149190710767,
+      "wall_ns": 1.01745087465168
+    }
+  },
+  "method": "Read-only independent standard-library verifier; no imported project helpers, child processes, builds, benchmark executions, proof execution, or profiling.",
+  "native_bindings": {
+    "buffer-edit/c": {
+      "bytes": 34280,
+      "path": "@EXPERIMENT_V3/native/buffer-edit-c/program",
+      "sha256": "0b7591e53bc0ce1577f75f20eafcf83cc830ebf1dbf0d1b96be103e80ad9cdd9"
+    },
+    "buffer-edit/candidate": {
+      "bytes": 34152,
+      "path": "@EXPERIMENT_V3/native/buffer-edit-candidate/program",
+      "sha256": "2957cbc117884003f0014a910b0aae5a22559fd71523f0bfe825f5d94285b1f4"
+    },
+    "buffer-owners/c": {
+      "bytes": 34280,
+      "path": "@EXPERIMENT_V3/native/buffer-owners-c/program",
+      "sha256": "57e209fcd57a112b1e1da76e15513f75081efbc1c1814c7fd1f5c654c581a123"
+    },
+    "buffer-owners/candidate": {
+      "bytes": 34104,
+      "path": "@EXPERIMENT_V3/native/buffer-owners-candidate/program",
+      "sha256": "6735c1cafeb5b340af44a03a7629f6bc0b2a104d96dbad2a63df47a93eb9c0d2"
+    },
+    "buffer-read/c": {
+      "bytes": 34280,
+      "path": "@EXPERIMENT_V3/native/buffer-read-c/program",
+      "sha256": "0982ee1d3617a9b7d8e04e5477ec42a6bd55b1e7f951eda705bbde2225a4115b"
+    },
+    "buffer-read/candidate": {
+      "bytes": 34152,
+      "path": "@EXPERIMENT_V3/native/buffer-read-candidate/program",
+      "sha256": "7d7b368729aaa14ef1804d98486c34cebd7f0cf18a7f8258e33b9912d2090457"
+    },
+    "constant/baseline": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/constant-baseline/program",
+      "sha256": "cd58ceb41c01c1f014258ee681c2f6a7b5227493481d13b5378d7cb3822c1575"
+    },
+    "constant/c": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/constant-c/program",
+      "sha256": "5bca13954cb7768c41f6c4f1f740e6d348268ef7343323b37f8bb550cbbd7bce"
+    },
+    "constant/candidate": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/constant-candidate/program",
+      "sha256": "cd58ceb41c01c1f014258ee681c2f6a7b5227493481d13b5378d7cb3822c1575"
+    },
+    "recurrence/baseline": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/recurrence-baseline/program",
+      "sha256": "79c0bc1377cdae507572dbacc1dd19f2532e1ab1f9d7b216e593f5b0c6f5d60d"
+    },
+    "recurrence/c": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/recurrence-c/program",
+      "sha256": "ecd6ef7f85ff5bab2ff008d636a6eed6e593f64940a07350f35d676a61fde482"
+    },
+    "recurrence/candidate": {
+      "bytes": 33656,
+      "path": "@EXPERIMENT_V3/native/recurrence-candidate/program",
+      "sha256": "79c0bc1377cdae507572dbacc1dd19f2532e1ab1f9d7b216e593f5b0c6f5d60d"
+    },
+    "tuple-calls/baseline": {
+      "bytes": 33752,
+      "path": "@EXPERIMENT_V3/native/tuple-calls-baseline/program",
+      "sha256": "f23a3f411e64702ab1f4da14405cd9fb7bd4ea24e6c54e2e6e9d6955b687bc1e"
+    },
+    "tuple-calls/c": {
+      "bytes": 33752,
+      "path": "@EXPERIMENT_V3/native/tuple-calls-c/program",
+      "sha256": "b433745186934460941946fea0ce523fbe06e81734d70bd286b8cbe049431d1b"
+    },
+    "tuple-calls/candidate": {
+      "bytes": 33752,
+      "path": "@EXPERIMENT_V3/native/tuple-calls-candidate/program",
+      "sha256": "f23a3f411e64702ab1f4da14405cd9fb7bd4ea24e6c54e2e6e9d6955b687bc1e"
+    }
+  },
+  "normalization_ledger": [
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-edit~1c/path",
+      "normalized_value_sha256": "4d895b0df7b42d48d6bfdd0375687081f5f6a2f26c4e98a9b0b17d3d76578ace",
+      "original_value_sha256": "680d643f3a5ad54604102bdbcb6aa0e922b487e8031b2063da0c65811383e289",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-edit~1candidate/path",
+      "normalized_value_sha256": "cd4e0a0314005c3ea8092a7cfb155788384eaeeb9239c254b95e276279861575",
+      "original_value_sha256": "d43904f6a391a441b596407d6430f251da8699c0186a0d98049c067a66e6b47b",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-owners~1c/path",
+      "normalized_value_sha256": "6ce6895734434139d17356755a8d9ce00083972094fee9790b4b10d2d57c2097",
+      "original_value_sha256": "078fc705b6d676483816309d75646c193b1f4f1168b37c81a386c4c13418ab49",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-owners~1candidate/path",
+      "normalized_value_sha256": "f8998ddd875fe1a93806622538c6ba03dbd040bba07642bc51efca259dc5dc4d",
+      "original_value_sha256": "8ebfb46c0bf29b50844d56e6be2b664c9628eeb06f8747426001e86088ea4ab9",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-read~1c/path",
+      "normalized_value_sha256": "f2a8883287aca317c4b946bc2b523ae102e239ec4a61c65da35907fc67f5e3ab",
+      "original_value_sha256": "05d7e55ec36fcfc743e87e659e5eca3982d1c01a368c867624e140d29b6528a6",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/buffer-read~1candidate/path",
+      "normalized_value_sha256": "7bf67fd9ff8e874231650321fc7be864684d692f5e6b2783ec8e0b1daff4c501",
+      "original_value_sha256": "2203e5157496adcb2b9574f74c922e35ac3f95d4763f82c9fac549c658a9b7e7",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/constant~1baseline/path",
+      "normalized_value_sha256": "d6ffe958b236ac09f65c5c56982ede5ab0f1e18c6c74cb309051278353aedb64",
+      "original_value_sha256": "30db2548160c8394e41b3fe6659d0bd8fb96460b395bd428b0c64e23de0afb85",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/constant~1c/path",
+      "normalized_value_sha256": "f9b1631639a7f59f2905f4e8ff7130ea1c76b59ea9754e41b99295b404290602",
+      "original_value_sha256": "9351481c4c54d9e8e7f89b7e4fba539cc84a8c21cf9726ec7109ea4802e309d7",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/constant~1candidate/path",
+      "normalized_value_sha256": "706b13f874820e7431125a1e78759ade645ef74e1a59939a4800eb701f7221c2",
+      "original_value_sha256": "e8fe8fa5e4bd14daa396c4d4e5fc1c50dac1d09bdb722dcbe6f377f4d087a83d",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/recurrence~1baseline/path",
+      "normalized_value_sha256": "440c7cb3c865a365368a1f27797b936301ba9776bc6c1c390a6d297b435c5918",
+      "original_value_sha256": "bfde8b79aa48d50b1f9578a971d91a9473e2ccccca1f3c415118912bf78dc015",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/recurrence~1c/path",
+      "normalized_value_sha256": "280d0f68556f99627f336f350401786e51c83c17cc93e99c17f47d46973b8d22",
+      "original_value_sha256": "725ef9e42a4b547b02db2ccb75a652cc9ec04fa92469cea8c3143367800cbcaf",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/recurrence~1candidate/path",
+      "normalized_value_sha256": "1afa790443e62ae13eed853761e51885b7fe6ac43418a286acd809bd4dc3266e",
+      "original_value_sha256": "dd8266d69997b0762006792004e30718fc4abb6cb916382e43bf2cc7e7cfca8e",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/tuple-calls~1baseline/path",
+      "normalized_value_sha256": "2669f14f96a873c3ca08228bcd5dc14aa85c2cd136b86ba034afd44da1d41b2d",
+      "original_value_sha256": "5daf4d30f26d737a959134c466f915acd7e2880699cb1b87c2a49a77d2b4cd93",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/tuple-calls~1c/path",
+      "normalized_value_sha256": "a46b2082d1a1bfead3d11b538956de3eb9b5c2a1448ac8e74c50087e51290662",
+      "original_value_sha256": "c4a095269549df9e96e9472ab878506c1bfaedea7f161093322d3c6bc933abf3",
+      "rules": [
+        "root-0"
+      ]
+    },
+    {
+      "encoding": "utf8",
+      "entry": "public-summary",
+      "field": "/native_bindings/tuple-calls~1candidate/path",
+      "normalized_value_sha256": "fcb5d6738b83d8b10ba0d86891e904790a6e059ec3de7e6eb90be382bac42b0a",
+      "original_value_sha256": "ef420f98d54ccd10003d13af0f1f862920509b24588e545ab42c97d9f77b0f4f",
+      "rules": [
+        "root-0"
+      ]
+    }
+  ],
+  "prep_freeze_sha256": "89fac6912ba1e5bb86a7fecdf04efb7c27eb54c65831167979a0699e8468e490",
+  "reference_reports": {
+    "buffer-edit": {
+      "allocation_profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "fuel": "100000",
+      "meter": {
+        "active_slots": "0",
+        "expression_depth": "0",
+        "fuel_remaining": "99207",
+        "live_cells": "0",
+        "tuple_fields": "0"
+      },
+      "reason": "",
+      "resource_reason": null,
+      "schema": "anl-memory-reference-run-v1",
+      "semantic_revision": "anl-owned-buffers-v1",
+      "status": "value",
+      "trace": {
+        "allocation_profile": {
+          "abi": "anl-buffer-c11-v1",
+          "char_bits": 8,
+          "i64_align": 8,
+          "i64_bytes": 8,
+          "ptrdiff_bits": 64,
+          "size_bits": 64
+        },
+        "completion": {
+          "kind": "value",
+          "type": "i64",
+          "value": "168"
+        },
+        "events": [
+          {
+            "kind": "request",
+            "length": "8",
+            "request": "0",
+            "response": "success",
+            "site": {
+              "function": 2,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "0",
+            "site": {
+              "function": 2,
+              "heap": 0
+            }
+          }
+        ],
+        "schema": "anl-memory-trace-v1",
+        "semantic_revision": "anl-owned-buffers-v1"
+      },
+      "transition_budget": "262144"
+    },
+    "buffer-owners": {
+      "allocation_profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "fuel": "100000",
+      "meter": {
+        "active_slots": "0",
+        "expression_depth": "0",
+        "fuel_remaining": "99818",
+        "live_cells": "0",
+        "tuple_fields": "0"
+      },
+      "reason": "",
+      "resource_reason": null,
+      "schema": "anl-memory-reference-run-v1",
+      "semantic_revision": "anl-owned-buffers-v1",
+      "status": "value",
+      "trace": {
+        "allocation_profile": {
+          "abi": "anl-buffer-c11-v1",
+          "char_bits": 8,
+          "i64_align": 8,
+          "i64_bytes": 8,
+          "ptrdiff_bits": 64,
+          "size_bits": 64
+        },
+        "completion": {
+          "kind": "value",
+          "type": "i64",
+          "value": "76"
+        },
+        "events": [
+          {
+            "kind": "request",
+            "length": "16",
+            "request": "0",
+            "response": "success",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "0",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "request",
+            "length": "16",
+            "request": "1",
+            "response": "success",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "1",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "request",
+            "length": "16",
+            "request": "2",
+            "response": "success",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "2",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "request",
+            "length": "16",
+            "request": "3",
+            "response": "success",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "3",
+            "site": {
+              "function": 0,
+              "heap": 0
+            }
+          }
+        ],
+        "schema": "anl-memory-trace-v1",
+        "semantic_revision": "anl-owned-buffers-v1"
+      },
+      "transition_budget": "262144"
+    },
+    "buffer-read": {
+      "allocation_profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "fuel": "100000",
+      "meter": {
+        "active_slots": "0",
+        "expression_depth": "0",
+        "fuel_remaining": "99433",
+        "live_cells": "0",
+        "tuple_fields": "0"
+      },
+      "reason": "",
+      "resource_reason": null,
+      "schema": "anl-memory-reference-run-v1",
+      "semantic_revision": "anl-owned-buffers-v1",
+      "status": "value",
+      "trace": {
+        "allocation_profile": {
+          "abi": "anl-buffer-c11-v1",
+          "char_bits": 8,
+          "i64_align": 8,
+          "i64_bytes": 8,
+          "ptrdiff_bits": 64,
+          "size_bits": 64
+        },
+        "completion": {
+          "kind": "value",
+          "type": "i64",
+          "value": "224"
+        },
+        "events": [
+          {
+            "kind": "request",
+            "length": "8",
+            "request": "0",
+            "response": "success",
+            "site": {
+              "function": 1,
+              "heap": 0
+            }
+          },
+          {
+            "kind": "release",
+            "request": "0",
+            "site": {
+              "function": 1,
+              "heap": 0
+            }
+          }
+        ],
+        "schema": "anl-memory-trace-v1",
+        "semantic_revision": "anl-owned-buffers-v1"
+      },
+      "transition_budget": "262144"
+    }
+  },
+  "result_freeze_sha256": "9a52851513a5bb75dac15b946ac30fe58641608c2a2a5a483ad3eb5635bd3909",
+  "status": "REVIEWED_BOUNDED_OBSERVATIONS",
+  "summaries": {
+    "buffer-edit/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 53280768,
+        "median": 53223424.0,
+        "minimum": 53149696
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 36847000,
+        "median": 34808500.0,
+        "minimum": 33313000
+      },
+      "user_cpu_ns": {
+        "maximum": 66952000,
+        "median": 56795000.0,
+        "minimum": 51011000
+      },
+      "wall_ns": {
+        "maximum": 81766292,
+        "median": 76975958.0,
+        "minimum": 75167667
+      }
+    },
+    "buffer-edit/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2129920,
+        "median": 2113536.0,
+        "minimum": 2113536
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1316000,
+        "median": 1244500.0,
+        "minimum": 1165000
+      },
+      "user_cpu_ns": {
+        "maximum": 1075000,
+        "median": 1020500.0,
+        "minimum": 944000
+      },
+      "wall_ns": {
+        "maximum": 3726375,
+        "median": 3542083.5,
+        "minimum": 3231042
+      }
+    },
+    "buffer-edit/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2228224,
+        "median": 2211840.0,
+        "minimum": 2211840
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1464000,
+        "median": 1338000.0,
+        "minimum": 1183000
+      },
+      "user_cpu_ns": {
+        "maximum": 22319000,
+        "median": 22228500.0,
+        "minimum": 21958000
+      },
+      "wall_ns": {
+        "maximum": 25171333,
+        "median": 24861604.5,
+        "minimum": 24550875
+      }
+    },
+    "buffer-edit/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1409024,
+        "median": 1409024.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1319000,
+        "median": 1179500.0,
+        "minimum": 1112000
+      },
+      "user_cpu_ns": {
+        "maximum": 1056000,
+        "median": 1020500.0,
+        "minimum": 969000
+      },
+      "wall_ns": {
+        "maximum": 3582917,
+        "median": 3349354.0,
+        "minimum": 3239042
+      }
+    },
+    "buffer-edit/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1425408,
+        "median": 1425408.0,
+        "minimum": 1425408
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1340000,
+        "median": 1215000.0,
+        "minimum": 1150000
+      },
+      "user_cpu_ns": {
+        "maximum": 824000,
+        "median": 805000.0,
+        "minimum": 772000
+      },
+      "wall_ns": {
+        "maximum": 3515875,
+        "median": 3241396.0,
+        "minimum": 3095583
+      }
+    },
+    "buffer-owners/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 53723136,
+        "median": 53690368.0,
+        "minimum": 53575680
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 36424000,
+        "median": 34669500.0,
+        "minimum": 32596000
+      },
+      "user_cpu_ns": {
+        "maximum": 61270000,
+        "median": 54879000.0,
+        "minimum": 52350000
+      },
+      "wall_ns": {
+        "maximum": 80260834,
+        "median": 76486354.0,
+        "minimum": 73993375
+      }
+    },
+    "buffer-owners/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2080768,
+        "median": 2080768.0,
+        "minimum": 2064384
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1486000,
+        "median": 1224000.0,
+        "minimum": 1181000
+      },
+      "user_cpu_ns": {
+        "maximum": 1001000,
+        "median": 991500.0,
+        "minimum": 964000
+      },
+      "wall_ns": {
+        "maximum": 3590833,
+        "median": 3442896.0,
+        "minimum": 3404208
+      }
+    },
+    "buffer-owners/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2244608,
+        "median": 2228224.0,
+        "minimum": 2211840
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1553000,
+        "median": 1353500.0,
+        "minimum": 1193000
+      },
+      "user_cpu_ns": {
+        "maximum": 3916000,
+        "median": 3834000.0,
+        "minimum": 3739000
+      },
+      "wall_ns": {
+        "maximum": 6505250,
+        "median": 6432771.0,
+        "minimum": 6145666
+      }
+    },
+    "buffer-owners/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1409024,
+        "median": 1409024.0,
+        "minimum": 1409024
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1276000,
+        "median": 1189500.0,
+        "minimum": 1148000
+      },
+      "user_cpu_ns": {
+        "maximum": 1028000,
+        "median": 1000500.0,
+        "minimum": 951000
+      },
+      "wall_ns": {
+        "maximum": 3694959,
+        "median": 3361875.0,
+        "minimum": 3299334
+      }
+    },
+    "buffer-owners/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1425408,
+        "median": 1425408.0,
+        "minimum": 1425408
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1263000,
+        "median": 1229000.0,
+        "minimum": 1146000
+      },
+      "user_cpu_ns": {
+        "maximum": 1045000,
+        "median": 987000.0,
+        "minimum": 941000
+      },
+      "wall_ns": {
+        "maximum": 3529084,
+        "median": 3388750.5,
+        "minimum": 3239667
+      }
+    },
+    "buffer-read/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 52887552,
+        "median": 52805632.0,
+        "minimum": 52723712
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 35721000,
+        "median": 34569500.0,
+        "minimum": 32155000
+      },
+      "user_cpu_ns": {
+        "maximum": 55107000,
+        "median": 54355000.0,
+        "minimum": 51446000
+      },
+      "wall_ns": {
+        "maximum": 77397834,
+        "median": 74275312.5,
+        "minimum": 72405500
+      }
+    },
+    "buffer-read/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2080768,
+        "median": 2080768.0,
+        "minimum": 2064384
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1259000,
+        "median": 1190000.0,
+        "minimum": 1167000
+      },
+      "user_cpu_ns": {
+        "maximum": 1052000,
+        "median": 982000.0,
+        "minimum": 943000
+      },
+      "wall_ns": {
+        "maximum": 3581084,
+        "median": 3373313.0,
+        "minimum": 3323500
+      }
+    },
+    "buffer-read/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2293760,
+        "median": 2285568.0,
+        "minimum": 2277376
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 2084000,
+        "median": 1371000.0,
+        "minimum": 1277000
+      },
+      "user_cpu_ns": {
+        "maximum": 63095000,
+        "median": 59384000.0,
+        "minimum": 57723000
+      },
+      "wall_ns": {
+        "maximum": 65835792,
+        "median": 62200354.0,
+        "minimum": 61721458
+      }
+    },
+    "buffer-read/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1523712,
+        "median": 1523712.0,
+        "minimum": 1523712
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1326000,
+        "median": 1242000.0,
+        "minimum": 1215000
+      },
+      "user_cpu_ns": {
+        "maximum": 1518000,
+        "median": 1477000.0,
+        "minimum": 1469000
+      },
+      "wall_ns": {
+        "maximum": 4314917,
+        "median": 3976521.0,
+        "minimum": 3858750
+      }
+    },
+    "buffer-read/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1523712,
+        "median": 1523712.0,
+        "minimum": 1523712
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1600000,
+        "median": 1296500.0,
+        "minimum": 1127000
+      },
+      "user_cpu_ns": {
+        "maximum": 1168000,
+        "median": 1088500.0,
+        "minimum": 1047000
+      },
+      "wall_ns": {
+        "maximum": 3853417,
+        "median": 3583625.0,
+        "minimum": 3325916
+      }
+    },
+    "constant/build/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 48431104,
+        "median": 48431104.0,
+        "minimum": 48250880
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 34436000,
+        "median": 22870000.0,
+        "minimum": 21305000
+      },
+      "user_cpu_ns": {
+        "maximum": 48075000,
+        "median": 40507000.0,
+        "minimum": 35581000
+      },
+      "wall_ns": {
+        "maximum": 80604000,
+        "median": 46614729.0,
+        "minimum": 43991833
+      }
+    },
+    "constant/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 48480256,
+        "median": 48373760.0,
+        "minimum": 48267264
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 25905000,
+        "median": 22943500.0,
+        "minimum": 21521000
+      },
+      "user_cpu_ns": {
+        "maximum": 47302000,
+        "median": 36902000.0,
+        "minimum": 35430000
+      },
+      "wall_ns": {
+        "maximum": 51214917,
+        "median": 46315687.5,
+        "minimum": 43237083
+      }
+    },
+    "constant/check/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2048000,
+        "median": 2048000.0,
+        "minimum": 2048000
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1277000,
+        "median": 1227500.0,
+        "minimum": 1154000
+      },
+      "user_cpu_ns": {
+        "maximum": 1011000,
+        "median": 965500.0,
+        "minimum": 927000
+      },
+      "wall_ns": {
+        "maximum": 3553792,
+        "median": 3492583.0,
+        "minimum": 3304792
+      }
+    },
+    "constant/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2048000,
+        "median": 2048000.0,
+        "minimum": 2048000
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1329000,
+        "median": 1258000.0,
+        "minimum": 1159000
+      },
+      "user_cpu_ns": {
+        "maximum": 1022000,
+        "median": 981500.0,
+        "minimum": 894000
+      },
+      "wall_ns": {
+        "maximum": 3588208,
+        "median": 3435312.5,
+        "minimum": 3216250
+      }
+    },
+    "constant/eval/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2097152,
+        "median": 2097152.0,
+        "minimum": 2097152
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1600000,
+        "median": 1249000.0,
+        "minimum": 1175000
+      },
+      "user_cpu_ns": {
+        "maximum": 1025000,
+        "median": 996500.0,
+        "minimum": 975000
+      },
+      "wall_ns": {
+        "maximum": 3955792,
+        "median": 3530000.5,
+        "minimum": 3357125
+      }
+    },
+    "constant/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2113536,
+        "median": 2113536.0,
+        "minimum": 2113536
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1258000,
+        "median": 1226500.0,
+        "minimum": 1167000
+      },
+      "user_cpu_ns": {
+        "maximum": 986000,
+        "median": 966500.0,
+        "minimum": 939000
+      },
+      "wall_ns": {
+        "maximum": 3663584,
+        "median": 3375417.0,
+        "minimum": 3193834
+      }
+    },
+    "constant/native/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 1376256,
+        "median": 1376256.0,
+        "minimum": 1376256
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1349000,
+        "median": 1226000.0,
+        "minimum": 1158000
+      },
+      "user_cpu_ns": {
+        "maximum": 697000,
+        "median": 689000.0,
+        "minimum": 635000
+      },
+      "wall_ns": {
+        "maximum": 3281500,
+        "median": 3094125.0,
+        "minimum": 2973833
+      }
+    },
+    "constant/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1536000,
+        "median": 1241000.0,
+        "minimum": 1154000
+      },
+      "user_cpu_ns": {
+        "maximum": 730000,
+        "median": 663000.0,
+        "minimum": 632000
+      },
+      "wall_ns": {
+        "maximum": 7092458,
+        "median": 3106792.0,
+        "minimum": 2939583
+      }
+    },
+    "constant/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1376256,
+        "median": 1376256.0,
+        "minimum": 1376256
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1280000,
+        "median": 1209000.0,
+        "minimum": 1150000
+      },
+      "user_cpu_ns": {
+        "maximum": 695000,
+        "median": 677500.0,
+        "minimum": 635000
+      },
+      "wall_ns": {
+        "maximum": 3135417,
+        "median": 3086896.5,
+        "minimum": 2853000
+      }
+    },
+    "recurrence/build/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 51724288,
+        "median": 51691520.0,
+        "minimum": 51609600
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 29294000,
+        "median": 23038000.0,
+        "minimum": 20632000
+      },
+      "user_cpu_ns": {
+        "maximum": 53361000,
+        "median": 43566000.0,
+        "minimum": 37822000
+      },
+      "wall_ns": {
+        "maximum": 60652458,
+        "median": 47420271.0,
+        "minimum": 45173666
+      }
+    },
+    "recurrence/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 51757056,
+        "median": 51691520.0,
+        "minimum": 51642368
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 29701000,
+        "median": 23583500.0,
+        "minimum": 21961000
+      },
+      "user_cpu_ns": {
+        "maximum": 45051000,
+        "median": 40009500.0,
+        "minimum": 36652000
+      },
+      "wall_ns": {
+        "maximum": 60578125,
+        "median": 47802604.0,
+        "minimum": 46380125
+      }
+    },
+    "recurrence/check/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2080768,
+        "median": 2080768.0,
+        "minimum": 2080768
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 2050000,
+        "median": 1332000.0,
+        "minimum": 1218000
+      },
+      "user_cpu_ns": {
+        "maximum": 1407000,
+        "median": 1014500.0,
+        "minimum": 987000
+      },
+      "wall_ns": {
+        "maximum": 12529583,
+        "median": 3575375.5,
+        "minimum": 3392500
+      }
+    },
+    "recurrence/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2064384,
+        "median": 2064384.0,
+        "minimum": 2064384
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 2090000,
+        "median": 1344500.0,
+        "minimum": 1160000
+      },
+      "user_cpu_ns": {
+        "maximum": 1131000,
+        "median": 1037000.0,
+        "minimum": 949000
+      },
+      "wall_ns": {
+        "maximum": 4878333,
+        "median": 3632208.0,
+        "minimum": 3296708
+      }
+    },
+    "recurrence/eval/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2129920,
+        "median": 2129920.0,
+        "minimum": 2129920
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 2497000,
+        "median": 1931500.0,
+        "minimum": 1409000
+      },
+      "user_cpu_ns": {
+        "maximum": 61245000,
+        "median": 57015500.0,
+        "minimum": 55633000
+      },
+      "wall_ns": {
+        "maximum": 66823667,
+        "median": 61630083.5,
+        "minimum": 59526709
+      }
+    },
+    "recurrence/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2129920,
+        "median": 2129920.0,
+        "minimum": 2129920
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 3297000,
+        "median": 1800000.0,
+        "minimum": 1270000
+      },
+      "user_cpu_ns": {
+        "maximum": 64044000,
+        "median": 61259500.0,
+        "minimum": 59977000
+      },
+      "wall_ns": {
+        "maximum": 69666583,
+        "median": 64628041.5,
+        "minimum": 62757250
+      }
+    },
+    "recurrence/native/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1495000,
+        "median": 1326500.0,
+        "minimum": 1204000
+      },
+      "user_cpu_ns": {
+        "maximum": 4044000,
+        "median": 3999000.0,
+        "minimum": 3977000
+      },
+      "wall_ns": {
+        "maximum": 6791541,
+        "median": 6563333.5,
+        "minimum": 6468625
+      }
+    },
+    "recurrence/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1376256,
+        "median": 1376256.0,
+        "minimum": 1376256
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1968000,
+        "median": 1239000.0,
+        "minimum": 1119000
+      },
+      "user_cpu_ns": {
+        "maximum": 4155000,
+        "median": 3998000.0,
+        "minimum": 3913000
+      },
+      "wall_ns": {
+        "maximum": 7430083,
+        "median": 6476020.5,
+        "minimum": 6271625
+      }
+    },
+    "recurrence/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1723000,
+        "median": 1329000.0,
+        "minimum": 1191000
+      },
+      "user_cpu_ns": {
+        "maximum": 4061000,
+        "median": 3997000.0,
+        "minimum": 3960000
+      },
+      "wall_ns": {
+        "maximum": 8683458,
+        "median": 6727271.0,
+        "minimum": 6420708
+      }
+    },
+    "tuple-calls/build/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 52625408,
+        "median": 52510720.0,
+        "minimum": 52379648
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 33886000,
+        "median": 24059000.0,
+        "minimum": 21699000
+      },
+      "user_cpu_ns": {
+        "maximum": 55939000,
+        "median": 45105500.0,
+        "minimum": 37969000
+      },
+      "wall_ns": {
+        "maximum": 73077750,
+        "median": 52485604.0,
+        "minimum": 47491333
+      }
+    },
+    "tuple-calls/build/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 52510720,
+        "median": 52436992.0,
+        "minimum": 52428800
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 30689000,
+        "median": 24861500.0,
+        "minimum": 23244000
+      },
+      "user_cpu_ns": {
+        "maximum": 52374000,
+        "median": 42887500.0,
+        "minimum": 39377000
+      },
+      "wall_ns": {
+        "maximum": 75394000,
+        "median": 52961542.0,
+        "minimum": 47275958
+      }
+    },
+    "tuple-calls/check/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2129920,
+        "median": 2121728.0,
+        "minimum": 2113536
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 5168000,
+        "median": 1297000.0,
+        "minimum": 1229000
+      },
+      "user_cpu_ns": {
+        "maximum": 1556000,
+        "median": 1043000.0,
+        "minimum": 941000
+      },
+      "wall_ns": {
+        "maximum": 17135500,
+        "median": 3605187.5,
+        "minimum": 3313083
+      }
+    },
+    "tuple-calls/check/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2097152,
+        "median": 2097152.0,
+        "minimum": 2097152
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 4407000,
+        "median": 1372000.0,
+        "minimum": 1222000
+      },
+      "user_cpu_ns": {
+        "maximum": 1856000,
+        "median": 1051000.0,
+        "minimum": 1004000
+      },
+      "wall_ns": {
+        "maximum": 21959209,
+        "median": 4221937.5,
+        "minimum": 3532834
+      }
+    },
+    "tuple-calls/eval/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 2244608,
+        "median": 2236416.0,
+        "minimum": 2228224
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 3423000,
+        "median": 2204500.0,
+        "minimum": 1934000
+      },
+      "user_cpu_ns": {
+        "maximum": 79504000,
+        "median": 59730500.0,
+        "minimum": 58231000
+      },
+      "wall_ns": {
+        "maximum": 116671666,
+        "median": 67665542.0,
+        "minimum": 62212750
+      }
+    },
+    "tuple-calls/eval/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 2244608,
+        "median": 2228224.0,
+        "minimum": 2228224
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 4476000,
+        "median": 1858000.0,
+        "minimum": 1391000
+      },
+      "user_cpu_ns": {
+        "maximum": 101156000,
+        "median": 61747000.0,
+        "minimum": 60080000
+      },
+      "wall_ns": {
+        "maximum": 116464083,
+        "median": 65586541.5,
+        "minimum": 64032250
+      }
+    },
+    "tuple-calls/native/baseline": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1448000,
+        "median": 1202500.0,
+        "minimum": 1150000
+      },
+      "user_cpu_ns": {
+        "maximum": 780000,
+        "median": 733000.0,
+        "minimum": 687000
+      },
+      "wall_ns": {
+        "maximum": 3448625,
+        "median": 3172187.5,
+        "minimum": 2979625
+      }
+    },
+    "tuple-calls/native/c": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1261000,
+        "median": 1191000.0,
+        "minimum": 1129000
+      },
+      "user_cpu_ns": {
+        "maximum": 739000,
+        "median": 710500.0,
+        "minimum": 643000
+      },
+      "wall_ns": {
+        "maximum": 3308000,
+        "median": 3071708.5,
+        "minimum": 3013292
+      }
+    },
+    "tuple-calls/native/candidate": {
+      "peak_rss_bytes": {
+        "maximum": 1392640,
+        "median": 1392640.0,
+        "minimum": 1392640
+      },
+      "samples": 6,
+      "system_cpu_ns": {
+        "maximum": 1250000,
+        "median": 1185500.0,
+        "minimum": 1121000
+      },
+      "user_cpu_ns": {
+        "maximum": 771000,
+        "median": 712500.0,
+        "minimum": 669000
+      },
+      "wall_ns": {
+        "maximum": 3254292,
+        "median": 3125312.5,
+        "minimum": 2948834
+      }
+    }
+  },
+  "thermal_stdout": {
+    "after": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+    "before": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+    "pre-samples": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n"
+  }
+}

@@ -3,7 +3,8 @@
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`), local scalar state (`local-state-2026-11-17`) and flat tuples
 (`flat-products-2026-11-17`). The [proof inventory](../../formal/PROOFS.md) records
-558 audited theorem names and 72 separately replayed modules, including the
+the earlier APL inventory of 558 audited theorem names and 72 separately replayed
+modules, including the
 separate tuple runtime model, scalar invariant-loop generator, merged product
 contract generator, and scalar generation-height theorem under a supplied call
 rank. Coverage follows the stated theorem premises
@@ -47,6 +48,39 @@ typed runtime witnesses and normal ensures. Exact query partition preserves
 guards and multiplicity. These theorems leave source-ID reconstruction, Rust,
 SMT/solver and native correspondence open, along with termination, product
 generation completeness, solver completeness and production-bound sufficiency.
+
+## Owned buffers and canonical memory lowering
+
+`ANL.Memory` is a separate 72-module extension for `anl-owned-buffers-v1` using
+the existing flat-product value types. Raw programs, machine states, MIR and
+resource meters contain no hidden typing witnesses. Independent judgments prove
+checker equivalence, type uniqueness, finite preservation/progress, initialized
+access, active/suspended capability layout, read-loan preservation and normal
+entry cleanup. A finite executable world models fallible allocation responses,
+separate empty identities, fixed-length cell blocks and paired ordered events.
+Trace-site provenance is proved from original checked function bodies.
+
+The resource wrapper preflights depth, expression/fill fuel, slots, live cells
+and cumulative tuple fields before the corresponding work. Its results project
+to independent Core prefixes; administrative exhaustion retains the exact state.
+Depth nesting has an independent reachable-state characterization, not merely a
+continuation-length assertion. Host backing, I/O and instrumentation remain outside
+those mathematical counts.
+
+Canonical Core-to-MIR lowering is total and well formed on checked programs. The
+finite simulation covers both completed directions under identical allocator
+responses, exact final world and runtime capability state, every finite MIR
+prefix excluding invalid, and normal entry cleanup. Runner budgets are separately
+existential; there is no equal-step, equal-budget or resource-cutoff theorem.
+Successful actual pair/document acceptance supplies the canonical premise. The
+[proof inventory](../../formal/PROOFS.md#owned-buffers-and-coremir-correspondence)
+links the statements and premises.
+
+The strict reader and local reference driver have acceptance/projection/output
+bound proofs, with JSON/byte parsing, compilation, I/O and the host explicitly
+outside the proof. Production source/Rust/C correctness, heap SMT contracts,
+termination, general ownership and concurrency remain open. Memory-bearing
+`verify` returns unsupported before tool discovery.
 
 ## Two distinct guarantees
 
@@ -339,7 +373,7 @@ not independently checkable proof certificates.
 
 ## Memory, concurrency, and agent extension plan
 
-Heap semantics adds allocation identities, live storage, typed locations, ownership, loans, and drop transitions. Safe operations must preserve allocation validity and the aliasing invariant. Raw pointer operations have explicit obligations. A safe wrapper around FFI requires a contract and reviewed implementation; a correct scalar proof says nothing about that wrapper.
+The scoped-buffer model now supplies allocation identities, initialized live storage, owner/read/edit permissions, call loans and normal close transitions. General heap semantics must extend it with movable owners, aggregate references, escaping lifetimes and richer drop transitions. Safe operations must preserve allocation validity and the aliasing invariant. Raw pointer operations have explicit obligations. A safe wrapper around FFI requires a contract and reviewed implementation; a correct scalar proof says nothing about that wrapper.
 
 Concurrency adds threads, event traces, synchronization edges, and a defined memory model. Race freedom requires both static transfer rules and a sound runtime implementation. Deadlock, starvation, cancellation cleanup, and protocol correctness remain separate properties. Sequentially consistent atomics are the proposed first supported atomic mode; weaker modes need their own semantics and backend tests.
 

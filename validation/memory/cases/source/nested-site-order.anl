@@ -1,0 +1,5 @@
+fn main() -> i64 {
+heap outer: i64[heap len: i64[1] = 2 { len[0] } else { 2 }] =
+    heap init: i64[1] = 9 { init[0] } else { 9 }
+    { outer[0] + outer[1] } else { -1 }
+}

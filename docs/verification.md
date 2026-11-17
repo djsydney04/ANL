@@ -208,7 +208,7 @@ mutable locals with the same names.
 | 4 | Invocation, solver protocol, tool, or I/O failure |
 | 5 | Refuted verification obligation or unsatisfiable preconditions |
 | 6 | Solver uncertainty, timeout, or verification analysis limit |
-| 7 | Unsupported recursion, missing loop invariants, or an empty function graph |
+| 7 | Memory-bearing graph, unsupported recursion, missing loop invariants, or an empty function graph |
 
 A refuting solver model is labeled `replayed: false`. It is a candidate
 counterexample, not an execution trace. A later error does not erase already
@@ -221,7 +221,8 @@ The complete checked program selects one route:
 | Pure scalar code | `apl-verify-v0` | No separate field |
 | Scalar local state without loops | `apl-verify-v1` | `apl-state-verify-v1` |
 | Scalar code with a while loop | `apl-verify-v1` | `apl-loop-verify-v1` |
-| Any flat tuple in code or clauses | `anl-verify-v3` | `anl-flat-products-verify-v1` |
+| Any flat tuple in code or clauses, without memory | `anl-verify-v3` | `anl-flat-products-verify-v1` |
+| Any heap/buffer operation or view signature | `anl-verify-v4` | `anl-owned-buffers-unsupported-v1` |
 
 Tuple classification includes unused signatures, retained bindings and every
 contract or invariant expression. A tuple used only in a clause selects v3 while
@@ -284,6 +285,33 @@ verification requires the complete compiler, solver, source, and query bindings.
 Reports describe their exact source snapshot. They are not imported, cached as
 proof input, or used to authorize a later build. Editing a source, contract, tool,
 or option requires another verification attempt.
+
+## Scoped buffers: explicitly unsupported
+
+`check`, `eval` and native compilation support
+[scoped buffers](../spec/owned-buffers.md). The SMT verifier does not yet model
+heap contracts. Any memory-bearing form or view signature anywhere in the checked
+graph, including an unused function or dead branch, returns `unsupported` and
+exit 7 before compiler hashing, solver/C-tool discovery or query generation.
+Source, name and specification errors are still reported first.
+
+```sh
+anl verify examples/buffers/basic.anl --json
+```
+
+The report uses `anl-verify-v4`, verification revision
+`anl-owned-buffers-unsupported-v1` and semantic revision `anl-owned-buffers-v1`.
+It records source identities, `type_checked: true`, `tested: false`,
+`dynamic_checks: false`, `contracts_erased: true`, `trust: "not_established"`,
+null compiler/solver identities, no queries and zero obligations. Function
+metadata keeps ordinary parameters and the optional named view separate.
+No successful contract result is inferred from resource typing or from erased
+annotations.
+
+The independent Lean memory model instead establishes the finite typing,
+capability, heap, cleanup and canonical Core/MIR properties listed in the
+[proof inventory](../formal/PROOFS.md#owned-buffers-and-coremir-correspondence).
+Those theorems do not certify this verifier or establish user heap postconditions.
 
 ## Compilation and proof scope
 

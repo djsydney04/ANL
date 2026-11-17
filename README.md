@@ -12,7 +12,9 @@ compiler produces hosted executables.
 
 The current implementation checks, interprets, and compiles `i64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
-structured while loops, conditionals, recursive functions, and file modules.
+structured while loops, conditionals, recursive functions, file modules, and scoped
+`i64` buffers with read/edit call views. Buffer owners have fixed length and close
+on normal scope exit; views cannot escape a call.
 `anl verify` checks arithmetic safety and contracts for scalar and flat-tuple code
 with mutable locals, annotated while loops and acyclic calls, using Z3 5.3.3. Results are labeled
 `smt-trusted`.
@@ -39,7 +41,13 @@ typing, representation and valid-check premises. Its contract theorems include
 ordered precondition definedness, typed entry witnesses and exact query partition.
 These proofs do not certify the production verifier or solver. None of these proofs
 establishes production termination or Rust implementation correctness.
-See the [proof inventory](formal/PROOFS.md) for exact scope and assumptions.
+The separate `ANL.Memory` model adds checked buffer typing, finite heap and
+capability safety, resource-accounted Core execution, and finite canonical
+Core/MIR correspondence in both directions. Its independent pair checker links
+those theorems to accepted Core/MIR artifacts. Heap-bearing `verify` reports
+unsupported with exit 7; the model proofs do not prove user heap contracts or
+Rust/native correctness. See the [proof inventory](formal/PROOFS.md) for exact
+scope and assumptions.
 
 From this checkout, with Rust installed through rustup:
 
@@ -54,7 +62,8 @@ The [getting-started guide](docs/getting-started.md) covers examples, diagnostic
 resource limits, and core import/export. The CLI also supports native `build`,
 `run`, and `emit-c` through a host C11 compiler; see
 [native compilation](docs/native-compilation.md). There is no qualified
-installable release yet. Nested aggregates, records, arrays, ownership, I/O, concurrency, recursive
+installable release yet. Nested aggregates, records, general collections and
+ownership transfers, I/O, concurrency, recursive
 verification, and the wider language remain roadmap work. `verify` rejects any
 program containing an unannotated loop or a recursive call graph before
 starting a solver. Tuple contracts support construction, projection and same-shape
@@ -65,6 +74,8 @@ equality, including invariant clauses. See the [tuple contract examples](docs/ve
 - [Programs with modules](docs/modules.md)
 - [Mutable locals and while loops](spec/control-flow.md)
 - [Flat tuples and multiple return values](spec/flat-products.md)
+- [Scoped buffers and views](docs/book/owned-buffers.md)
+- [Buffer language and runtime specification](spec/owned-buffers.md)
 - [Verify function contracts](docs/verification.md)
 - [Formal model and proof checks](formal/README.md)
 - [Language charter](docs/charter.md)

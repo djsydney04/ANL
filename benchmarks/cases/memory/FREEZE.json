@@ -1,0 +1,89 @@
+{
+  "files": {
+    "c/buffer-edit.c": {
+      "bytes": 744,
+      "sha256": "2788647a25838621cc474005a456149f0e549091570cd67ea7b4b5394bc2fb8c"
+    },
+    "c/buffer-owners.c": {
+      "bytes": 463,
+      "sha256": "fa33b5da710eb75c7d12287f8c81c43eb692ceaa65a36fee140f44a5c740c89c"
+    },
+    "c/buffer-read.c": {
+      "bytes": 477,
+      "sha256": "032025dbca3344768544ad71407a2b0d92de9fd0de1d183e03d1e92186150529"
+    },
+    "c/buffer.c": {
+      "bytes": 1278,
+      "sha256": "e6ff4c60ba13de7d3aefe3e9ad80e7abaf0450cc010ac053f3f457a3340b5fec"
+    },
+    "c/buffer.h": {
+      "bytes": 335,
+      "sha256": "c349bbd7a552ed53a6e9d34dc06412c4db05f2215798cdc6d0963b005b185d52"
+    },
+    "c/common.h": {
+      "bytes": 1108,
+      "sha256": "f82ba44a23f8131b5cb24e51b8a5bdab49195fb4775cd7af17cca6132996ebf0"
+    },
+    "c/constant.c": {
+      "bytes": 58,
+      "sha256": "9b5e70349b4eb464ca5652ec6eee692aa7bc048b12dd21f4350e392c5fcbe659"
+    },
+    "c/recurrence.c": {
+      "bytes": 259,
+      "sha256": "44990466a06619325d27ff46d8b129415d2968126c92d545b7e03a777efa32c5"
+    },
+    "c/tuple-calls.c": {
+      "bytes": 652,
+      "sha256": "7807dd9a72f4dee526265dd2105a89c09407bccdef352b97e84f590cad488813"
+    },
+    "companions/buffer-edit.anl": {
+      "bytes": 523,
+      "sha256": "c81034e6fa771bb9f1b0ad7e8db9b2d597dcb67024f2707a0da3f422bde4cb55"
+    },
+    "companions/buffer-owners.anl": {
+      "bytes": 260,
+      "sha256": "a6aa99e491d77b538cdba94e3c60225996000867bdac9f9f40bc6a644ffcf308"
+    },
+    "companions/buffer-read.anl": {
+      "bytes": 346,
+      "sha256": "ee61e85d07c241aa3580fd97e00cd019c5b0aa3bcf40251d3c812f43fec6b8e1"
+    },
+    "inputs/buffer-edit.anl": {
+      "bytes": 527,
+      "sha256": "b2c0efcbc42bcbc3242ef220c6648e652d0f791e16f6720a93bf19b57e5abaa1"
+    },
+    "inputs/buffer-owners.anl": {
+      "bytes": 264,
+      "sha256": "65d3a02eeed7e9f7c456dcc2eac737e35e2d6e7d7540311b6b5876122c810234"
+    },
+    "inputs/buffer-read.anl": {
+      "bytes": 351,
+      "sha256": "f92a45f8c28e7e4b62f06e7be420ba78f1eb37f4d55ff6860f44c59613e92831"
+    },
+    "inputs/constant.anl": {
+      "bytes": 99,
+      "sha256": "a53bf2cce5e25ea8a1c313ebe5c3180ae0caa615071c51772782ca337b6761dd"
+    },
+    "inputs/recurrence.anl": {
+      "bytes": 294,
+      "sha256": "8b168797eff2005893fc6291c5345f93149806b3135481b0b4cd5702635abfaa"
+    },
+    "inputs/tuple-calls.anl": {
+      "bytes": 515,
+      "sha256": "d25d27a09e0417b10f4cdda1cdf645d7da05d27b4b7665540d1fd59ffc900a78"
+    },
+    "manifest.json": {
+      "bytes": 52335,
+      "sha256": "21f26fe3c8afb8c106089d0989a46f2a4905358c53a183c7d3571d8ad6c5d876"
+    },
+    "oracles.json": {
+      "bytes": 464,
+      "sha256": "c1385597d18ea10be0f716b806446e1cf724aa6ac3aa72cd7a79f4bf4058690a"
+    },
+    "response-plan.json": {
+      "bytes": 76,
+      "sha256": "6e5394cdf862a8a63ee99f7d88bc9c7cc8211df1d54e96c6fdef57570445046d"
+    }
+  },
+  "schema": "anl-owned-buffer-public-performance-inputs-v1"
+}

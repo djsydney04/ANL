@@ -1,0 +1,1 @@
+fn main()->i64{heap b:i64[1]=b.length{0}else{0}}

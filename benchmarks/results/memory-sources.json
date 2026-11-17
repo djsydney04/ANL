@@ -1,0 +1,360 @@
+{
+  "baseline": {
+    "commit": "f63a0526d4978712a6ae7d05b9c18a83bcbf78e0",
+    "files": {
+      "Cargo.lock": {
+        "bytes": 5516,
+        "sha256": "5467c4a54d25dab5ba198c025992b0edb68c324b201845c3bbc0f7af32341305"
+      },
+      "Cargo.toml": {
+        "bytes": 352,
+        "sha256": "84254652f7c65ef18adb4672266a8a7108be7ca96fbf2283e7a48aed221fa0dc"
+      },
+      "rust-toolchain.toml": {
+        "bytes": 86,
+        "sha256": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1"
+      },
+      "src/bounded.rs": {
+        "bytes": 3243,
+        "sha256": "c58bc6fee2c984016047d05352ae756406eb8e6c8484cde537902ec5c6be10bc"
+      },
+      "src/codegen.rs": {
+        "bytes": 19856,
+        "sha256": "d8a46b8b06ef9d9d80d9e230702080a3bb732629f2187594d8123f91abaadd29"
+      },
+      "src/core.rs": {
+        "bytes": 25818,
+        "sha256": "e4b0fe751455661b722e885324fb1bb652280e5cb0b740f0199daadc43ab35c2"
+      },
+      "src/core/wire.rs": {
+        "bytes": 7079,
+        "sha256": "c828f30c8187bda0b848a5506197f967f0c0a7c065b8f62d02326d64e8d91323"
+      },
+      "src/diagnostic.rs": {
+        "bytes": 3561,
+        "sha256": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8"
+      },
+      "src/eval.rs": {
+        "bytes": 22633,
+        "sha256": "ae25d774afafd58efe482e048dc7fd95684b6742a482ff822831210a82b95f29"
+      },
+      "src/lib.rs": {
+        "bytes": 1669,
+        "sha256": "38fad0e7a1a6ddc9a5aa36386e00bc528965098442e8205b796b5a68a416c929"
+      },
+      "src/main.rs": {
+        "bytes": 11334,
+        "sha256": "a5b1dc2b01f8abf9827d6068d9f81554baed9dd644c3a302f71ba72fd06ddee8"
+      },
+      "src/mir.rs": {
+        "bytes": 24863,
+        "sha256": "c0b66b6b3c9bf7ab2098ec8b1995d191af89f026aa5f4f719a82e71a0cf5de21"
+      },
+      "src/modules.rs": {
+        "bytes": 6565,
+        "sha256": "65a3e05929eb53426833bc75462d30ec08cfc821f0dd087d1330b9ee6698b3fd"
+      },
+      "src/resolve.rs": {
+        "bytes": 48305,
+        "sha256": "88f83e84b7e268f0dfdaacd87e34d0b2c7ed676d526d6a789d2ae5b8b272b3ad"
+      },
+      "src/syntax.rs": {
+        "bytes": 28477,
+        "sha256": "534ad19e7ff7eff4837cfadd6da3ff8fc97130fd0ad8991466a91afe620a03d7"
+      },
+      "src/types.rs": {
+        "bytes": 15015,
+        "sha256": "f4deb728fbf4275614ec4d697000fa0d639a97ccc4b50bc7e2d0d2be534a7c2a"
+      },
+      "src/verify/formula.rs": {
+        "bytes": 42525,
+        "sha256": "fbc3df715d288610ce828facf12c4a50343af9a6dbc97a7ee3f9d61626eb120e"
+      },
+      "src/verify/loops.rs": {
+        "bytes": 71736,
+        "sha256": "b0999064a3ed91ea83c43237263d7f430ed21ae6a39bdd904a450dcd171f2594"
+      },
+      "src/verify/mod.rs": {
+        "bytes": 22819,
+        "sha256": "f52e60de8ea95efc85f9f1db9907b86d9cdb1295bfca6dec49b6317d9a4919a3"
+      },
+      "src/verify/solver.rs": {
+        "bytes": 27945,
+        "sha256": "73c774f3d81248b7265c0c3ee33faa9651457d37fc8c0d88f1c527ba36d3ef37"
+      },
+      "src/verify/state.rs": {
+        "bytes": 10667,
+        "sha256": "84da8708963e47d945bb49772404bf4c036a459576dad86e9cd6e0a4b00dbb10"
+      }
+    }
+  },
+  "candidate": {
+    "description": "Exact accepted owned-buffer compiler source inputs; integration commit is recorded separately when published.",
+    "files": {
+      "Cargo.lock": {
+        "bytes": 5516,
+        "sha256": "5467c4a54d25dab5ba198c025992b0edb68c324b201845c3bbc0f7af32341305"
+      },
+      "Cargo.toml": {
+        "bytes": 463,
+        "sha256": "e3f8dd1e934680a954a8ddec27267ef7a48a3d81be5af61000acccda5a9ea2d8"
+      },
+      "examples/contracts/count-sum.anl": {
+        "bytes": 644,
+        "sha256": "953340a533bb7849dbd345f9a7eff18df3158cb2e9b82b07920c8babe90aa04d"
+      },
+      "examples/contracts/count.anl": {
+        "bytes": 264,
+        "sha256": "2f1b2f928f464f5694441663f5f375fc8f9498c4cb00451b7b728c3697f448e6"
+      },
+      "examples/contracts/increment.anl": {
+        "bytes": 209,
+        "sha256": "6a1fe457b96b1d5a2e459c29390cb20cf95c71f7432496ea787cf5cf438df20b"
+      },
+      "examples/contracts/tuple-snapshots.anl": {
+        "bytes": 307,
+        "sha256": "9edba7e5b3faf946d08cbefd5f4380f3d2c3e85a0383fc4e16581a80c42e1792"
+      },
+      "examples/control-flow/gcd.anl": {
+        "bytes": 211,
+        "sha256": "b383321bd7d7dedd1ea9fcd93abfc6b65e4875882483fcd829495b8b016e7b01"
+      },
+      "examples/control-flow/sum.anl": {
+        "bytes": 179,
+        "sha256": "e2144c78f5dcecd1652e447e9f967f376928591062a7fe69cf1046af06902949"
+      },
+      "examples/factorial.anl": {
+        "bytes": 192,
+        "sha256": "90cb3eb25a68a2d5d65e681a024b0efc0a566b99a6b6f160d0483b7e047a88de"
+      },
+      "examples/gcd.anl": {
+        "bytes": 162,
+        "sha256": "bfa17e6571acbdb3d287a88b4aedec244d77cc2e6cc34651a3dfab2243b4e4e7"
+      },
+      "examples/memory_evidence.rs": {
+        "bytes": 654,
+        "sha256": "01d5726b454c5b4657fc094df5fc060633013f9c5f52689e8ff103545f6788b0"
+      },
+      "examples/modules/constants.anl": {
+        "bytes": 32,
+        "sha256": "966492b488c8a98b008e13cf7f2c01904bb2eb11755a5b92c2995bcac0bb6048"
+      },
+      "examples/modules/main.anl": {
+        "bytes": 74,
+        "sha256": "3a490476ca274edbd259f1591cfe49c49e88a44d13b59b0efd690510fed61adc"
+      },
+      "examples/modules/math.anl": {
+        "bytes": 144,
+        "sha256": "8ed0bc074bef6b65abd354b90908228ce2da80216ed2ec6072c169c9527cd11c"
+      },
+      "examples/scopes.anl": {
+        "bytes": 263,
+        "sha256": "ac22ea72effb679546a979e9e5f98566a8b851849de2f23c5d70834405e34d1a"
+      },
+      "examples/sum-primes.anl": {
+        "bytes": 514,
+        "sha256": "fd11a7cb9e7512dcf56a1cdf457c0c4745a5947eadb9e6690fddf450546dbe50"
+      },
+      "examples/tuples/count-sum.anl": {
+        "bytes": 295,
+        "sha256": "feeccead135bf5249d035bec7f5a6220b97e553c4a208326e534df16da88e329"
+      },
+      "examples/tuples/snapshots.anl": {
+        "bytes": 309,
+        "sha256": "043b54b37f61829fde06fdcd53b795dd08c77ce713dfe51375b47566c6b6a632"
+      },
+      "runtime/buffer.c": {
+        "bytes": 6651,
+        "sha256": "c4450221cf263754e8847d2c35ca29ca0ece8ccb96bd576d787d0a8a784c57e4"
+      },
+      "rust-toolchain.toml": {
+        "bytes": 86,
+        "sha256": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1"
+      },
+      "src/bounded.rs": {
+        "bytes": 3243,
+        "sha256": "c58bc6fee2c984016047d05352ae756406eb8e6c8484cde537902ec5c6be10bc"
+      },
+      "src/codegen.rs": {
+        "bytes": 29786,
+        "sha256": "416a39cfce284d834076c8b070a7f3b0bb2b3b1b907f8e9c4573670441552573"
+      },
+      "src/core.rs": {
+        "bytes": 33539,
+        "sha256": "f4098686412d7003e4b00de34040bf70ddb6f6ec3e4c8ef55526cdd12305f7c4"
+      },
+      "src/core/wire.rs": {
+        "bytes": 9828,
+        "sha256": "41e9d32a300dab762a3f9acebe35a1dec9568677c2cbff74676aebb75fce9e3f"
+      },
+      "src/diagnostic.rs": {
+        "bytes": 3561,
+        "sha256": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8"
+      },
+      "src/eval.rs": {
+        "bytes": 34997,
+        "sha256": "44bf823c7045de945803ee5e52868603401f28d3e503c306e71d6673a1f59627"
+      },
+      "src/lib.rs": {
+        "bytes": 1746,
+        "sha256": "129bb8a351ba6cdc868997536b498a6ede5fd1ea5d9b6e3c495bc1816c214a7f"
+      },
+      "src/main.rs": {
+        "bytes": 12430,
+        "sha256": "ca366d01f76d52870d4bededb91a3ca983bafa31a923e57eab1ea644488faf80"
+      },
+      "src/memory.rs": {
+        "bytes": 3658,
+        "sha256": "77505bc8f66229a1558b53cf51edb40ec70531e851ea71d24df68501a23ead7d"
+      },
+      "src/memory_evidence.rs": {
+        "bytes": 29750,
+        "sha256": "75d330b6d94a5f3be68a189afc669ea3c314c323bc3c9383fe3853b333539c6d"
+      },
+      "src/mir.rs": {
+        "bytes": 33584,
+        "sha256": "b948800a98abd5cde6b0be9610522d1c84eda13a2a1f850f99b9ee00104d9bb3"
+      },
+      "src/mir/wire.rs": {
+        "bytes": 16978,
+        "sha256": "d890fae851a4cc9838f06167cd1ed238feab9ad4089e162610f4c71ce77115fb"
+      },
+      "src/modules.rs": {
+        "bytes": 6565,
+        "sha256": "65a3e05929eb53426833bc75462d30ec08cfc821f0dd087d1330b9ee6698b3fd"
+      },
+      "src/resolve.rs": {
+        "bytes": 57842,
+        "sha256": "b9d22c52ef346cf9b05268b0d7b72ea15fd8269c1a6ac39a2f6235b63f36d2f7"
+      },
+      "src/syntax.rs": {
+        "bytes": 36823,
+        "sha256": "df94aeee85fa12cab611bfa61b48eee9ab247dfa12572714ef8f82d78d8b53c8"
+      },
+      "src/types.rs": {
+        "bytes": 18630,
+        "sha256": "482fded17ef82ad793d4e7bd592d6c6832ea18607cbfc0ba6fb5c77095641739"
+      },
+      "src/verify/formula.rs": {
+        "bytes": 42777,
+        "sha256": "6c018f34dbed5d7326c5fbdf312d96c0c7d1e7ea660e33bfe1569cbb979de61c"
+      },
+      "src/verify/loops.rs": {
+        "bytes": 71922,
+        "sha256": "0dec289c0b57faf6cd84b0e97b16c84fabb8faf9ea18ebb5b397f1a8cd055e3c"
+      },
+      "src/verify/mod.rs": {
+        "bytes": 24510,
+        "sha256": "7e3fcd2f2c671786c34331d5be060a6055a928d284e855bc0b815b46e2b09d30"
+      },
+      "src/verify/solver.rs": {
+        "bytes": 27945,
+        "sha256": "73c774f3d81248b7265c0c3ee33faa9651457d37fc8c0d88f1c527ba36d3ef37"
+      },
+      "src/verify/state.rs": {
+        "bytes": 10853,
+        "sha256": "1db6786ffcbb3712e846e1cf80c2985d7c1acc2e05581e04c86a453b043132db"
+      },
+      "tests/boundaries.rs": {
+        "bytes": 5968,
+        "sha256": "69255646010e26905c2adb35898900e27a6a7fa7c6041fbcd87f7fd88e2a5f40"
+      },
+      "tests/conformance.rs": {
+        "bytes": 27875,
+        "sha256": "b8ffe9645cb2b217f45fbaebad7edeefa434e811993903962e87fb4b4b45a79d"
+      },
+      "tests/contracts.rs": {
+        "bytes": 9301,
+        "sha256": "d6975efcac63936e8db4ab1e880797fbda326b4dad0f3082efca56d5b3ff5f7d"
+      },
+      "tests/control_flow.rs": {
+        "bytes": 18819,
+        "sha256": "e0dd1818e5d205f1ef5e2244641388ba57ddb6066684e873a2e7596c516da7ba"
+      },
+      "tests/flat_products.rs": {
+        "bytes": 16070,
+        "sha256": "ad7d54e515674cd6166a0e90ca52d3e1b542d26fd3f8944e73a33d5889f93532"
+      },
+      "tests/loop_annotations.rs": {
+        "bytes": 12576,
+        "sha256": "66b3fca2aea7ab2b1a29024e422ae2e245908e56ea864dfe6bd9a4cd86722341"
+      },
+      "tests/loop_verification.rs": {
+        "bytes": 19878,
+        "sha256": "eef206deee75e7953c45d3cc83390e83010a2c6f032247b7d81d27f66dce4539"
+      },
+      "tests/modules.rs": {
+        "bytes": 19107,
+        "sha256": "9ff8218c7f34c76881d373169215fa61a019f8915f430137bb29c2ba43af0000"
+      },
+      "tests/native.rs": {
+        "bytes": 18217,
+        "sha256": "5c974e9048bc05858b78ac56d8be52a6e26cc28dae9cccd022f13ee847b94055"
+      },
+      "tests/state_verification.rs": {
+        "bytes": 12542,
+        "sha256": "977bb25859af13f02ddac7aca3381d2a99e332c0aaeef83fe6ee7caa5f8d2dc2"
+      },
+      "tests/verification.rs": {
+        "bytes": 19895,
+        "sha256": "2a4e275ff08727bea626fdc832bc11a36bbf8ab14572687d65f556595e4b9ee8"
+      }
+    }
+  },
+  "helper_policy": "Public validation/memory oracle, reference protocol and CC adapter are separately pinned by the performance package manifest.",
+  "historical_tools": {
+    "baseline": {
+      "bytes": 1415952,
+      "sha256": "50a16061f0acbb4cc3d1cd1da4c096bf937de5b17975e919231991974080d9dc"
+    },
+    "candidate": {
+      "bytes": 1598728,
+      "sha256": "83d7c329576077a5ffc3d418f27bd6cb05884e487e1a7983389877cc1daacea2"
+    },
+    "cc": {
+      "bytes": 141373024,
+      "sha256": "7def90dd8829726686213a747fc5bff1583df933dae5edc55d755479e0bfe00a"
+    },
+    "cc_launcher": {
+      "bytes": 118928,
+      "sha256": "12bed4523661307059b879b9b54e77a73176e9d27d27a0e40363271d8f0668ba"
+    },
+    "exporter": {
+      "bytes": 1079040,
+      "sha256": "4ee8ead620ddbb4bd3894d5f8d94b8c36e52c0d0131116cd6b09d49b337a16b0"
+    },
+    "linker": {
+      "bytes": 2331792,
+      "sha256": "5897b275efd93b201b6df5832dd541262b3f20f290859ba78f2200a6a66ef38b"
+    },
+    "pair": {
+      "bytes": 106462800,
+      "sha256": "ba07ffeea0a41d133af7defdb06e79fc3ec7754cdc99dfb1827f286c562e179e"
+    },
+    "pmset": {
+      "bytes": 369456,
+      "sha256": "ed7d3ca023b66f7b63aafc1b50a71d4f56354161c8da6d41694c8daf94b3497c"
+    },
+    "ps": {
+      "bytes": 170816,
+      "sha256": "1e46cdb824858eb32e4c85ca920ba31b4541a814a133980d8b3484f39942276c"
+    },
+    "python": {
+      "bytes": 102352,
+      "sha256": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb"
+    },
+    "reference": {
+      "bytes": 106497248,
+      "sha256": "a94873e5cb57b04133432a9cf6622ade3f445429f8a422e920962ff71751173c"
+    },
+    "xcrun": {
+      "bytes": 117392,
+      "sha256": "234a81668b43d610a78d9293a5ccef397f561a88af84757194aedaa1ec728ad3"
+    }
+  },
+  "original_controller": {
+    "bytes": 29928,
+    "sha256": "75ba4d5129b984916ce2da467ab887c31981bab6d19079b740be1b58b08a6f98"
+  },
+  "schema": "anl-owned-buffer-performance-source-identities-v1"
+}

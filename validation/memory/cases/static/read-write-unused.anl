@@ -1,0 +1,2 @@
+fn main()->i64{42}
+fn bad(read b:i64[])->unit{b[0]=1;}

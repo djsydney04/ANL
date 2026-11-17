@@ -1,0 +1,1 @@
+{"allocation_profile":{"abi":"anl-buffer-c11-v1","char_bits":8,"i64_align":8,"i64_bytes":8,"ptrdiff_bits":64,"size_bits":64},"completion":{"kind":"trap","trap":"index_out_of_bounds"},"events":[{"empty":"0","kind":"empty_open","site":{"function":0,"heap":0}}],"schema":"anl-memory-trace-v1","semantic_revision":"anl-owned-buffers-v1"}

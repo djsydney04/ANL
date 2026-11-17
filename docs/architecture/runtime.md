@@ -2,13 +2,14 @@
 
 Status: broader runtime facilities below remain design proposals unless linked to
 implementation evidence. Current execution supports scalars, flat tuples and local
-state as defined by the [type-system specification](type-system.md).
+state, plus scoped `i64` buffer owners and call-scoped read/edit views, as defined
+by the [type-system specification](type-system.md).
 
 ## Hosted runtime and ANL OS boundary
 
 The implemented native runtime is hosted: generated C helpers use libc to print
-results and report failures. The allocator, threads and OS adapters described
-below are planned language facilities. Hosted adapters can support language
+results and report failures. A separate hosted C allocator adapter supports
+scoped buffers. Threads and general OS adapters below remain planned facilities. Hosted adapters can support language
 bootstrap work, but do not implement an ANL OS memory manager, scheduler or
 driver. For the OS target, these facilities and their underlying OS services
 must be authored in ANL under the
@@ -49,9 +50,43 @@ preserves earlier snapshots. Tuple-bearing interpretation has checked cumulative
 allocation-work and logical-slot budgets; these are not heap-byte caps. Native
 tuple operations need no generated heap allocation and do not inherit those
 interpreter budgets. See the [resource contract](../../spec/flat-products.md#checked-resource-limits).
-This does not implement source-level ownership, references or an allocation API.
+The flat-tuple model alone does not implement ownership; scoped buffers use the
+separate resource model below.
 
-## Storage and cleanup
+## Implemented scoped-buffer runtime
+
+A `heap` expression owns one fixed-length initialized `i64` buffer only in its
+success block. A function may receive one first-position `read` or `edit` view.
+Resources cannot become ordinary values, return values, tuple fields or escaping
+references. The [buffer specification](../../spec/owned-buffers.md) defines exact
+evaluation order and the separate Core resource-index context.
+
+The mathematical world has a finite LIFO owner store, positive request identities,
+separate empty identities and an ordered event history. Reads and permitted writes
+may access non-top live owners through views; a normal close removes exactly the
+top owner. Events are prepended to a reverse history; the ordered projection is for proof
+and final export, not a per-transition scan. The capability invariant distinguishes active resources from suspended
+caller descriptors, allowing recursive views without claiming all descriptors are
+globally unique. Read-loan preservation starts after all argument effects have
+completed and ends at revocation. Trap states retain world and capability state;
+normal cleanup theorems do not promise cleanup on trap or host termination.
+
+The interpreter preflights expression depth/fuel, logical slots, live cells and
+cumulative tuple fields. A positive allocation checks cell, descriptor and fill-fuel
+budgets atomically before constructing storage. Normal close releases live counts;
+refusal refunds only reserved cells/descriptor. The
+[resource policy](../../spec/owned-buffers.md#reference-tool-resource-policy) is
+separate from abstract semantics, administrative runner budgets and host backing.
+
+The native profile fixes eight-bit bytes, eight-byte signed cells, supported
+alignment and size/ptrdiff widths. Program and runtime compile separately with
+`-fno-lto`; ABI-keyed request/release calls retain the fallible allocation boundary.
+The hosted allocator is trusted implementation support. Finite model safety and
+Core/MIR correspondence do not establish C allocator correctness or an OS allocator.
+
+The broader storage, concurrency, ABI and library designs below remain planned.
+
+## General storage and cleanup (planned)
 
 The storage model distinguishes stack locals, owned heap allocations, and borrowed views. A heap allocation has an allocation identity, a size, an alignment, initialized byte ranges, and an owner. References retain provenance from that allocation or stack place. Integer arithmetic cannot manufacture a safe reference.
 
@@ -117,6 +152,6 @@ Ordinary I/O failure uses typed errors. A panic is reserved for violated asserti
 
 The compiler supplies ownership-valid operations, layout descriptors, and source locations. The runtime supplies allocator and OS adapters with documented preconditions and postconditions. The verifier models each external operation through a named contract, which remains an assumption until implementation evidence discharges it.
 
-Before heap support, require use-after-move and aliasing rejection tests, cleanup tests across ordinary and error exits, allocator-failure tests, and a reviewed store semantics. Before concurrency, require scoped-lifetime tests, negative `Send` and `Sync` cases, channel closure tests, cancellation cleanup tests, synchronization litmus tests, and an independent safety review. Before FFI, require positive and negative ABI integration fixtures on every advertised target.
+Before general movable-owner and aggregate heap support, require use-after-move and aliasing rejection tests, cleanup tests across ordinary and error exits, allocator-failure tests, and a reviewed store semantics. Before concurrency, require scoped-lifetime tests, negative `Send` and `Sync` cases, channel closure tests, cancellation cleanup tests, synchronization litmus tests, and an independent safety review. Before FFI, require positive and negative ABI integration fixtures on every advertised target.
 
 Performance work must measure allocation counts, contention, task scheduling, executable size, and latency using reproducible workloads. This architecture predicts no numerical performance advantage. The initial open risks are ownership-checker correspondence, cancellation state cleanup, runtime synchronization correctness, target ABI differences, and the trusted scope of foreign libraries.

@@ -1,0 +1,70 @@
+{
+  "commands": 108,
+  "controller_sha256": "be2a289fa17a3c4dc6229174f42e477d9b3dfb8c087a384e0d7d604087614dd3",
+  "host": "macOS arm64",
+  "limits": [
+    "Untimed local qualification of the public controller and selected exact source/tool identities.",
+    "Historical336job measurements remain separate; this gate supplies no new timing or regression conclusion.",
+    "Raw qualification captures are retained locally; this public record gives their digest, not an archive or machine-code proof.",
+    "Compiler/host/I/O bridges remain trusted; full ANL language and authored OS are incomplete."
+  ],
+  "mode": "gate",
+  "package_sha256": "a09d6e55ce54a004fa674fa0f2b2c18f01ba4189958071ac1b67044cce0542ad",
+  "phases": {
+    "context": 6,
+    "first": 42,
+    "gate": 60
+  },
+  "raw_evidence_files": 444,
+  "raw_evidence_sha256": "93e02ef624e54ff02d8d1a7c266feb39ff00426ef564fdab356dee5b5431b474",
+  "retries": 0,
+  "samples": 0,
+  "schema": "anl-memory-public-gate-qualification-v1",
+  "source_inventory_sha256": "e05bd5f17a58b43b7029c4acf57ed094c0ff6d22b0d4503160f9c7416d228b37",
+  "status": "PASS",
+  "timings_collected": false,
+  "tool_identities": {
+    "baseline": {
+      "bytes": 1415952,
+      "sha256": "50a16061f0acbb4cc3d1cd1da4c096bf937de5b17975e919231991974080d9dc"
+    },
+    "candidate": {
+      "bytes": 1598728,
+      "sha256": "83d7c329576077a5ffc3d418f27bd6cb05884e487e1a7983389877cc1daacea2"
+    },
+    "cc": {
+      "bytes": 141373024,
+      "sha256": "7def90dd8829726686213a747fc5bff1583df933dae5edc55d755479e0bfe00a"
+    },
+    "exporter": {
+      "bytes": 1079040,
+      "sha256": "4ee8ead620ddbb4bd3894d5f8d94b8c36e52c0d0131116cd6b09d49b337a16b0"
+    },
+    "linker": {
+      "bytes": 2331792,
+      "sha256": "5897b275efd93b201b6df5832dd541262b3f20f290859ba78f2200a6a66ef38b"
+    },
+    "pair": {
+      "bytes": 106452944,
+      "sha256": "0798bd55e6ae48ac2d5c30bdae4eba69554e512f72e1d1815dbb6e7c9c63e784"
+    },
+    "pmset": {
+      "bytes": 369456,
+      "sha256": "ed7d3ca023b66f7b63aafc1b50a71d4f56354161c8da6d41694c8daf94b3497c"
+    },
+    "ps": {
+      "bytes": 170816,
+      "sha256": "1e46cdb824858eb32e4c85ca920ba31b4541a814a133980d8b3484f39942276c"
+    },
+    "python": {
+      "bytes": 102352,
+      "sha256": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb"
+    },
+    "reference": {
+      "bytes": 106481808,
+      "sha256": "7a6e02a04b974776a63a44776389ed6252a23cfd4802ad564ccd37cd95024664"
+    }
+  },
+  "unexpected_failures": 0,
+  "warmups": 0
+}

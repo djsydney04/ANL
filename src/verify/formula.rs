@@ -607,6 +607,11 @@ impl<'a> Generator<'a> {
         self.visit(depth)?;
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            ExprKind::Memory(_) => {
+                return Err(Failure::Unsupported(
+                    "buffers and views are not supported".into(),
+                ));
+            }
             ExprKind::Tuple(_) | ExprKind::Project { .. } => {
                 return Err(Failure::Unsupported(
                     "flat products are outside scalar verification".into(),
@@ -788,6 +793,7 @@ pub(super) fn supported(program: &Program) -> Result<(), Failure> {
         let mut work = vec![&function.body];
         while let Some(expr) = work.pop() {
             let construct = match &expr.kind {
+                ExprKind::Memory(_) => Some("buffers and views"),
                 ExprKind::Tuple(_) | ExprKind::Project { .. } => Some("flat products"),
                 ExprKind::While { .. } => Some("while"),
                 ExprKind::Assign { value, .. } => {

@@ -1,0 +1,14 @@
+fn main() -> i64 {
+let mut acc = 5;
+heap outer: i64[2] = 3 {
+    let x = 11;
+    let v = heap inner: i64[1] = 7 {
+        outer[1] = x + acc;
+        inner[0] = outer[0] + inner[0];
+        let outer = 100;
+        acc = acc + outer;
+        x + inner[0]
+    } else { -1 };
+    acc + 10 * outer[0] + 100 * outer[1] + 1000 * v + 10000 * outer.length
+} else { -2 }
+}

@@ -1,6 +1,6 @@
 use crate::{
     bounded::{Buffer, OutputError},
-    types::{Expr, ExprKind, Function, Program, ScalarType, Type},
+    types::{Expr, ExprKind, Function, MemoryExpr, Program, ScalarType, Type},
 };
 use serde::{
     Serialize, Serializer,
@@ -28,6 +28,53 @@ impl Serialize for Expr {
         let mut map = serializer.serialize_map(None)?;
         map.serialize_entry("ty", &self.ty)?;
         match &self.kind {
+            ExprKind::Memory(memory) => match memory.as_ref() {
+                MemoryExpr::Heap {
+                    site,
+                    length,
+                    initial,
+                    success,
+                    failure,
+                } => {
+                    map.serialize_entry("tag", "heap")?;
+                    map.serialize_entry("site", site)?;
+                    map.serialize_entry("length", length)?;
+                    map.serialize_entry("initial", initial)?;
+                    map.serialize_entry("success", success)?;
+                    map.serialize_entry("failure", failure)?;
+                }
+                MemoryExpr::Length { resource } => {
+                    map.serialize_entry("tag", "buffer_length")?;
+                    map.serialize_entry("resource", resource)?;
+                }
+                MemoryExpr::Read { resource, index } => {
+                    map.serialize_entry("tag", "buffer_read")?;
+                    map.serialize_entry("resource", resource)?;
+                    map.serialize_entry("index", index)?;
+                }
+                MemoryExpr::Write {
+                    resource,
+                    index,
+                    value,
+                } => {
+                    map.serialize_entry("tag", "buffer_write")?;
+                    map.serialize_entry("resource", resource)?;
+                    map.serialize_entry("index", index)?;
+                    map.serialize_entry("value", value)?;
+                }
+                MemoryExpr::CallView {
+                    function,
+                    resource,
+                    mode,
+                    arguments,
+                } => {
+                    map.serialize_entry("tag", "call_view")?;
+                    map.serialize_entry("function", function)?;
+                    map.serialize_entry("resource", resource)?;
+                    map.serialize_entry("mode", mode.as_str())?;
+                    map.serialize_entry("arguments", arguments)?;
+                }
+            },
             ExprKind::Integer(n) => {
                 map.serialize_entry("tag", "integer")?;
                 map.serialize_entry("value", &n.to_string())?;
@@ -107,10 +154,13 @@ impl Serialize for Expr {
         map.end()
     }
 }
-struct FunctionWire<'a>(usize, &'a Function);
+struct FunctionWire<'a>(usize, &'a Function, bool);
 impl Serialize for FunctionWire<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(5))?;
+        let mut map = serializer.serialize_map(Some(if self.2 { 6 } else { 5 }))?;
+        if self.2 {
+            map.serialize_entry("view", &self.1.view.map(|v| v.as_str()))?;
+        }
         map.serialize_entry("id", &self.0)?;
         map.serialize_entry("name", &self.1.name)?;
         map.serialize_entry("params", &self.1.params)?;
@@ -119,12 +169,12 @@ impl Serialize for FunctionWire<'_> {
         map.end()
     }
 }
-struct Functions<'a>(&'a [Function]);
+struct Functions<'a>(&'a [Function], bool);
 impl Serialize for Functions<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut seq = serializer.serialize_seq(Some(self.0.len()))?;
         for (id, function) in self.0.iter().enumerate() {
-            seq.serialize_element(&FunctionWire(id, function))?;
+            seq.serialize_element(&FunctionWire(id, function, self.1))?;
         }
         seq.end()
     }
@@ -132,11 +182,29 @@ impl Serialize for Functions<'_> {
 struct ProgramWire<'a>(&'a Program, usize);
 impl Serialize for ProgramWire<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let mut map = serializer.serialize_map(Some(4))?;
-        map.serialize_entry("schema", "apl-core-v2")?;
-        map.serialize_entry("semantic_revision", super::FLAT_PRODUCTS_SEMANTIC_REVISION)?;
+        let memory = self.0.has_memory();
+        let mut map = serializer.serialize_map(Some(if memory { 5 } else { 4 }))?;
+        if memory {
+            map.serialize_entry(
+                "allocation_profile",
+                &self
+                    .0
+                    .allocation_profile
+                    .expect("checked memory profile")
+                    .json(),
+            )?;
+        }
+        map.serialize_entry("schema", if memory { "anl-core-v3" } else { "apl-core-v2" })?;
+        map.serialize_entry(
+            "semantic_revision",
+            if memory {
+                crate::memory::SEMANTIC_REVISION
+            } else {
+                super::FLAT_PRODUCTS_SEMANTIC_REVISION
+            },
+        )?;
         map.serialize_entry("entry", &self.1)?;
-        map.serialize_entry("functions", &Functions(&self.0.functions))?;
+        map.serialize_entry("functions", &Functions(&self.0.functions, memory))?;
         map.end()
     }
 }

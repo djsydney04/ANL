@@ -1,10 +1,12 @@
 # Native compilation
 
-ANL can build scalar values and flat tuples into a host machine-code executable
+ANL can build scalar values, flat tuples and scoped `i64` buffers into a host machine-code executable
 through a C11 compiler. Initialized mutable locals, whole-value assignment, and
 structured `while` statements are supported. Programs may use the
-[file module system](modules.md); the checked graph lowers to one C11 translation unit. Separate-object compilation
-and the remaining full-language requirements are pending. The backend and its
+[file module system](modules.md). The checked graph lowers to a C11 program;
+buffer-bearing programs additionally compile and link a separate allocator runtime
+object. General separate compilation and the remaining full-language requirements
+are pending. The backend and its
 runtime helpers are tested, not formally verified.
 
 This is hosted compilation. Generated C uses libc for result printing and failure
@@ -50,14 +52,49 @@ divergence. Process termination or a machine crash can leave temporary files.
 
 The native wrapper prints the complete signed `i64` result and a newline, then
 exits 0. Arithmetic overflow and division by zero print `arithmetic_overflow` or
-`division_by_zero` to stderr and exit 2. Output stream failures exit 4. The
+`division_by_zero` to stderr and exit 2. Buffers add `invalid_length` and
+`index_out_of_bounds`, also exit 2. Output stream failures exit 4. The
 wrapper's printing convention does not add a source-level I/O facility.
 
-`emit-c FILE` writes a standalone C11 translation unit to stdout. This uses the
+`emit-c FILE` writes the program C11 translation unit to stdout. Scalar and
+tuple-only output is standalone; buffer output requires its generated runtime
+header and separate runtime object. Use `build`/`run`, or the complete
+[evidence export bundle](../spec/memory-evidence.md#builds-and-artifact-export),
+for buffer programs. This uses the
 same checked lowering and output bound as `build`; it does not invoke a compiler
 and publishes no stdout prefix on output-limit failure. It permits
 inspection and compilation at other optimization levels or with sanitizers.
 `check`, `eval`, `dump-core`, and `eval-core` retain their existing contracts.
+
+## Buffer runtime and allocation profile
+
+`heap`, `.length`, indexed reads/writes and call-scoped read/edit views use the
+[owned-buffer contract](../spec/owned-buffers.md). Length and index guards retain
+source order: a negative length skips initialization, a nonnegative length runs
+initialization before target-size rejection, and an invalid write index prevents
+its right-hand side from running. Ordinary call arguments are captured before
+view grant. Normal scope exit captures the ordinary result, releases the exact
+owner, then restores its surrounding resource context. A trap does not emit
+normal cleanup events.
+
+Source evaluation and export choose the Rust host allocation profile without
+looking for a C compiler. Imported Core retains its recorded profile. Native C
+asserts byte size, `int64_t` size/alignment, size and pointer-difference widths,
+and the versioned allocator ABI against that profile. Incompatible targets fail
+instead of silently changing representable lengths.
+
+Program and runtime are separately compiled with C11, `-O2` and `-fno-lto`, then
+linked. Request and release symbols include the ABI/profile key and remain opaque
+to program compilation. The compiler does not attach allocation-elision or
+non-null attributes to them. Logical request/refusal/close behavior is the
+contract; it does not assert physical `malloc` counts or resident-memory bounds.
+The default runtime uses a hosted C allocator. It is bootstrap support, not the
+ANL OS memory manager; freestanding allocators and hardware operations remain open.
+
+The ordinary build ignores memory-evidence environment variables. An explicit
+feature build enables bounded trace/replay controls; see the
+[evidence protocol](../spec/memory-evidence.md). Neither native execution nor
+that instrumentation inherits interpreter fuel, nesting, slot or live-cell caps.
 
 ## Lowering and validation
 
@@ -136,9 +173,9 @@ The native and module checks passed on macOS AArch64 and Linux x86-64 at revisio
 `19d726c`; see the [CI run](https://github.com/djsydney04/ANL/actions/runs/44043755444).
 Module tests exercise multi-file interpretation, native execution at `-O0` and
 `-O2`, and protection of transitive source inputs. These checks do not qualify an
-installable release or prove compiler correctness, memory safety for future heap
-features, source-to-Lean
-correspondence, or production performance. The C compiler, linker, scalar runtime,
-host C library, and operating system remain trusted components. Source I/O, heap
-allocation, ownership checking, concurrency, FFI, and ANL optimizer transforms
-remain unimplemented.
+installable release or prove compiler correctness, source-to-Lean correspondence,
+or production performance. The later buffer corpus and formal Core/MIR model
+provide separately scoped evidence described in the [trust ledger](architecture/trust.md).
+The C compiler, linker, runtime, host C library and operating system remain
+trusted components. Source I/O, general ownership transfers, concurrency, FFI
+and ANL optimizer transforms remain unimplemented.

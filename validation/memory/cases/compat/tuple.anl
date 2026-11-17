@@ -1,0 +1,1 @@
+fn main()->i64{let p=(40,true,());let q=p;p.0+2}

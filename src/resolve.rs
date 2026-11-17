@@ -4,26 +4,41 @@ use crate::{
     syntax,
     types::{
         BindingId, Clause, Expr, ExprKind, Function, FunctionContract, HeadBinding, LocalAssertion,
-        LocalAssertionKind, LocalClause, LoopAnnotation, Program, SpecExpr, SpecExprKind, SpecType,
-        Type, UnaryOp,
+        LocalAssertionKind, LocalClause, LoopAnnotation, MemoryExpr, Program, ResourceMode,
+        SpecExpr, SpecExprKind, SpecType, Type, UnaryOp, ViewMode,
     },
 };
 use std::collections::{BTreeMap, HashMap};
 
 struct Signature {
+    view: Option<ViewMode>,
     params: Vec<Type>,
     result: Type,
     span: Span,
     public: bool,
 }
 struct Binding {
+    order: usize,
     id: BindingId,
     name: Option<String>,
     ty: Type,
     mutable: bool,
     span: Span,
 }
+struct ResourceBinding {
+    name: String,
+    mode: ResourceMode,
+    order: usize,
+}
+fn resource_shadows(name: &str, env: &[Binding], resources: &[ResourceBinding]) -> bool {
+    let ordinary = env.iter().rev().find(|b| b.name.as_deref() == Some(name));
+    let resource = resources.iter().rev().find(|b| b.name == name);
+    resource.is_some_and(|r| ordinary.is_none_or(|b| r.order > b.order))
+}
 struct Checker {
+    resources: Vec<ResourceBinding>,
+    next_order: usize,
+    next_site: usize,
     signatures: Vec<Signature>,
     names: Vec<HashMap<String, Member>>,
     current_module: usize,
@@ -54,6 +69,9 @@ enum Member {
 
 pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnostic> {
     let mut checker = Checker {
+        resources: Vec::new(),
+        next_order: 0,
+        next_site: 0,
         signatures: Vec::new(),
         names: Vec::new(),
         current_module: 0,
@@ -78,6 +96,7 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                 ));
             }
             checker.signatures.push(Signature {
+                view: function.view.as_ref().map(|v| v.mode),
                 params: function.params.iter().map(|p| p.ty).collect(),
                 result: function.result,
                 span: function.span,
@@ -114,6 +133,14 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
         for function in module.functions {
             let mut env = Vec::new();
             let mut parameter_names = HashMap::new();
+            checker.resources.clear();
+            checker.next_site = 0;
+            let view = function.view.as_ref().map(|v| v.mode);
+            let view_name = function.view.as_ref().map(|v| v.name.clone());
+            if let Some(v) = &function.view {
+                parameter_names.insert(v.name.clone(), v.span);
+                checker.push_resource(v.name.clone(), v.mode.into());
+            }
             for parameter in function.params {
                 if let Some(previous) =
                     parameter_names.insert(parameter.name.clone(), parameter.span)
@@ -162,6 +189,7 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                 bindings = Vec::new();
             }
             contracts.push(FunctionContract {
+                view_name,
                 source_name: function.name.clone(),
                 param_names: env.iter().filter_map(|p| p.name.clone()).collect(),
                 requires,
@@ -182,6 +210,7 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                 function.name
             };
             checked.push(Function {
+                view,
                 name,
                 params: env.iter().map(|p| p.ty).collect(),
                 result: function.result,
@@ -190,11 +219,21 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
             });
         }
     }
-    Ok(Program {
+    let mut program = Program {
+        allocation_profile: None,
         functions: checked,
         sources,
         contracts: Some(contracts),
-    })
+    };
+    if program.has_memory() {
+        program.allocation_profile =
+            Some(crate::memory::AllocationProfile::host().map_err(|message| {
+                let mut e = Diagnostic::new(Span::default(), message);
+                e.infrastructure = true;
+                e
+            })?);
+    }
+    Ok(program)
 }
 
 fn spec_clause(
@@ -328,6 +367,12 @@ fn spec_expr(
                 },
             )
         }
+        syntax::ExprKind::Memory(_) => {
+            return Err(Diagnostic::new(
+                span,
+                "buffers and views are not allowed in specifications",
+            ));
+        }
         syntax::ExprKind::Call { .. } => {
             return Err(Diagnostic::new(
                 span,
@@ -361,8 +406,12 @@ fn specification_integer(value: String, span: Span) -> Result<String, Diagnostic
     Ok(if digits.is_empty() { "0" } else { digits }.to_owned())
 }
 
-fn local_clause(clause: syntax::Clause, env: &[Binding]) -> Result<LocalClause, Diagnostic> {
-    let expr = local_assertion(clause.expr, env)?;
+fn local_clause(
+    clause: syntax::Clause,
+    env: &[Binding],
+    resources: &[ResourceBinding],
+) -> Result<LocalClause, Diagnostic> {
+    let expr = local_assertion(clause.expr, env, resources)?;
     if expr.ty != SpecType::Bool {
         return Err(Diagnostic::new(
             expr.span,
@@ -375,7 +424,11 @@ fn local_clause(clause: syntax::Clause, env: &[Binding]) -> Result<LocalClause, 
     })
 }
 
-fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion, Diagnostic> {
+fn local_assertion(
+    expr: syntax::Expr,
+    env: &[Binding],
+    resources: &[ResourceBinding],
+) -> Result<LocalAssertion, Diagnostic> {
     let span = expr.span;
     let (ty, kind) = match expr.kind {
         syntax::ExprKind::Integer(value) => (
@@ -385,6 +438,12 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
         syntax::ExprKind::Boolean(value) => (SpecType::Bool, LocalAssertionKind::Boolean(value)),
         syntax::ExprKind::Unit => (SpecType::Unit, LocalAssertionKind::Unit),
         syntax::ExprKind::Name(name) => {
+            if resource_shadows(&name, env, resources) {
+                return Err(Diagnostic::new(
+                    span,
+                    "resource names are not specification values",
+                ));
+            }
             let position = env.iter().rposition(|binding| binding.name.as_ref() == Some(&name))
                 .ok_or_else(|| Diagnostic::new(span, format!(
                     "undefined invariant name `{name}`; only bindings visible at the loop head are available"
@@ -394,9 +453,9 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
                 LocalAssertionKind::Local(env.len() - position - 1),
             )
         }
-        syntax::ExprKind::Group(inner) => return local_assertion(*inner, env),
+        syntax::ExprKind::Group(inner) => return local_assertion(*inner, env, resources),
         syntax::ExprKind::Unary { op, operand } => {
-            let operand = local_assertion(*operand, env)?;
+            let operand = local_assertion(*operand, env, resources)?;
             let ty = SpecType::from_type(op.input());
             if operand.ty != ty {
                 return Err(Diagnostic::new(
@@ -417,8 +476,8 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
             )
         }
         syntax::ExprKind::Binary { op, left, right } => {
-            let left = local_assertion(*left, env)?;
-            let right = local_assertion(*right, env)?;
+            let left = local_assertion(*left, env, resources)?;
+            let right = local_assertion(*right, env, resources)?;
             let ty = op
                 .result(left.ty.value_type(), right.ty.value_type())
                 .ok_or_else(|| {
@@ -444,7 +503,7 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
         syntax::ExprKind::Tuple(fields) => {
             let fields = fields
                 .into_iter()
-                .map(|field| local_assertion(field, env))
+                .map(|field| local_assertion(field, env, resources))
                 .collect::<Result<Vec<_>, _>>()?;
             let types = fields
                 .iter()
@@ -459,7 +518,7 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
             (SpecType::Tuple(shape), LocalAssertionKind::Tuple(fields))
         }
         syntax::ExprKind::Project { value, index } => {
-            let value = local_assertion(*value, env)?;
+            let value = local_assertion(*value, env, resources)?;
             let SpecType::Tuple(shape) = value.ty else {
                 return Err(Diagnostic::new(span, "projection requires a tuple"));
             };
@@ -475,6 +534,12 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
                     index,
                 },
             )
+        }
+        syntax::ExprKind::Memory(_) => {
+            return Err(Diagnostic::new(
+                span,
+                "buffers and views are not allowed in specifications",
+            ));
         }
         syntax::ExprKind::Call { .. } => {
             return Err(Diagnostic::new(
@@ -516,6 +581,42 @@ fn expect_type(
 }
 
 impl Checker {
+    fn push_resource(&mut self, name: String, mode: ResourceMode) {
+        let order = self.next_order;
+        self.next_order += 1;
+        self.resources.push(ResourceBinding { name, mode, order });
+    }
+    fn resource(
+        &self,
+        name: &str,
+        env: &[Binding],
+        span: Span,
+    ) -> Result<(usize, ResourceMode), Diagnostic> {
+        if !resource_shadows(name, env, &self.resources) {
+            return Err(Diagnostic::new(
+                span,
+                format!("`{name}` is not a visible buffer"),
+            ));
+        }
+        let position = self
+            .resources
+            .iter()
+            .rposition(|r| r.name == name)
+            .expect("visible resource");
+        Ok((
+            self.resources.len() - position - 1,
+            self.resources[position].mode,
+        ))
+    }
+    fn ordinary_name(&self, name: &str, env: &[Binding], span: Span) -> Result<(), Diagnostic> {
+        if resource_shadows(name, env, &self.resources) {
+            return Err(Diagnostic::new(
+                span,
+                format!("resource `{name}` cannot be used as a value or function"),
+            ));
+        }
+        Ok(())
+    }
     fn push_binding(
         &mut self,
         env: &mut Vec<Binding>,
@@ -532,7 +633,10 @@ impl Checker {
             mutable,
             span,
         });
+        let order = self.next_order;
+        self.next_order += 1;
         env.push(Binding {
+            order,
             id,
             name,
             ty,
@@ -627,9 +731,153 @@ impl Checker {
             depth,
         })
     }
+    fn memory(
+        &mut self,
+        memory: syntax::MemoryExpr,
+        env: &mut Vec<Binding>,
+        span: Span,
+    ) -> Result<Expr, Diagnostic> {
+        let kind = match memory {
+            syntax::MemoryExpr::Heap {
+                name,
+                length,
+                initial,
+                success,
+                failure,
+            } => {
+                let site = self.next_site;
+                self.next_site += 1;
+                let length = self.expr(*length, env)?;
+                expect_type(
+                    length.ty,
+                    Type::I64,
+                    length.span,
+                    span,
+                    "buffer length requires i64",
+                )?;
+                let initial = self.expr(*initial, env)?;
+                expect_type(
+                    initial.ty,
+                    Type::I64,
+                    initial.span,
+                    span,
+                    "buffer initializer requires i64",
+                )?;
+                self.push_resource(name, ResourceMode::Owner);
+                let success = self.expr(*success, env);
+                self.resources.pop();
+                let success = success?;
+                let failure = self.expr(*failure, env)?;
+                expect_type(
+                    failure.ty,
+                    success.ty,
+                    failure.span,
+                    success.span,
+                    "other heap branch has this type",
+                )?;
+                MemoryExpr::Heap {
+                    site,
+                    length: Box::new(length),
+                    initial: Box::new(initial),
+                    success: Box::new(success),
+                    failure: Box::new(failure),
+                }
+            }
+            syntax::MemoryExpr::Length { name } => MemoryExpr::Length {
+                resource: self.resource(&name, env, span)?.0,
+            },
+            syntax::MemoryExpr::Read { name, index } => {
+                let (resource, _) = self.resource(&name, env, span)?;
+                let index = self.expr(*index, env)?;
+                expect_type(
+                    index.ty,
+                    Type::I64,
+                    index.span,
+                    span,
+                    "buffer index requires i64",
+                )?;
+                MemoryExpr::Read {
+                    resource,
+                    index: Box::new(index),
+                }
+            }
+            syntax::MemoryExpr::Write { name, index, value } => {
+                let (resource, mode) = self.resource(&name, env, span)?;
+                if !mode.writable() {
+                    return Err(Diagnostic::new(span, "read view cannot be written"));
+                }
+                let index = self.expr(*index, env)?;
+                expect_type(
+                    index.ty,
+                    Type::I64,
+                    index.span,
+                    span,
+                    "buffer index requires i64",
+                )?;
+                let value = self.expr(*value, env)?;
+                expect_type(
+                    value.ty,
+                    Type::I64,
+                    value.span,
+                    span,
+                    "buffer value requires i64",
+                )?;
+                MemoryExpr::Write {
+                    resource,
+                    index: Box::new(index),
+                    value: Box::new(value),
+                }
+            }
+            syntax::MemoryExpr::CallView {
+                name,
+                resource,
+                mode,
+                arguments,
+            } => {
+                self.ordinary_name(&name, env, span)?;
+                if env.iter().any(|b| b.name.as_deref() == Some(&name)) {
+                    return Err(Diagnostic::new(span, "local value cannot be called"));
+                }
+                let function = self.function(&name, span)?;
+                let (resource, permission) = self.resource(&resource, env, span)?;
+                if !permission.lends(mode) {
+                    return Err(Diagnostic::new(
+                        span,
+                        "read view cannot lend edit permission",
+                    ));
+                }
+                let sig = &self.signatures[function];
+                if sig.view != Some(mode) || sig.params.len() != arguments.len() {
+                    return Err(Diagnostic::new(span, "view call signature mismatch"));
+                }
+                let params = sig.params.clone();
+                let mut checked = Vec::new();
+                for (argument, expected) in arguments.into_iter().zip(params) {
+                    let a = self.expr(argument, env)?;
+                    expect_type(a.ty, expected, a.span, span, "argument type required here")?;
+                    checked.push(a);
+                }
+                MemoryExpr::CallView {
+                    function,
+                    resource,
+                    mode,
+                    arguments: checked,
+                }
+            }
+        };
+        let ty = match &kind {
+            MemoryExpr::Heap { success, .. } => success.ty,
+            MemoryExpr::Write { .. } => Type::Unit,
+            MemoryExpr::CallView { function, .. } => self.signatures[*function].result,
+            _ => Type::I64,
+        };
+        let depth = 1 + kind.children().iter().map(|e| e.depth).max().unwrap_or(0);
+        self.node(ty, ExprKind::Memory(Box::new(kind)), span, depth)
+    }
     fn expr(&mut self, expr: syntax::Expr, env: &mut Vec<Binding>) -> Result<Expr, Diagnostic> {
         let span = expr.span;
         let (ty, kind, depth) = match expr.kind {
+            syntax::ExprKind::Memory(memory) => return self.memory(*memory, env, span),
             syntax::ExprKind::Integer(value) => {
                 let value = value
                     .parse::<i64>()
@@ -680,6 +928,7 @@ impl Checker {
             syntax::ExprKind::Boolean(value) => (Type::Bool, ExprKind::Boolean(value), 1),
             syntax::ExprKind::Unit => (Type::Unit, ExprKind::Unit, 1),
             syntax::ExprKind::Name(name) => {
+                self.ordinary_name(&name, env, span)?;
                 let index = env
                     .iter()
                     .rposition(|binding| binding.name.as_ref() == Some(&name));
@@ -731,6 +980,7 @@ impl Checker {
                             initializers.push((value, mutable));
                         }
                         syntax::Statement::Assign { name, span, value } => {
+                            self.ordinary_name(&name, env, span)?;
                             let position = env
                                 .iter()
                                 .rposition(|binding| binding.name.as_ref() == Some(&name))
@@ -782,7 +1032,7 @@ impl Checker {
                             let head = env.last().map(|binding| binding.id);
                             let clauses = invariants
                                 .into_iter()
-                                .map(|clause| local_clause(clause, env))
+                                .map(|clause| local_clause(clause, env, &self.resources))
                                 .collect::<Result<Vec<_>, _>>()?;
                             let condition = self.expr(condition, env)?;
                             expect_type(
@@ -955,6 +1205,7 @@ impl Checker {
                 )
             }
             syntax::ExprKind::Call { name, arguments } => {
+                self.ordinary_name(&name, env, span)?;
                 if let Some(binding) = env.iter().rev().find(|b| b.name.as_ref() == Some(&name)) {
                     return Err(Diagnostic::new(
                         span,
@@ -967,6 +1218,9 @@ impl Checker {
                 }
                 let function = self.function(&name, span)?;
                 let signature = &self.signatures[function];
+                if signature.view.is_some() {
+                    return Err(Diagnostic::new(span, "function requires a view argument"));
+                }
                 if arguments.len() != signature.params.len() {
                     return Err(Diagnostic::new(
                         span,

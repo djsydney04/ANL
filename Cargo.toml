@@ -16,3 +16,10 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 all = "warn"
+
+[features]
+memory-evidence = []
+
+[[example]]
+name = "memory_evidence"
+required-features = ["memory-evidence"]

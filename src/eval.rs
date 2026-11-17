@@ -2,8 +2,8 @@ use crate::{
     MAX_EVAL_DEPTH,
     diagnostic::Span,
     types::{
-        BinaryOp, Expr, ExprKind, MAX_TUPLE_FIELDS, Program, ScalarType, TupleError, TupleShape,
-        Type, UnaryOp,
+        BinaryOp, Expr, ExprKind, MAX_TUPLE_FIELDS, MemoryExpr, Program, ResourceMode, ScalarType,
+        TupleError, TupleShape, Type, UnaryOp, ViewMode,
     },
 };
 use std::{fmt, sync::Arc};
@@ -151,12 +151,16 @@ impl fmt::Display for Value {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Trap {
+    InvalidLength,
+    IndexOutOfBounds,
     ArithmeticOverflow,
     DivisionByZero,
 }
 impl Trap {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::InvalidLength => "invalid_length",
+            Self::IndexOutOfBounds => "index_out_of_bounds",
             Self::ArithmeticOverflow => "arithmetic_overflow",
             Self::DivisionByZero => "division_by_zero",
         }
@@ -164,27 +168,83 @@ impl Trap {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvalError {
+    Infrastructure(String),
     Trap { kind: Trap, span: Span },
     ResourceLimit { reason: &'static str, span: Span },
     InvalidIr,
 }
 
 pub fn evaluate(program: &Program, entry: usize, fuel: u64) -> Result<Value, EvalError> {
+    evaluate_inner(
+        program,
+        entry,
+        fuel,
+        #[cfg(feature = "memory-evidence")]
+        None,
+    )
+}
+#[cfg(feature = "memory-evidence")]
+pub fn evaluate_evidence(
+    program: &Program,
+    entry: usize,
+    fuel: u64,
+    options: &crate::memory_evidence::EvidenceOptions,
+) -> Result<Value, EvalError> {
+    options
+        .check_program(program)
+        .map_err(EvalError::Infrastructure)?;
+    evaluate_inner(program, entry, fuel, Some(options.session()?))
+}
+fn evaluate_inner(
+    program: &Program,
+    entry: usize,
+    fuel: u64,
+    #[cfg(feature = "memory-evidence")] evidence: Option<crate::memory_evidence::Session>,
+) -> Result<Value, EvalError> {
     let function = program.functions.get(entry).ok_or(EvalError::InvalidIr)?;
-    if !function.params.is_empty() {
+    if function.view.is_some() || !function.params.is_empty() {
         return Err(EvalError::InvalidIr);
     }
-    Evaluator {
+    let mut evaluator = Evaluator {
         program,
         fuel,
         products: program.has_flat_products(),
+        memory: program.has_memory(),
+        buffers: Vec::new(),
+        live_cells: 0,
         tuple_fields: 0,
         active_slots: 0,
+        #[cfg(feature = "memory-evidence")]
+        evidence,
+    };
+    let result = evaluator.expr(&function.body, &mut Vec::new(), &mut Vec::new(), entry, 0);
+    #[cfg(feature = "memory-evidence")]
+    if let Some(evidence) = evaluator.evidence.take() {
+        return evidence.finish(result);
     }
-    .expr(&function.body, &mut Vec::new(), 0)
+    result
 }
 
+#[derive(Clone, Copy)]
+struct Resource {
+    storage: usize,
+    mode: ResourceMode,
+}
+struct Call<'a> {
+    function: usize,
+    arguments: &'a [Expr],
+    view: Option<(Resource, ViewMode)>,
+}
+struct Storage {
+    cells: Vec<i64>,
+}
 struct Evaluator<'a> {
+    #[cfg(feature = "memory-evidence")]
+    evidence: Option<crate::memory_evidence::Session>,
+    memory: bool,
+    buffers: Vec<Storage>,
+    live_cells: usize,
+
     program: &'a Program,
     fuel: u64,
     products: bool,
@@ -195,7 +255,7 @@ pub const MAX_TUPLE_ALLOCATION_FIELDS: usize = 1_048_576;
 pub const MAX_ACTIVE_SLOTS: usize = 65_536;
 impl Evaluator<'_> {
     fn reserve_slots(&mut self, count: usize, span: Span) -> Result<(), EvalError> {
-        if self.products {
+        if self.products || self.memory {
             self.active_slots = self
                 .active_slots
                 .checked_add(count)
@@ -208,7 +268,7 @@ impl Evaluator<'_> {
         Ok(())
     }
     fn release_slots(&mut self, count: usize) {
-        if self.products {
+        if self.products || self.memory {
             self.active_slots -= count;
         }
     }
@@ -226,10 +286,270 @@ impl Evaluator<'_> {
         ))
     }
 
+    fn access(&self, resources: &[Resource], index: usize) -> Result<Resource, EvalError> {
+        let position = resources
+            .len()
+            .checked_sub(index.checked_add(1).ok_or(EvalError::InvalidIr)?)
+            .ok_or(EvalError::InvalidIr)?;
+        let r = *resources.get(position).ok_or(EvalError::InvalidIr)?;
+        if self.buffers.get(r.storage).is_none() {
+            return Err(EvalError::InvalidIr);
+        }
+        Ok(r)
+    }
+    fn call(
+        &mut self,
+        call: Call<'_>,
+        env: &mut Vec<Value>,
+        resources: &mut Vec<Resource>,
+        caller: usize,
+        depth: usize,
+        span: Span,
+    ) -> Result<Value, EvalError> {
+        let Call {
+            function,
+            arguments,
+            view,
+        } = call;
+        let callee = self
+            .program
+            .functions
+            .get(function)
+            .ok_or(EvalError::InvalidIr)?;
+        if callee.params.len() != arguments.len() || callee.view != view.map(|(_, mode)| mode) {
+            return Err(EvalError::InvalidIr);
+        }
+        if view.is_some_and(|(r, m)| !r.mode.lends(m)) {
+            return Err(EvalError::InvalidIr);
+        }
+        let slots = arguments
+            .len()
+            .checked_add(usize::from(view.is_some()))
+            .ok_or(EvalError::InvalidIr)?;
+        self.reserve_slots(slots, span)?;
+        let result = (|| {
+            let mut values = Vec::new();
+            values.try_reserve_exact(arguments.len()).map_err(|_| {
+                EvalError::Infrastructure("argument metadata allocation failed".into())
+            })?;
+            let mut inputs = Vec::new();
+            if view.is_some() {
+                inputs.try_reserve_exact(1).map_err(|_| {
+                    EvalError::Infrastructure("view metadata allocation failed".into())
+                })?;
+            }
+            for (argument, expected) in arguments.iter().zip(&callee.params) {
+                let value = self.expr(argument, env, resources, caller, depth)?;
+                if !value.has_type(expected) {
+                    return Err(EvalError::InvalidIr);
+                }
+                values.push(value);
+            }
+            if let Some((r, mode)) = view {
+                inputs.push(Resource {
+                    storage: r.storage,
+                    mode: mode.into(),
+                });
+            }
+            self.expr(&callee.body, &mut values, &mut inputs, function, depth)
+        })();
+        self.release_slots(slots);
+        result
+    }
+    fn memory_expr(
+        &mut self,
+        memory: &MemoryExpr,
+        env: &mut Vec<Value>,
+        resources: &mut Vec<Resource>,
+        function: usize,
+        depth: usize,
+        span: Span,
+    ) -> Result<Value, EvalError> {
+        let trap = |kind| EvalError::Trap { kind, span };
+        match memory {
+            MemoryExpr::Heap {
+                site: _site,
+                length,
+                initial,
+                success,
+                failure,
+            } => {
+                let Value::Integer(length) = self.expr(length, env, resources, function, depth)?
+                else {
+                    return Err(EvalError::InvalidIr);
+                };
+                if length < 0 {
+                    return Err(trap(Trap::InvalidLength));
+                }
+                let Value::Integer(initial) =
+                    self.expr(initial, env, resources, function, depth)?
+                else {
+                    return Err(EvalError::InvalidIr);
+                };
+                let profile = self
+                    .program
+                    .allocation_profile
+                    .ok_or(EvalError::InvalidIr)?;
+                if length as u64 > profile.max_cells() {
+                    return self.expr(failure, env, resources, function, depth);
+                }
+                let cells = (self.live_cells as u64)
+                    .checked_add(length as u64)
+                    .filter(|n| *n <= crate::memory::MAX_LIVE_CELLS as u64)
+                    .ok_or(EvalError::ResourceLimit {
+                        reason: "live buffer cell limit exceeded",
+                        span,
+                    })?;
+                // The logical cap fits every supported host; narrow only after checking it.
+                let n = length as usize;
+                let cells = cells as usize;
+                let slots = self
+                    .active_slots
+                    .checked_add(1)
+                    .filter(|n| *n <= MAX_ACTIVE_SLOTS)
+                    .ok_or(EvalError::ResourceLimit {
+                        reason: "active environment and argument slot limit exceeded",
+                        span,
+                    })?;
+                let fuel =
+                    self.fuel
+                        .checked_sub(length as u64)
+                        .ok_or(EvalError::ResourceLimit {
+                            reason: "buffer attempted-fill fuel exhausted",
+                            span,
+                        })?;
+                self.buffers.try_reserve(1).map_err(|_| {
+                    EvalError::Infrastructure("owner metadata allocation failed".into())
+                })?;
+                resources.try_reserve(1).map_err(|_| {
+                    EvalError::Infrastructure("resource metadata allocation failed".into())
+                })?;
+                self.live_cells = cells;
+                self.active_slots = slots;
+                self.fuel = fuel;
+                #[cfg(feature = "memory-evidence")]
+                let site = crate::memory_evidence::Site {
+                    function,
+                    heap: *_site,
+                };
+                #[cfg(feature = "memory-evidence")]
+                let response = if n > 0 {
+                    self.evidence
+                        .as_ref()
+                        .map(|e| e.response(site, n as u64))
+                        .transpose()?
+                        .flatten()
+                } else {
+                    None
+                };
+                #[cfg(not(feature = "memory-evidence"))]
+                let response: Option<bool> = None;
+                let mut values = Vec::new();
+                let allocation_ok =
+                    n == 0 || (response != Some(false) && values.try_reserve_exact(n).is_ok());
+                if n > 0 && response == Some(true) && !allocation_ok {
+                    return Err(EvalError::Infrastructure(
+                        "forced allocation success could not obtain storage".into(),
+                    ));
+                }
+                #[cfg(feature = "memory-evidence")]
+                let trace_id = if let Some(e) = self.evidence.as_mut() {
+                    Some(if n == 0 {
+                        e.empty(site)?
+                    } else {
+                        e.request(site, n as u64, allocation_ok)?
+                    })
+                } else {
+                    None
+                };
+                if !allocation_ok {
+                    self.live_cells -= n;
+                    self.release_slots(1);
+                    return self.expr(failure, env, resources, function, depth);
+                }
+                values.resize(n, initial);
+                let storage = self.buffers.len();
+                self.buffers.push(Storage { cells: values });
+                resources.push(Resource {
+                    storage,
+                    mode: ResourceMode::Owner,
+                });
+                let result = self.expr(success, env, resources, function, depth);
+                #[cfg(feature = "memory-evidence")]
+                let result = if result.is_ok()
+                    && let (Some(e), Some(id)) = (self.evidence.as_mut(), trace_id)
+                    && let Err(error) = e.close(site, id, n == 0)
+                {
+                    Err(error)
+                } else {
+                    result
+                };
+                resources.pop();
+                self.buffers.pop();
+                self.live_cells -= n;
+                self.release_slots(1);
+                result
+            }
+            MemoryExpr::Length { resource } => {
+                let r = self.access(resources, *resource)?;
+                Ok(Value::Integer(self.buffers[r.storage].cells.len() as i64))
+            }
+            MemoryExpr::Read { resource, index }
+            | MemoryExpr::Write {
+                resource, index, ..
+            } => {
+                let r = self.access(resources, *resource)?;
+                let Value::Integer(index) = self.expr(index, env, resources, function, depth)?
+                else {
+                    return Err(EvalError::InvalidIr);
+                };
+                if index < 0 || index as u64 >= self.buffers[r.storage].cells.len() as u64 {
+                    return Err(trap(Trap::IndexOutOfBounds));
+                }
+                let index = index as usize;
+                if let MemoryExpr::Write { value, .. } = memory {
+                    if !r.mode.writable() {
+                        return Err(EvalError::InvalidIr);
+                    }
+                    let Value::Integer(value) =
+                        self.expr(value, env, resources, function, depth)?
+                    else {
+                        return Err(EvalError::InvalidIr);
+                    };
+                    self.buffers[r.storage].cells[index] = value;
+                    Ok(Value::Unit)
+                } else {
+                    Ok(Value::Integer(self.buffers[r.storage].cells[index]))
+                }
+            }
+            MemoryExpr::CallView {
+                function: callee,
+                resource,
+                mode,
+                arguments,
+            } => {
+                let r = self.access(resources, *resource)?;
+                self.call(
+                    Call {
+                        function: *callee,
+                        arguments,
+                        view: Some((r, *mode)),
+                    },
+                    env,
+                    resources,
+                    function,
+                    depth,
+                    span,
+                )
+            }
+        }
+    }
     fn expr(
         &mut self,
         expr: &Expr,
         env: &mut Vec<Value>,
+        resources: &mut Vec<Resource>,
+        function_id: usize,
         depth: usize,
     ) -> Result<Value, EvalError> {
         if depth >= MAX_EVAL_DEPTH {
@@ -247,10 +567,13 @@ impl Evaluator<'_> {
         self.fuel -= 1;
         let next = depth + 1;
         let value = match &expr.kind {
+            ExprKind::Memory(memory) => {
+                self.memory_expr(memory, env, resources, function_id, next, expr.span)?
+            }
             ExprKind::Tuple(fields) => {
                 let mut values = [ScalarValue::Unit; MAX_TUPLE_FIELDS];
                 for (i, field) in fields.iter().enumerate() {
-                    values[i] = match self.expr(field, env, next)? {
+                    values[i] = match self.expr(field, env, resources, function_id, next)? {
                         Value::Integer(n) => ScalarValue::Integer(n),
                         Value::Boolean(b) => ScalarValue::Boolean(b),
                         Value::Unit => ScalarValue::Unit,
@@ -260,7 +583,8 @@ impl Evaluator<'_> {
                 self.construct(&values[..fields.len()], expr.span)?
             }
             ExprKind::Project { value, index } => {
-                let Value::Tuple(tuple) = self.expr(value, env, next)? else {
+                let Value::Tuple(tuple) = self.expr(value, env, resources, function_id, next)?
+                else {
                     return Err(EvalError::InvalidIr);
                 };
                 tuple
@@ -281,16 +605,16 @@ impl Evaluator<'_> {
                 .ok_or(EvalError::InvalidIr)?
                 .clone(),
             ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
-                let value = self.expr(value, env, next)?;
+                let value = self.expr(value, env, resources, function_id, next)?;
                 self.reserve_slots(1, expr.span)?;
                 env.push(value);
-                let result = self.expr(body, env, next);
+                let result = self.expr(body, env, resources, function_id, next);
                 env.pop();
                 self.release_slots(1);
                 result?
             }
             ExprKind::Assign { index, value } => {
-                let value = self.expr(value, env, next)?;
+                let value = self.expr(value, env, resources, function_id, next)?;
                 let position = env
                     .len()
                     .checked_sub(index.checked_add(1).ok_or(EvalError::InvalidIr)?)
@@ -304,10 +628,10 @@ impl Evaluator<'_> {
             }
             ExprKind::While { condition, body } => {
                 loop {
-                    match self.expr(condition, env, next)? {
+                    match self.expr(condition, env, resources, function_id, next)? {
                         Value::Boolean(false) => break,
                         Value::Boolean(true) => {
-                            if self.expr(body, env, next)? != Value::Unit {
+                            if self.expr(body, env, resources, function_id, next)? != Value::Unit {
                                 return Err(EvalError::InvalidIr);
                             }
                         }
@@ -321,13 +645,21 @@ impl Evaluator<'_> {
                 then_branch,
                 else_branch,
             } => {
-                let Value::Boolean(condition) = self.expr(condition, env, next)? else {
+                let Value::Boolean(condition) =
+                    self.expr(condition, env, resources, function_id, next)?
+                else {
                     return Err(EvalError::InvalidIr);
                 };
-                self.expr(if condition { then_branch } else { else_branch }, env, next)?
+                self.expr(
+                    if condition { then_branch } else { else_branch },
+                    env,
+                    resources,
+                    function_id,
+                    next,
+                )?
             }
             ExprKind::Unary { op, operand } => {
-                let value = self.expr(operand, env, next)?;
+                let value = self.expr(operand, env, resources, function_id, next)?;
                 match (op, value) {
                     (UnaryOp::Not, Value::Boolean(b)) => Value::Boolean(!b),
                     (UnaryOp::Neg, Value::Integer(n)) => {
@@ -340,41 +672,31 @@ impl Evaluator<'_> {
                 }
             }
             ExprKind::Binary { op, left, right } => {
-                let left = self.expr(left, env, next)?;
+                let left = self.expr(left, env, resources, function_id, next)?;
                 if *op == BinaryOp::And && left == Value::Boolean(false) {
                     Value::Boolean(false)
                 } else if *op == BinaryOp::Or && left == Value::Boolean(true) {
                     Value::Boolean(true)
                 } else {
-                    let right = self.expr(right, env, next)?;
+                    let right = self.expr(right, env, resources, function_id, next)?;
                     binary(*op, left, right, expr.span)?
                 }
             }
             ExprKind::Call {
                 function,
                 arguments,
-            } => {
-                let function = self
-                    .program
-                    .functions
-                    .get(*function)
-                    .ok_or(EvalError::InvalidIr)?;
-                if function.params.len() != arguments.len() {
-                    return Err(EvalError::InvalidIr);
-                }
-                self.reserve_slots(arguments.len(), expr.span)?;
-                let mut values = Vec::with_capacity(arguments.len());
-                for (argument, expected) in arguments.iter().zip(&function.params) {
-                    let value = self.expr(argument, env, next)?;
-                    if !value.has_type(expected) {
-                        return Err(EvalError::InvalidIr);
-                    }
-                    values.push(value);
-                }
-                let result = self.expr(&function.body, &mut values, next);
-                self.release_slots(arguments.len());
-                result?
-            }
+            } => self.call(
+                Call {
+                    function: *function,
+                    arguments,
+                    view: None,
+                },
+                env,
+                resources,
+                function_id,
+                next,
+                expr.span,
+            )?,
         };
         if !value.has_type(&expr.ty) {
             return Err(EvalError::InvalidIr);
@@ -516,6 +838,11 @@ mod product_budget_tests {
 
     fn evaluator(program: &Program) -> Evaluator<'_> {
         Evaluator {
+            memory: false,
+            buffers: Vec::new(),
+            live_cells: 0,
+            #[cfg(feature = "memory-evidence")]
+            evidence: None,
             program,
             fuel: 10000,
             products: program.has_flat_products(),
@@ -529,7 +856,7 @@ mod product_budget_tests {
         for remaining in [1, 2, 3] {
             let mut e = evaluator(&p);
             e.tuple_fields = MAX_TUPLE_ALLOCATION_FIELDS - remaining;
-            let value = e.expr(&p.functions[0].body, &mut Vec::new(), 0);
+            let value = e.expr(&p.functions[0].body, &mut Vec::new(), &mut Vec::new(), 0, 0);
             if remaining < 2 {
                 assert!(matches!(value, Err(EvalError::ResourceLimit { .. })));
                 assert_eq!(e.tuple_fields, MAX_TUPLE_ALLOCATION_FIELDS - remaining);
@@ -542,7 +869,7 @@ mod product_budget_tests {
         let mut e = evaluator(&p);
         e.tuple_fields = MAX_TUPLE_ALLOCATION_FIELDS;
         assert!(matches!(
-            e.expr(&p.functions[0].body, &mut Vec::new(), 0),
+            e.expr(&p.functions[0].body, &mut Vec::new(), &mut Vec::new(), 0, 0),
             Err(EvalError::Trap {
                 kind: Trap::DivisionByZero,
                 ..
@@ -558,7 +885,7 @@ mod product_budget_tests {
         let mut e = evaluator(&p);
         e.active_slots = MAX_ACTIVE_SLOTS - 2;
         assert!(
-            matches!(e.expr(&p.functions[1].body,&mut Vec::new(),0),Err(EvalError::ResourceLimit{reason,..}) if reason.contains("slot")),
+            matches!(e.expr(&p.functions[1].body, &mut Vec::new(), &mut Vec::new(), 1, 0),Err(EvalError::ResourceLimit{reason,..}) if reason.contains("slot")),
             "reserve two call slots while retaining the let slot before first trapping argument"
         );
         let p=crate::compile("fn one(x:i64)->i64{x} fn take(x:i64,y:i64)->i64{x+y} fn main()->i64{let p=(1,);take(one(2),3)}").unwrap();
@@ -566,7 +893,7 @@ mod product_budget_tests {
         e.active_slots = MAX_ACTIVE_SLOTS - 3;
         assert!(
             matches!(
-                e.expr(&p.functions[2].body, &mut Vec::new(), 0),
+                e.expr(&p.functions[2].body, &mut Vec::new(), &mut Vec::new(), 2, 0),
                 Err(EvalError::ResourceLimit { .. })
             ),
             "nested argument call retains the outer full reservation"
@@ -579,7 +906,7 @@ mod product_budget_tests {
         e.active_slots = MAX_ACTIVE_SLOTS - 7;
         let seeded = e.active_slots;
         assert_eq!(
-            e.expr(&p.functions[1].body, &mut Vec::new(), 0),
+            e.expr(&p.functions[1].body, &mut Vec::new(), &mut Vec::new(), 1, 0),
             Ok(Value::Integer(100))
         );
         assert_eq!(e.active_slots, seeded);
@@ -595,7 +922,13 @@ mod product_budget_tests {
         let mut e = evaluator(&scalar);
         e.active_slots = MAX_ACTIVE_SLOTS;
         assert_eq!(
-            e.expr(&scalar.functions[0].body, &mut Vec::new(), 0),
+            e.expr(
+                &scalar.functions[0].body,
+                &mut Vec::new(),
+                &mut Vec::new(),
+                0,
+                0
+            ),
             Ok(Value::Integer(42))
         );
         assert_eq!(e.active_slots, MAX_ACTIVE_SLOTS);

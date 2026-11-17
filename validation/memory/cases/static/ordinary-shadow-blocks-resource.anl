@@ -1,0 +1,1 @@
+fn main()->i64{heap outer:i64[1]=0{let outer=100;outer.length}else{0}}

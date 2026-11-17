@@ -1,0 +1,137 @@
+{
+  "files": {
+    "benchmarks/cases/memory/FREEZE.json": {
+      "bytes": 2973,
+      "sha256": "a15251b4a9cbf324c2542c9173e48a351c199cf0aa4a38c15fc1ef2350ea6f8d"
+    },
+    "benchmarks/cases/memory/c/buffer-edit.c": {
+      "bytes": 744,
+      "sha256": "2788647a25838621cc474005a456149f0e549091570cd67ea7b4b5394bc2fb8c"
+    },
+    "benchmarks/cases/memory/c/buffer-owners.c": {
+      "bytes": 463,
+      "sha256": "fa33b5da710eb75c7d12287f8c81c43eb692ceaa65a36fee140f44a5c740c89c"
+    },
+    "benchmarks/cases/memory/c/buffer-read.c": {
+      "bytes": 477,
+      "sha256": "032025dbca3344768544ad71407a2b0d92de9fd0de1d183e03d1e92186150529"
+    },
+    "benchmarks/cases/memory/c/buffer.c": {
+      "bytes": 1278,
+      "sha256": "e6ff4c60ba13de7d3aefe3e9ad80e7abaf0450cc010ac053f3f457a3340b5fec"
+    },
+    "benchmarks/cases/memory/c/buffer.h": {
+      "bytes": 335,
+      "sha256": "c349bbd7a552ed53a6e9d34dc06412c4db05f2215798cdc6d0963b005b185d52"
+    },
+    "benchmarks/cases/memory/c/common.h": {
+      "bytes": 1108,
+      "sha256": "f82ba44a23f8131b5cb24e51b8a5bdab49195fb4775cd7af17cca6132996ebf0"
+    },
+    "benchmarks/cases/memory/c/constant.c": {
+      "bytes": 58,
+      "sha256": "9b5e70349b4eb464ca5652ec6eee692aa7bc048b12dd21f4350e392c5fcbe659"
+    },
+    "benchmarks/cases/memory/c/recurrence.c": {
+      "bytes": 259,
+      "sha256": "44990466a06619325d27ff46d8b129415d2968126c92d545b7e03a777efa32c5"
+    },
+    "benchmarks/cases/memory/c/tuple-calls.c": {
+      "bytes": 652,
+      "sha256": "7807dd9a72f4dee526265dd2105a89c09407bccdef352b97e84f590cad488813"
+    },
+    "benchmarks/cases/memory/companions/buffer-edit.anl": {
+      "bytes": 523,
+      "sha256": "c81034e6fa771bb9f1b0ad7e8db9b2d597dcb67024f2707a0da3f422bde4cb55"
+    },
+    "benchmarks/cases/memory/companions/buffer-owners.anl": {
+      "bytes": 260,
+      "sha256": "a6aa99e491d77b538cdba94e3c60225996000867bdac9f9f40bc6a644ffcf308"
+    },
+    "benchmarks/cases/memory/companions/buffer-read.anl": {
+      "bytes": 346,
+      "sha256": "ee61e85d07c241aa3580fd97e00cd019c5b0aa3bcf40251d3c812f43fec6b8e1"
+    },
+    "benchmarks/cases/memory/inputs/buffer-edit.anl": {
+      "bytes": 527,
+      "sha256": "b2c0efcbc42bcbc3242ef220c6648e652d0f791e16f6720a93bf19b57e5abaa1"
+    },
+    "benchmarks/cases/memory/inputs/buffer-owners.anl": {
+      "bytes": 264,
+      "sha256": "65d3a02eeed7e9f7c456dcc2eac737e35e2d6e7d7540311b6b5876122c810234"
+    },
+    "benchmarks/cases/memory/inputs/buffer-read.anl": {
+      "bytes": 351,
+      "sha256": "f92a45f8c28e7e4b62f06e7be420ba78f1eb37f4d55ff6860f44c59613e92831"
+    },
+    "benchmarks/cases/memory/inputs/constant.anl": {
+      "bytes": 99,
+      "sha256": "a53bf2cce5e25ea8a1c313ebe5c3180ae0caa615071c51772782ca337b6761dd"
+    },
+    "benchmarks/cases/memory/inputs/recurrence.anl": {
+      "bytes": 294,
+      "sha256": "8b168797eff2005893fc6291c5345f93149806b3135481b0b4cd5702635abfaa"
+    },
+    "benchmarks/cases/memory/inputs/tuple-calls.anl": {
+      "bytes": 515,
+      "sha256": "d25d27a09e0417b10f4cdda1cdf645d7da05d27b4b7665540d1fd59ffc900a78"
+    },
+    "benchmarks/cases/memory/manifest.json": {
+      "bytes": 52335,
+      "sha256": "21f26fe3c8afb8c106089d0989a46f2a4905358c53a183c7d3571d8ad6c5d876"
+    },
+    "benchmarks/cases/memory/oracles.json": {
+      "bytes": 464,
+      "sha256": "c1385597d18ea10be0f716b806446e1cf724aa6ac3aa72cd7a79f4bf4058690a"
+    },
+    "benchmarks/cases/memory/response-plan.json": {
+      "bytes": 76,
+      "sha256": "6e5394cdf862a8a63ee99f7d88bc9c7cc8211df1d54e96c6fdef57570445046d"
+    },
+    "benchmarks/memory.py": {
+      "bytes": 37638,
+      "sha256": "be2a289fa17a3c4dc6229174f42e477d9b3dfb8c087a384e0d7d604087614dd3"
+    },
+    "benchmarks/results/memory-controller-preservation.json": {
+      "bytes": 1093,
+      "sha256": "67380dee5bc286b7b52bd853f786ff4efe23f035b339ae4accb2b45c695cfc2a"
+    },
+    "benchmarks/results/memory-macos-arm64-evidence.json.gz": {
+      "bytes": 898872,
+      "sha256": "17a5d05f6290e50abed97f06709a1df1ba2cf14b81fba2ab2beaca6ef91f191d"
+    },
+    "benchmarks/results/memory-macos-arm64-summary.json": {
+      "bytes": 44711,
+      "sha256": "8eb747d88a8a8db2bb23575954577eca78ba9c3f832ec8703dbb13540f84fe02"
+    },
+    "benchmarks/results/memory-macos-arm64-tables.md": {
+      "bytes": 11799,
+      "sha256": "e9c5a0ef0a42b3ae2a24c595f6c899f37328aa4779d0598a2394a97e2e0bd5c1"
+    },
+    "benchmarks/results/memory-macos-arm64.md": {
+      "bytes": 11501,
+      "sha256": "27cb5fd1fd7df3814782ce9ac2401133faadfe51a777fc8ada18fcb690207d11"
+    },
+    "benchmarks/results/memory-public-validation.json": {
+      "bytes": 3175,
+      "sha256": "ea2b6179dcbd974852f3dc2f98b372a541f584fda7f693cf57ab968f88970a9a"
+    },
+    "benchmarks/results/memory-sources.json": {
+      "bytes": 12977,
+      "sha256": "e05bd5f17a58b43b7029c4acf57ed094c0ff6d22b0d4503160f9c7416d228b37"
+    },
+    "validation/memory/cc_adapter.py": {
+      "bytes": 2503,
+      "sha256": "f01859737b7ff40127553d44605eaef0c986ad57fcc229aabd3b73e8b648ed62"
+    },
+    "validation/memory/oracle.py": {
+      "bytes": 10450,
+      "sha256": "5821d75014530ac0f94906e33458f6bc3c09c641c10ae7f01be904d93ccc4868"
+    },
+    "validation/memory/reference_protocol.py": {
+      "bytes": 6955,
+      "sha256": "a028b691a359e241bc995625043d520d1d23b3e4d3348ac80932d2556ebf4d09"
+    }
+  },
+  "schema": "anl-owned-buffer-public-performance-artifacts-v1"
+}

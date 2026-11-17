@@ -1,0 +1,12 @@
+fn one(seed: i64) -> i64 {
+    heap b: i64[16] = seed { b[0] + b[15] + b.length } else { -1000000000 }
+}
+fn main() -> i64 {
+    let mut total = 0;
+    let mut i = 0;
+    while (i < 16384) {
+        total = total + one(i % 97);
+        i = i + 1;
+    }
+    total
+}

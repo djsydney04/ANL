@@ -1027,8 +1027,10 @@ axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 558 inventoried names are included. The
-check script replays 72 modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 558 names in the earlier APL inventory
+are included. Its 72 modules are replayed in separate kernel-checker processes.
+The additional ANL memory package has its own all-declaration audit and replay
+list; the scope below describes its 72 source modules and three CLI entrypoints.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -1065,6 +1067,127 @@ remain solver-trusted, including the production invariant-loop and flat-tuple
 routes. Product generation completeness, solver completeness and production-bound
 sufficiency remain open.
 
-FM-08 is not implemented here. There is no optimization/lowering theorem, native
-backend proof, ownership proof, or whole-language verification claim in this
-inventory.
+FM-08 is partial. The owned-buffer extension below proves canonical model
+Core/MIR lowering and finite completed correspondence in both directions. It also
+adds scoped ownership/loan safety. Optimization, production Rust and native-backend
+correctness, general ownership and whole-language verification remain open.
+
+## Owned buffers and Core/MIR correspondence
+
+The `ANL.Memory` modules implement `anl-owned-buffers-v1` separately from the
+historical APL namespaces, reusing flat-product scalar/value definitions. The
+72-module extension includes the model, its proof companions, strict readers and
+reference-output/IO definitions. Three separate CLI roots expose pair checking,
+a raw reader probe and a resource-aware reference runner. Module count is not a
+count of independent product guarantees.
+
+Raw Core terms contain declared annotations, resource indices and heap site
+numbers without hidden typing evidence. Raw MIR contains Temp/Slot/resource IDs
+and declared counts. Raw machine states and worlds are executable finite data.
+The independent judgments do not define typing or transitions as successful
+checker/runner results. Complete checking includes every function and body,
+unique IDs/names, signatures, annotations, admissible profile, entry and canonical
+per-function heap sites. Recursive calls require no acyclicity premise.
+
+| Scope | Statements and source | Precise guarantee |
+| --- | --- | --- |
+| Core static acceptance | `checkTerm_iff`, `checkProgram_iff`, `type_unique` in [MemoryTyping](ANL/MemoryTyping.lean) | Executable checking agrees with independent `HasType` and `WellFormedProgram`; ordinary and resource contexts remain independent |
+| Concrete heap | [MemoryHeap](ANL/MemoryHeap.lean) | Executable finite LIFO store, fresh positive/empty identities, initialized fixed length, refusal/zero behavior, write frame/length preservation and exact normal close, under the world invariant |
+| Core execution | [MemoryMachine](ANL/MemoryMachine.lean), [MemoryRun](ANL/MemoryRun.lean), [MemoryExecute](ANL/MemoryExecute.lean) | Independent steps and total executable step agree; determinism, stopped characterization, completed soundness/completeness and exact retained exhaustion prefix |
+| Finite Core safety | `preservation`, `progress`, `no_invalid`, `entry_safety`, `normal_entry_cleanup` in [MemorySafety](ANL/MemorySafety.lean) | Checked entries preserve continuation/capability/world invariants over every finite prefix; normal entry leaves no owned storage or resource bindings |
+| Loans and sites | `read_loan_prefix` in [MemoryLoans](ANL/MemoryLoans.lean), `entry_event_site` in [MemoryOrigin](ANL/MemoryOrigin.lean) | Read-loan contents survive each protected finite interval; events refer to sites in the recorded function’s checked body |
+| Previous model embedding | [MemoryEmbedding](ANL/MemoryEmbedding.lean), [MemoryEmbeddingTyping](ANL/MemoryEmbeddingTyping.lean), [MemoryEmbeddingExecution](ANL/MemoryEmbeddingExecution.lean) | Separate memory-free typing/execution embedding connects the prior flat-product model under the stated embedding premises |
+| MIR static model and lowering | [MemoryMirTyping](ANL/MemoryMirTyping.lean), `program_total_wellFormed`, `checked_program_lowers` in [MemoryLoweringProofs](ANL/MemoryLoweringProofs.lean) | Independent MIR judgments/checker and canonical lowering; checked Core has a well-formed deterministic lowered program with exact metadata/inventory |
+| MIR execution | [MemoryMirMachine](ANL/MemoryMirMachine.lean), [MemoryMirRunProofs](ANL/MemoryMirRunProofs.lean) | Independent MIR steps, deterministic executable runner, completed and retained-prefix facts |
+| Resource policy | [MemoryResources](ANL/MemoryResources.lean), [MemoryResourceRun](ANL/MemoryResourceRun.lean), [MemoryResourceAccounting](ANL/MemoryResourceAccounting.lean), [MemoryResourceDepth](ANL/MemoryResourceDepth.lean), [MemoryResourceEntry](ANL/MemoryResourceEntry.lean) | Tool results project to abstract prefixes; checked accounting/limits, independent expression nesting and normal-entry reservation cleanup; preflight blocks work before allocation |
+| Strict document acceptance | `checkCoreDocument_iff`, `checkMirDocument_iff`, `checkDocuments_iff`, `accepted_documents` in [MemoryWireSafety](ANL/MemoryWireSafety.lean) | Successful actual reader/checker results provide independent whole-program typing and canonical pair acceptance |
+| Local reference interface | [MemoryReferenceBounds](ANL/MemoryReferenceBounds.lean), [MemoryReferenceSafety](ANL/MemoryReferenceSafety.lean), [MemoryReferenceOutput](ANL/MemoryReferenceOutput.lean) | Actual checked execution projects to independent prefixes, excludes invalid, preserves accounting/depth/site properties and bounds event growth by administrative transitions; encoded byte buffer is bounded including its final LF |
+
+The heap model separates positive request identities from empty activations even
+when their numeric ordinals coincide. An eligible positive attempt consumes one
+response and request ordinal on success or refusal; zero consumes neither. The
+world tracks live owners and paired history without pretending the trace records
+cell contents. Writes preserve other locations and length. Close requires the
+exact top owner. Active capabilities are distinct; recursively suspended caller
+descriptors may alias. Normal cleanup is not a trap-cleanup theorem: a trap
+retains world, current activation and suspended callers.
+
+The resource wrapper counts depth, expression/fill fuel, slots, live cells and
+cumulative tuple fields independently of the unbounded semantics. `Accounted`
+relates logical counts to state; `DepthReachable` supplies independent nesting
+history rather than inferring depth correctness from stack length. A positive
+representable allocation preflights cells, owner slot and fill fuel atomically
+before abstract allocation constructs cells. A blocked operation takes no semantic
+step or allocator response. Refusal retains spent fill fuel but refunds cells and
+descriptor. Bookkeeping unwind does not invent release events. Host backing,
+trace/replay capacity and implementation memory use are outside these counts.
+
+### Completed Core/MIR simulation
+
+[MemoryLoweringSoundness](ANL/MemoryLoweringSoundness.lean), in namespace
+`ANL.Memory.Simulation`, exports:
+
+- `core_entry_to_mir` and `mir_entry_to_core`: finite terminal executions in both
+  directions from the checked entry under `Canonical p q` and the same allocator
+  response function. The reverse theorem accepts a raw stopped endpoint and
+  proves that a corresponding checked execution is terminal rather than invalid.
+- `mir_entry_not_invalid` and `mir_run_not_invalid`: every finite reachable MIR
+  prefix and every returned runner state excludes invalid.
+- `core_completed_run_to_mir` and `mir_completed_run_to_core`: a completed runner
+  result has a corresponding completed run at an independently chosen budget.
+- `FinalRelated.world` and `FinalRelated.runtime`: exact final world equality,
+  including initialized store contents, counters and ordered trace, plus the
+  current/suspended activation and capability relation. Results agree on the
+  ordinary value or trap; retained trap state is not discarded.
+- `mir_normal_entry_cleanup`: normal entry return has `i64` type, no live owners,
+  no active empties, no positive heap and no remaining resource bindings.
+
+The simulation accounts for structural MIR steps and administrative
+revoke/restore phases. It preserves source evaluation order, including skipped
+negative-length initialization, initialization before target rejection, guards
+before a write RHS, and full argument capture before a loan grant. Theorems do not
+identify equal numeric step budgets, exhausted states, resource cutoffs, source
+fuel or native allocation behavior.
+
+[MemoryPairSemantics](ANL/MemoryPairSemantics.lean) exposes `simulation_canonical`
+and the entry, completed-run, no-invalid and normal-cleanup theorems in both
+`ANL.Memory.Pair` and `ANL.Memory.Wire`. Their premises are actual
+`Pair.check p q = true` and `Wire.checkDocuments ct mt = .ok (p, q)` respectively.
+This connects accepted concrete artifacts to the simulation rather than assuming
+an external statement that they lower correctly. Pair acceptance requires full
+validation and exact canonical lowering; it is not an optimized-program or
+alpha-equivalence checker.
+
+### Acceptance, tooling and remaining boundaries
+
+The [buffer](../spec/owned-buffers.md), [MIR](../spec/memory-mir.md) and
+[evidence](../spec/memory-evidence.md) protocols define the actual wire forms,
+limits and CLI reports. Core logical depth 128 and formal JSON-container depth
+1024 are separate bounds. The Rust reader has its smaller pinned parser-container
+bound. Acceptance proofs concern the actual Lean functions' returned terms; they
+do not prove UTF-8 decoding, JSON parsing, serialization/IO, Lean compilation or
+runtime correctness. No per-artifact kernel certificate is generated by the CLI.
+
+`Reference.execute_prefix` and `execute_event_bound` apply to every accepted
+reference execution result, including resource/admin prefixes. A transition emits
+at most one event, so a returned entry trace has at most the supplied transition
+budget's events. `encode_bound` bounds the actual encoded ByteArray. The trace
+projection theorem identifies the exported logical events; it is not an
+end-to-end theorem about parsing the emitted bytes in another tool. Output-limit
+and host failures remain infrastructure outcomes.
+
+All new model declarations are covered by an explicit transitive axiom audit and
+separate-process kernel replay. The allowed logical axioms remain `propext`,
+`Classical.choice` and `Quot.sound`; generated constructor-index shims are limited
+to the exact inventory in [ANL/Audit.lean](ANL/Audit.lean). This audit does not
+validate the intended meaning of definitions or turn executable boundary probes
+into theorems. The old APL sources and proof scope remain distinct.
+
+The finite 53-row reference corpus and actual-artifact/native comparisons are
+implementation evidence. They do not prove Rust source checking, source/module
+lowering, native C/allocator correctness, general termination, host allocation
+success, physical resource bounds, concurrent safety, general movable ownership,
+heap contract verification, freestanding execution or an ANL OS. FM-06 remains a
+production correspondence obligation; FM-07 does not gain heap SMT support; FM-08
+now includes this finite canonical model lowering result but remains incomplete
+for production transforms and native code.

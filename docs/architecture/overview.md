@@ -3,7 +3,9 @@
 Status: architecture for the complete language, with an implemented scalar/flat-tuple core,
 native C11 compiler, file modules, initialized local state and loops, scalar
 and flat-tuple contract verification with invariants and acyclic calls, and scoped immutable, local-state,
-flat-tuple runtime and verification-condition proofs.
+flat-tuple runtime and verification-condition proofs. Scoped `i64` buffer owners
+and call-scoped read/edit views add a separate finite memory-safety model,
+resource-aware runner and canonical Core/MIR correspondence.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
 the complete-language release requirements open.
@@ -44,13 +46,13 @@ arrays/slices/records/collections and primitive numeric/text types.
 Choose affine ownership for resources and shared/exclusive borrows for access.
 Owned resources have a single destruction responsibility. Lexical regions are the
 first analyzable implementation boundary; more flexible regions require their own
-rules and evidence. The first ownership milestone restricts aggregate borrows and
-partial moves explicitly. These restrictions do not erase final-language goals.
+rules and evidence. The implemented scoped-buffer subset permits one call-scoped
+view and excludes moves, aggregate borrows and escaping references. These restrictions do not erase final-language goals.
 
 Pure functions have no external effects but may trap or diverge. Effects describe
 possible interactions; opaque capability values authorize particular interactions.
 One does not replace the other. Floating-point rules, higher-order effects,
-heap aliasing and weak atomics each require a normative extension before exposure.
+general heap aliasing and weak atomics each require a normative extension before exposure.
 
 [Type-system specification](type-system.md) contains the judgments and feature
 choices. [Language and memory research](../research/language-and-memory.md)
@@ -80,7 +82,11 @@ release feature set. Native compilation, modules, local scalar state, and opt-in
 contract verification with loop invariants and acyclic calls extend that core today.
 Flat tuples execute through the interpreter, v2 interchange and native backend,
 and support contract verification with loop invariants and acyclic calls. Nested
-aggregates, heap ownership and concurrency remain later increments.
+aggregates, general ownership transfers and concurrency remain later increments.
+[Scoped buffers](../../spec/owned-buffers.md) now execute through checked Core v3,
+validated memory MIR and a separate hosted allocator runtime. Their lifetime and
+view rules exclude resource escape and keep allocation refusal distinct from traps
+and tool limits. Heap-bearing contract verification is explicitly unsupported.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
 `dump-core`, and `eval-core`. It checks every function in the imported source
@@ -92,7 +98,9 @@ finite evaluator correspondence in both directions with sufficient depth and
 fuel for v0. The separate local-state model has typed current environments,
 progress/preservation, finite transition/run correspondence, and forward finite
 v0 outcome preservation. These prove neither termination nor completeness at
-fixed production limits. No theorem proves Rust or source/module/native lowering.
+fixed production limits. The later memory model proves finite canonical Core/MIR
+correspondence in both completed directions, with actual pair acceptance as a
+gateway. No theorem proves Rust or source/module/native lowering.
 
 ## Compiler and formal-methods architecture
 

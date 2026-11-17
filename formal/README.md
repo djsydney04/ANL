@@ -17,7 +17,11 @@ local-state loops under interpreted logical obligations.
 The original model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
 recursive function calls. It is the first mechanized slice of ANL. It does not
-replace the complete-language roadmap.
+replace the complete-language roadmap. The separate `ANL.Memory` extension now
+models `anl-owned-buffers-v1`, with scoped `i64` owners/read-edit views, finite
+Core/MIR correspondence, strict artifact acceptance and resource-aware reference
+execution. Its [coverage](PROOFS.md#owned-buffers-and-coremir-correspondence) does
+not extend the SMT contract generators to heap programs.
 
 ## Build and check
 
@@ -37,10 +41,14 @@ python3 formal/test_flat_products.py --rust target/debug/anl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, audits the transitive axiom dependencies of 558 theorem names, and
-replays 72 modules through separate `leanchecker` processes. Build warnings are errors.
-The axiom audit fails on anything outside `propext`, `Classical.choice`, and
-`Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
+syntax, retains the earlier APL audit of 558 named theorems and 72 module
+replays, and adds the ANL memory all-declaration audit and separate replay list.
+The memory package contains 72 source modules plus three CLI entrypoints; the
+umbrella and audit are tooling, not additional proof claims. Build warnings are errors.
+The logical axiom audit fails on anything outside `propext`, `Classical.choice`,
+and `Quot.sound`. The memory audit separately inspects the exact generated
+constructor-index wrappers listed in `ANL/Audit.lean`; it grants no general
+unsafe-code allowance. The current proofs use these three permitted axioms; the fresh-identity
 uniqueness and disjointness lemmas use `Classical.choice`.
 
 The checked toolchain was the official
@@ -502,3 +510,54 @@ The exact theorem statements, assumptions, and coverage are recorded in the
 prove the Rust parser, resolver, checker, exporter, interpreter, native
 backend, runtime, OS, or hardware correct. Executing a compiled Lean evaluator
 also trusts Lean compilation and its runtime; a kernel proof is separate evidence.
+
+## Owned buffers and memory artifacts
+
+The [buffer specification](../spec/owned-buffers.md) defines `heap`, buffer access,
+one read/edit call view, allocation profiles and Core v3. The
+[MIR specification](../spec/memory-mir.md) defines resource IDs, guarded operations
+and canonical lowering. The [proof inventory](PROOFS.md#owned-buffers-and-coremir-correspondence)
+separates static typing, finite heap/capability safety, resource accounting, strict
+reader acceptance and completed Core/MIR correspondence.
+
+From `formal/`, build the three developer tools:
+
+```sh
+lake build anl_memory_pair_checker anl_memory_raw_probe anl_memory_reference_runner
+```
+
+From the repository root, a fresh export and pair check use:
+
+```sh
+cargo run --release --locked --features memory-evidence --example memory_evidence -- examples/buffers/basic.anl /tmp/anl-buffer-export
+formal/.lake/build/bin/anl_memory_pair_checker /tmp/anl-buffer-export/core.json /tmp/anl-buffer-export/mir.json
+```
+
+Pair acceptance supplies the actual `Pair.check`/`Wire.checkDocuments` premises.
+It validates both whole programs and exact canonical lowering, with no alpha
+renaming or optimized-MIR acceptance. Rejection does not establish either
+artifact's individual typing. The raw probe is a boundary diagnostic tool; its
+acceptance is not a translation or execution certificate.
+
+The reference runner accepts exactly `CORE_JSON RESPONSE_PLAN_JSON FUEL TRANSITIONS`.
+The plan gives a bounded response vector and mandatory default response. The
+runner uses checked `Tool.start?`/`Tool.run`, with expression/fill fuel distinct
+from administrative transitions. Every result retains the exact reached state;
+zero administrative budget does not evaluate a pending allocation. The
+[protocol](../spec/memory-evidence.md#formal-reference-runner) defines arguments,
+limits, report fields and exit statuses, including incomplete transition exhaustion.
+
+The [portable fixture runner](../validation/memory/README.md) is under
+`validation/memory/`; `python3 validation/memory/run.py audit` checks its inputs.
+The gate takes explicit tool paths and a fresh output directory, with primary
+groups `static,bridge,pairs,controls`. Its independent oracles
+and actual exported pairs supplement the theorems. The 53-row reference bridge
+observed 18 values, 8 traps, 7 resource limits and 20 rejections. There is no
+universal production/native equivalence claim, no equal Core/MIR budget theorem,
+and no proof of bytes-to-JSON parsing, Lean compilation/runtime or host I/O.
+The hosted allocator is not an ANL OS memory manager. Heap-bearing `anl verify`
+returns unsupported, rather than treating model memory safety as a heap contract.
+
+The memory replay inventory has 75 entries: 72 ANL modules and three CLI roots.
+The import-only umbrella is checked structurally and built; it is not passed as
+a `leanchecker` namespace prefix, which would expand into concurrent replays.

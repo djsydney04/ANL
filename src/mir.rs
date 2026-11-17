@@ -1,7 +1,11 @@
-//! Structured scalar MIR. Blocks sequence instructions and yield one value.
-//! Checked arithmetic operations include their trap behavior, never raw partial
-//! arithmetic. Branch-local temporaries cannot escape except through the yield.
-use crate::types::{self, BinaryOp, Expr, ExprKind, Type, UnaryOp};
+#[cfg(feature = "memory-evidence")]
+pub(crate) mod wire;
+// Structured scalar MIR. Blocks sequence instructions and yield one value.
+// Checked arithmetic operations include their trap behavior, never raw partial
+// arithmetic. Branch-local temporaries cannot escape except through the yield.
+use crate::types::{
+    self, BinaryOp, Expr, ExprKind, MemoryExpr, ResourceMode, Type, UnaryOp, ViewMode,
+};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug)]
@@ -18,12 +22,15 @@ pub(crate) struct Slot {
 
 #[derive(Debug)]
 pub(crate) struct Program {
+    pub allocation_profile: Option<crate::memory::AllocationProfile>,
     pub functions: Vec<Function>,
     pub entry: usize,
 }
 
 #[derive(Debug)]
 pub(crate) struct Function {
+    pub view: Option<(ViewMode, usize)>,
+    pub resource_count: usize,
     pub params: Vec<Temp>,
     pub result: Type,
     pub body: Block,
@@ -44,7 +51,37 @@ pub(crate) struct Instruction {
 }
 
 #[derive(Debug)]
+pub(crate) enum MemoryOperation {
+    HeapScope {
+        site: usize,
+        owner: usize,
+        length: Temp,
+        initial: Block,
+        success: Block,
+        failure: Block,
+    },
+    Length {
+        resource: usize,
+    },
+    Read {
+        resource: usize,
+        index: Temp,
+    },
+    Write {
+        resource: usize,
+        index: Temp,
+        value: Block,
+    },
+    CallView {
+        function: usize,
+        resource: usize,
+        mode: ViewMode,
+        arguments: Vec<Temp>,
+    },
+}
+#[derive(Debug)]
 pub(crate) enum Operation {
+    Memory(Box<MemoryOperation>),
     Tuple(Vec<Temp>),
     Project(Temp, usize),
     Integer(i64),
@@ -88,11 +125,16 @@ pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
         let mut builder = Builder {
             next: 0,
             next_slot: 0,
+            resources: function.view.into_iter().map(|_| 0).collect(),
+            view_offset: usize::from(function.view.is_some()),
+            resource_count: usize::from(function.view.is_some()),
         };
         let params: Vec<_> = function.params.iter().map(|ty| builder.temp(*ty)).collect();
         let mut locals = params.iter().copied().map(Binding::Value).collect();
         let body = builder.block(&function.body, &mut locals)?;
         functions.push(Function {
+            view: function.view.map(|m| (m, 0)),
+            resource_count: builder.resource_count,
             params,
             result: function.result,
             body,
@@ -100,7 +142,11 @@ pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
             slot_count: builder.next_slot,
         });
     }
-    let program = Program { functions, entry };
+    let program = Program {
+        allocation_profile: source.allocation_profile,
+        functions,
+        entry,
+    };
     validate(&program)?;
     Ok(program)
 }
@@ -112,10 +158,107 @@ enum Binding {
 }
 
 struct Builder {
+    resources: Vec<usize>,
+    view_offset: usize,
+    resource_count: usize,
     next: usize,
     next_slot: usize,
 }
 impl Builder {
+    fn resource(&self, index: usize) -> Result<usize> {
+        let p = self
+            .resources
+            .len()
+            .checked_sub(
+                index
+                    .checked_add(1)
+                    .ok_or(InvalidMir("resource index overflow"))?,
+            )
+            .ok_or(InvalidMir("resource out of scope"))?;
+        self.resources
+            .get(p)
+            .copied()
+            .ok_or(InvalidMir("resource out of scope"))
+    }
+    fn memory(
+        &mut self,
+        memory: &MemoryExpr,
+        locals: &mut Vec<Binding>,
+        instructions: &mut Vec<Instruction>,
+    ) -> Result<MemoryOperation> {
+        Ok(match memory {
+            MemoryExpr::Heap {
+                site,
+                length,
+                initial,
+                success,
+                failure,
+            } => {
+                let owner = site
+                    .checked_add(self.view_offset)
+                    .ok_or(InvalidMir("resource identity overflow"))?;
+                self.resource_count = self.resource_count.max(
+                    owner
+                        .checked_add(1)
+                        .ok_or(InvalidMir("resource count overflow"))?,
+                );
+                let length = self.expr(length, locals, instructions)?;
+                let initial = self.block(initial, locals)?;
+                self.resources.push(owner);
+                let success = self.block(success, locals);
+                self.resources.pop();
+                let success = success?;
+                let failure = self.block(failure, locals)?;
+                MemoryOperation::HeapScope {
+                    site: *site,
+                    owner,
+                    length,
+                    initial,
+                    success,
+                    failure,
+                }
+            }
+            MemoryExpr::Length { resource } => MemoryOperation::Length {
+                resource: self.resource(*resource)?,
+            },
+            MemoryExpr::Read { resource, index } => MemoryOperation::Read {
+                resource: self.resource(*resource)?,
+                index: self.expr(index, locals, instructions)?,
+            },
+            MemoryExpr::Write {
+                resource,
+                index,
+                value,
+            } => {
+                let resource = self.resource(*resource)?;
+                let index = self.expr(index, locals, instructions)?;
+                let value = self.block(value, locals)?;
+                MemoryOperation::Write {
+                    resource,
+                    index,
+                    value,
+                }
+            }
+            MemoryExpr::CallView {
+                function,
+                resource,
+                mode,
+                arguments,
+            } => {
+                let resource = self.resource(*resource)?;
+                let mut values = Vec::with_capacity(arguments.len());
+                for a in arguments {
+                    values.push(self.expr(a, locals, instructions)?);
+                }
+                MemoryOperation::CallView {
+                    function: *function,
+                    resource,
+                    mode: *mode,
+                    arguments: values,
+                }
+            }
+        })
+    }
     fn temp(&mut self, ty: Type) -> Temp {
         let temp = Temp { id: self.next, ty };
         self.next += 1;
@@ -136,6 +279,9 @@ impl Builder {
         instructions: &mut Vec<Instruction>,
     ) -> Result<Temp> {
         let kind = match &expr.kind {
+            ExprKind::Memory(memory) => {
+                Operation::Memory(Box::new(self.memory(memory, locals, instructions)?))
+            }
             ExprKind::Tuple(fields) => {
                 let mut values = Vec::with_capacity(fields.len());
                 for field in fields {
@@ -267,17 +413,22 @@ fn validate(program: &Program) -> Result<()> {
         .functions
         .get(program.entry)
         .ok_or(InvalidMir("invalid entry"))?;
-    if !entry.params.is_empty() || entry.result != Type::I64 {
+    if entry.view.is_some() || !entry.params.is_empty() || entry.result != Type::I64 {
         return Err(InvalidMir("entry must be nullary and return i64"));
     }
     for function in &program.functions {
         let mut validator = Validator {
             program,
+            resources: vec![None; function.resource_count],
+            visible_resources: vec![false; function.resource_count],
             definitions: vec![None; function.temp_count],
             visible: vec![false; function.temp_count],
             slots: vec![None; function.slot_count],
             visible_slots: vec![false; function.slot_count],
         };
+        if let Some((mode, id)) = function.view {
+            validator.define_resource(id, mode.into())?;
+        }
         for param in &function.params {
             validator.define(*param)?;
         }
@@ -287,6 +438,9 @@ fn validate(program: &Program) -> Result<()> {
         if validator.definitions.iter().any(Option::is_none) {
             return Err(InvalidMir("temporary table contains undefined entries"));
         }
+        if validator.resources.iter().any(Option::is_none) {
+            return Err(InvalidMir("resource table contains undefined entries"));
+        }
         if validator.slots.iter().any(Option::is_none) {
             return Err(InvalidMir("slot table contains undefined entries"));
         }
@@ -295,6 +449,8 @@ fn validate(program: &Program) -> Result<()> {
 }
 
 struct Validator<'a> {
+    resources: Vec<Option<ResourceMode>>,
+    visible_resources: Vec<bool>,
     program: &'a Program,
     definitions: Vec<Option<Type>>,
     visible: Vec<bool>,
@@ -302,6 +458,100 @@ struct Validator<'a> {
     visible_slots: Vec<bool>,
 }
 impl Validator<'_> {
+    fn define_resource(&mut self, id: usize, mode: ResourceMode) -> Result<()> {
+        let slot = self
+            .resources
+            .get_mut(id)
+            .ok_or(InvalidMir("resource out of range"))?;
+        if slot.is_some() {
+            return Err(InvalidMir("resource defined twice"));
+        }
+        *slot = Some(mode);
+        self.visible_resources[id] = true;
+        Ok(())
+    }
+    fn resource(&self, id: usize) -> Result<ResourceMode> {
+        if self.visible_resources.get(id) != Some(&true) {
+            return Err(InvalidMir("resource out of scope"));
+        }
+        self.resources
+            .get(id)
+            .copied()
+            .flatten()
+            .ok_or(InvalidMir("undefined resource"))
+    }
+    fn memory(&mut self, m: &MemoryOperation) -> Result<Type> {
+        Ok(match m {
+            MemoryOperation::HeapScope {
+                owner,
+                length,
+                initial,
+                success,
+                failure,
+                ..
+            } => {
+                if self.use_temp(*length)? != Type::I64 || self.block(initial)? != Type::I64 {
+                    return Err(InvalidMir("heap operands must be i64"));
+                }
+                self.define_resource(*owner, ResourceMode::Owner)?;
+                let a = self.block(success)?;
+                self.visible_resources[*owner] = false;
+                let b = self.block(failure)?;
+                if a != b {
+                    return Err(InvalidMir("heap branch types differ"));
+                }
+                a
+            }
+            MemoryOperation::Length { resource } => {
+                self.resource(*resource)?;
+                Type::I64
+            }
+            MemoryOperation::Read { resource, index } => {
+                self.resource(*resource)?;
+                if self.use_temp(*index)? != Type::I64 {
+                    return Err(InvalidMir("buffer index must be i64"));
+                }
+                Type::I64
+            }
+            MemoryOperation::Write {
+                resource,
+                index,
+                value,
+            } => {
+                if !self.resource(*resource)?.writable()
+                    || self.use_temp(*index)? != Type::I64
+                    || self.block(value)? != Type::I64
+                {
+                    return Err(InvalidMir("invalid buffer write"));
+                }
+                Type::Unit
+            }
+            MemoryOperation::CallView {
+                function,
+                resource,
+                mode,
+                arguments,
+            } => {
+                if !self.resource(*resource)?.lends(*mode) {
+                    return Err(InvalidMir("view permission escalation"));
+                }
+                let f = self
+                    .program
+                    .functions
+                    .get(*function)
+                    .ok_or(InvalidMir("invalid view callee"))?;
+                if f.view.map(|(m, _)| m) != Some(*mode) || f.params.len() != arguments.len() {
+                    return Err(InvalidMir("view call signature mismatch"));
+                }
+                for (a, p) in arguments.iter().zip(&f.params) {
+                    if self.use_temp(*a)? != p.ty {
+                        return Err(InvalidMir("view argument type mismatch"));
+                    }
+                }
+                f.result
+            }
+        })
+    }
     fn define(&mut self, temp: Temp) -> Result<()> {
         let slot = self
             .definitions
@@ -337,6 +587,7 @@ impl Validator<'_> {
     fn block(&mut self, block: &Block) -> Result<Type> {
         for instruction in &block.instructions {
             let ty = match &instruction.kind {
+                Operation::Memory(m) => self.memory(m)?,
                 Operation::Tuple(fields) => {
                     if !(1..=types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
                         return Err(InvalidMir("tuple width"));
@@ -385,7 +636,7 @@ impl Validator<'_> {
                         .functions
                         .get(*id)
                         .ok_or(InvalidMir("invalid callee"))?;
-                    if args.len() != function.params.len() {
+                    if function.view.is_some() || args.len() != function.params.len() {
                         return Err(InvalidMir("call arity mismatch"));
                     }
                     for (arg, param) in args.iter().zip(&function.params) {

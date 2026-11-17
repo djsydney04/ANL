@@ -158,3 +158,17 @@ observations without invoking a compiler. Its `gate` and `time` commands accept
 explicit compiler, solver and source paths, validate pinned source inputs and
 record new host identities. The report includes build/replay commands and the
 complete raw measurement and preflight archives.
+
+## Owned-buffer observations
+
+The [owned-buffer report](results/memory-macos-arm64.md) preserves six fixed
+workloads, all 42 timing series, and the failed preparation history. Recurrence
+evaluation and tuple checking had higher medians in that run; the report keeps
+those costs and the shared-host and process-startup limitations visible.
+
+`python3 benchmarks/memory.py audit` checks the published evidence without
+launching project tools. The public controller also passed a separate
+[108-command untimed gate](results/memory-gate-qualification.json) against the
+integrated compiler and formal tools. This supplies no new timing samples.
+Further `gate` or `experiment` invocations require explicit tool hashes, matching
+source trees, and a fresh output directory; see the report for the interface.

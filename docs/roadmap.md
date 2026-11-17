@@ -24,7 +24,9 @@ work in prior phases is finished.
 Current status: the scalar/flat-tuple checker and interpreter, native C11 backend, file modules,
 initialized mutable locals, while loops, versioned core JSON interchange, scalar
 and flat-tuple contract verification with invariants and acyclic calls, and scoped Lean proofs are
-available. Follow [getting started](getting-started.md) to run the tools and the
+available. Scoped `i64` buffer owners and read/edit call views now add Core v3,
+validated memory MIR, a separate hosted allocator runtime and a finite memory model.
+Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
 v0 model, with sufficient depth and fuel. Local state has a separate typed machine
@@ -196,6 +198,20 @@ JSON-text interpretation, Rust/native correspondence, compiled Lean execution,
 shared-storage reclamation and termination remain separate obligations.
 This does not complete L03: nested aggregates, arrays, slices, records and
 collections still require their own semantics and evidence.
+
+The [scoped-buffer slice](../spec/owned-buffers.md) implements fixed-length
+initialized `i64` storage, guarded reads/writes and one call-scoped read/edit view.
+Its separate formal model proves checker equivalence, heap/capability safety,
+read-loan preservation, normal cleanup, resource-accounted reference prefixes and
+finite canonical Core/MIR correspondence in both completed directions. Strict
+Core/MIR readers and the independent pair checker expose the acceptance premises;
+the reference bridge covers 53 specified source/raw-Core cases. Rust/source/native
+correctness and JSON parsing remain separate boundaries. Heap-bearing `verify`
+returns unsupported; no heap contract or equal-budget equivalence is claimed.
+
+The hosted C allocator is bootstrap support. General arrays/collections, owner
+moves, aggregate/escaping references, concurrency and the ANL OS allocator remain
+open. This slice does not complete L03, L07, R01 or the OS authorship gate.
 
 Implement the remainder of the type system, ownership/borrowing, data types,
 generics, closures, pattern matching, errors, effects, concurrency/async, I/O,

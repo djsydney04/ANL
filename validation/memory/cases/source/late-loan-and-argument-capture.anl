@@ -1,0 +1,11 @@
+fn main() -> i64 {
+heap b: i64[1] = 1 {
+    let result = observe(read b, b[0], { change(edit b); 2 });
+    b[0] = b[0] + 1;
+    result + 1000 * b[0]
+} else { -1 }
+}
+fn observe(read b: i64[], first: i64, second: i64) -> i64 {
+    first * 100 + second * 10 + b[0]
+}
+fn change(edit b: i64[]) -> unit { b[0] = 9; }

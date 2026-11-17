@@ -1,0 +1,16 @@
+fn seed(edit values: i64[], value: i64) -> unit {
+    values[0] = value;
+}
+
+fn first(read values: i64[]) -> i64 {
+    if values.length == 0 { 0 } else { values[0] }
+}
+
+fn main() -> i64 {
+    heap values: i64[4] = 7 {
+        seed(edit values, 42);
+        first(read values)
+    } else {
+        -1
+    }
+}

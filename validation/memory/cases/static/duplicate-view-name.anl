@@ -1,0 +1,2 @@
+fn main()->i64{42}
+fn bad(read b:i64[],b:i64)->i64{b}

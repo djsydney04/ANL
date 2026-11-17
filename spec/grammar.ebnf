@@ -1,10 +1,11 @@
-(* ANL scalar and flat-tuple grammar with erased contracts and local state.
+(* ANL scalar, flat-tuple and scoped-buffer grammar with erased contracts and local state.
    Complete language grammar is intentionally not claimed here.
    Semantics and static restrictions: docs/architecture/type-system.md.
    Module declarations, public functions and qualified paths: spec/modules.md.
    Contract types, scope and verification: spec/verification.md.
    Mutable locals, assignment, and while: spec/control-flow.md.
    Flat tuple syntax, width, types, and evaluation: spec/flat-products.md.
+   Owned buffers and call-scoped views: spec/owned-buffers.md.
    Erased loop annotations and invariant verification: spec/loop-verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
@@ -17,7 +18,10 @@ function        = "fn", identifier, "(", [ parameters ], ")",
                   "->", type, { requires_clause }, { ensures_clause }, block ;
 requires_clause = "requires", spec_expression, ";" ;
 ensures_clause  = "ensures", "(", identifier, ")", spec_expression, ";" ;
-parameters      = parameter, { ",", parameter } ;
+parameters      = parameter, { ",", parameter }
+                | view_parameter, { ",", parameter } ;
+view_parameter  = view_mode, identifier, ":", "i64", "[", "]" ;
+view_mode       = "read" | "edit" ;
 parameter       = identifier, ":", type ;
 type            = scalar_type | tuple_type ;
 scalar_type     = "i64" | "bool" | "unit" ;
@@ -25,11 +29,12 @@ tuple_type      = "(", scalar_type, ",",
                   [ scalar_type, { ",", scalar_type }, [ "," ] ], ")" ;
 
 block           = "{", { statement }, [ expression ], "}" ;
-statement       = let_statement | assignment_statement | while_statement
+statement       = let_statement | assignment_statement | buffer_write | while_statement
                 | expression, ";" ;
 let_statement   = "let", [ "mut" ], identifier, [ ":", type ],
                   "=", expression, ";" ;
 assignment_statement = identifier, "=", expression, ";" ;
+buffer_write    = identifier, "[", expression, "]", "=", expression, ";" ;
 while_statement = "while", "(", expression, ")", { invariant_clause }, block ;
 invariant_clause = "invariant", spec_expression, ";" ;
 
@@ -41,7 +46,8 @@ comparison      = sum, [ ( "<" | "<=" | ">" | ">=" ), sum ] ;
 sum             = product, { ( "+" | "-" ), product } ;
 product         = unary, { ( "*" | "/" | "%" ), unary } ;
 unary           = ( "!" | "-" ), unary | postfix ;
-postfix         = primary, [ ".", projection_index ] ;
+postfix         = primary, { ".", projection_index
+                          | ".", "length" | "[", expression, "]" } ;
 projection_index = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
 primary         = integer
                 | "true"
@@ -51,10 +57,15 @@ primary         = integer
                 | tuple_expression
                 | identifier, [ "(", [ arguments ], ")" ]
                 | "if", expression, block, "else", block
+                | heap_expression
                 | block ;
+heap_expression = "heap", identifier, ":", "i64", "[", expression, "]",
+                  "=", expression, block, "else", block ;
 tuple_expression = "(", expression, ",",
                    [ expression, { ",", expression }, [ "," ] ], ")" ;
-arguments       = expression, { ",", expression } ;
+arguments       = expression, { ",", expression }
+                | view_argument, { ",", expression } ;
+view_argument   = view_mode, identifier ;
 
 spec_expression = spec_disjunction ;
 spec_disjunction = spec_conjunction, { "||", spec_conjunction } ;
@@ -85,6 +96,17 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    while is contextual at a statement boundary only when its matching
    parenthesized condition is followed by a block or contextual invariant.
    invariant is contextual only between a while condition and its body.
+   heap is contextual before an owner declaration; read/edit are contextual
+   in the first view parameter or argument position. They otherwise remain names.
+   A view is first and unique; its call mode matches the callee declaration.
+   i64[] is a view spelling, not an ordinary value type. Resource bindings cannot
+   be returned, copied into ordinary lets/tuples, assigned or captured.
+   Buffer length/index postfix forms require a bare resource identifier base.
+   Grouped, qualified and arbitrary expression bases are rejected. Only tuple
+   projection accepts a general expression base. A buffer write is a statement.
+   Resource bindings and buffer operations are excluded from specifications.
+   Heap length and initializer have i64 type; both branch result types agree.
+   Only the success block sees the new owner; other operands use the old scope.
    Existing while calls and identifiers remain valid. A while statement has
    no trailing semicolon; each invariant clause requires one.
    Assignments require a mutable local of the same type as the right operand.

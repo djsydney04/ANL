@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
+const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -152,7 +152,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
                 return Ok(code);
             }
         };
-        let result = eval::evaluate(&artifact.program, artifact.entry, fuel);
+        let result = evaluate(&artifact.program, artifact.entry, fuel)?;
         output(core::outcome(&result))?;
         return report_execution(result, &filename, &source, None);
     }
@@ -185,7 +185,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     }
     if command == "emit-c" {
         let c = codegen::emit_c(&program, entry)?;
-        if program.has_flat_products() {
+        if program.has_memory() || program.has_flat_products() {
             io::stdout()
                 .lock()
                 .write_all(c.as_bytes())
@@ -208,17 +208,37 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         } else {
             &default
         };
+        #[cfg(feature = "memory-evidence")]
+        if let Some(evidence) = anl::memory_evidence::EvidenceOptions::from_environment(&program)? {
+            codegen::build_evidence(&program, entry, path, destination, &evidence)?;
+            return Ok(0);
+        }
         codegen::build(&program, entry, path, destination)?;
         return Ok(0);
     }
     if command == "run" {
+        #[cfg(feature = "memory-evidence")]
+        if let Some(evidence) = anl::memory_evidence::EvidenceOptions::from_environment(&program)? {
+            return codegen::run_evidence(&program, entry, path, &evidence).map_err(CliError::from);
+        }
         return codegen::run(&program, entry, path).map_err(CliError::from);
     }
-    let result = eval::evaluate(&program, entry, fuel);
+    let result = evaluate(&program, entry, fuel)?;
     if let Ok(value) = &result {
         output(value)?;
     }
     report_execution(result, &filename, &source, Some(&program))
+}
+fn evaluate(
+    program: &anl::types::Program,
+    entry: usize,
+    fuel: u64,
+) -> Result<Result<eval::Value, EvalError>, CliError> {
+    #[cfg(feature = "memory-evidence")]
+    if let Some(options) = anl::memory_evidence::EvidenceOptions::from_environment(program)? {
+        return Ok(eval::evaluate_evidence(program, entry, fuel, &options));
+    }
+    Ok(eval::evaluate(program, entry, fuel))
 }
 fn report_execution(
     result: Result<eval::Value, EvalError>,
@@ -243,6 +263,10 @@ fn report_execution(
         Err(EvalError::ResourceLimit { reason, span }) => {
             diagnostic(render(Diagnostic::resource(span, reason)))?;
             3
+        }
+        Err(EvalError::Infrastructure(reason)) => {
+            diagnostic(format_args!("{filename}: infrastructure: {reason}"))?;
+            4
         }
         Err(EvalError::InvalidIr) => {
             diagnostic(format_args!(

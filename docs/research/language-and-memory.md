@@ -2,7 +2,7 @@
 
 Status: design recommendation, pending technical review. This document does not establish implementation or proof coverage.
 
-The proposed design is a strict, expression-oriented language with explicit function signatures, local bidirectional inference, affine ownership, and shared or exclusive borrowing. The first executable milestone contains only scalar values. That milestone tests compiler and formal-model correspondence before heap state introduces a second source of complexity.
+The proposed design is a strict, expression-oriented language with explicit function signatures, local bidirectional inference, affine ownership, and shared or exclusive borrowing. The first executable milestone contained only scalar values. The current implementation also includes local state, flat tuples and [scoped `i64` buffers](../../spec/owned-buffers.md) with read/edit call views. Its [separate memory model](../../formal/PROOFS.md#owned-buffers-and-coremir-correspondence) establishes finite scoped safety and canonical Core/MIR correspondence; the broader design alternatives below remain research direction.
 
 ## Two complete candidate designs
 
@@ -74,7 +74,7 @@ The initial concurrency model uses scoped tasks, owned messages, locks, and sequ
 
 The scalar M1 contract includes `i64`, `bool`, `unit`, explicit function signatures, immutable lets, conditionals, named calls, checked arithmetic, and left-to-right evaluation. The [type-system specification](../architecture/type-system.md) and [grammar](../../spec/grammar.ebnf) define that contract. The native compiler must preserve the same defined traps.
 
-The largest unresolved proof problem is the extension from scalar typing to affine heap ownership with reborrowing and concurrent library abstractions. M1's scalar theorem cannot discharge it. Other risks are specialization explosion, useful diagnostics for lifetime constraints, effect-polymorphic closure soundness, FFI aliasing, and cancellation during external operations.
+The scoped-buffer model now covers initialized fixed-length storage and recursive call-scoped views. General affine owner moves, aggregate and escaping borrows, and concurrent library abstractions still require additional semantics and proofs; neither M1's scalar theorem nor the scoped subset discharges them. Other risks are specialization explosion, useful diagnostics for lifetime constraints, effect-polymorphic closure soundness, FFI aliasing, and cancellation during external operations.
 
 Reference support requires a reviewed store-and-permission model, a proof of its core preservation property, and rejection tests for use-after-move, escaping borrows, mutable aliasing, and partial initialization. Shared-memory concurrency requires defined synchronization semantics and adversarial tests for capability transfer and cancellation.
 

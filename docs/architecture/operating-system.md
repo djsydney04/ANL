@@ -9,6 +9,13 @@ The [OS authorship and expressibility gate](../requirements.md#os-authorship-and
 is mandatory for completion and final release. Missing OS expressibility requires
 an ANL language/compiler extension, followed by an ANL subsystem implementation.
 
+The current scoped-buffer runtime uses a hosted C allocator adapter. Its profile,
+fallible request ABI, resource checks and formal heap model support language
+bootstrap work. They do not implement physical/virtual memory management, page
+tables, a freestanding allocator or an ANL OS subsystem. Those operations still
+need ANL language/compiler primitives and ANL implementations under the authorship
+gate linked above.
+
 ## Planned subsystem boundaries
 
 | ANL-owned subsystem | Responsibility |

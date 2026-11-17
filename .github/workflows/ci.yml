@@ -62,38 +62,117 @@ jobs:
         run: python3 -m unittest discover -s benchmarks -p 'test_*.py'
 
   formal:
-    name: Lean proofs and evaluator comparisons
-    runs-on: ubuntu-latest
+    name: Lean proofs and memory validation / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Prepare validation captures
+        run: mkdir -p "$RUNNER_TEMP/anl-memory-ci"
       - name: Install pinned compiler toolchain
         run: rustup toolchain install 1.99.1 --profile minimal
-      - name: Install archive utility
+      - name: Install archive utility if needed
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes zstd
+          set -euo pipefail
+          if ! command -v zstd >/dev/null 2>&1; then
+            case "$RUNNER_OS" in
+              Linux) sudo apt-get update; sudo apt-get install --yes zstd ;;
+              macOS) brew install zstd ;;
+              *) echo 'Unsupported archive host' >&2; exit 1 ;;
+            esac
+          fi
       - name: Install verified Lean release
         shell: bash
         run: |
           set -euo pipefail
+          case "$(uname -s)/$(uname -m)" in
+            Linux/x86_64)
+              bundle=lean-4.36.0-linux
+              digest=2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb
+              ;;
+            Darwin/arm64)
+              bundle=lean-4.36.0-darwin_aarch64
+              digest=49acada8749ad1343eff1224a3d2510ac61ed53363d37b5e738e8c587e7deabd
+              ;;
+            Darwin/x86_64)
+              bundle=lean-4.36.0-darwin
+              digest=476f9dcf7bee6a070e39a6b15cab7ada48b0086bd91d6e61aa1a454d3da409ce
+              ;;
+            *) echo 'Unsupported formal qualification host' >&2; exit 1 ;;
+          esac
           mkdir -p .tools
-          curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.36.0/lean-4.36.0-linux.tar.zst \
-            --output .tools/lean-4.36.0-linux.tar.zst
-          echo '2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb  .tools/lean-4.36.0-linux.tar.zst' | sha256sum --check --strict
-          tar --zstd --extract --file .tools/lean-4.36.0-linux.tar.zst --directory .tools
-          echo "$GITHUB_WORKSPACE/.tools/lean-4.36.0-linux/bin" >> "$GITHUB_PATH"
+          curl --fail --location \
+            "https://github.com/leanprover/lean4/releases/download/v4.36.0/$bundle.tar.zst" \
+            --output ".tools/$bundle.tar.zst"
+          printf '%s  %s\n' "$digest" ".tools/$bundle.tar.zst" \
+            | tee "$RUNNER_TEMP/anl-memory-ci/lean-archive.sha256" \
+            | shasum -a 256 --check
+          zstd --decompress --stdout ".tools/$bundle.tar.zst" | tar -xf - -C .tools
+          echo "$GITHUB_WORKSPACE/.tools/$bundle/bin" >> "$GITHUB_PATH"
       - name: Check formal toolchain
         run: |
           lean --version
           test "$(lean --short-version)" = '4.36.0'
           command -v leanchecker
       - name: Check proofs, axioms, and kernel replay
-        run: formal/check.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          formal/check.sh 2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/formal-check.log"
       - name: Build compiler for differential execution
         run: cargo +1.99.1 build --locked
       - name: Compare formal and production evaluators
+        shell: bash
         run: |
-          python3 formal/test.py --rust target/debug/anl
-          python3 formal/test_local_state.py --rust target/debug/anl
-          python3 formal/test_flat_products.py --rust target/debug/anl
+          set -euo pipefail
+          python3 formal/test.py --rust target/debug/anl \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/scalar-comparison.log"
+          python3 formal/test_local_state.py --rust target/debug/anl \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/state-comparison.log"
+          python3 formal/test_flat_products.py --rust target/debug/anl \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/product-comparison.log"
+      - name: Build separate default and evidence memory tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +1.99.1 build --locked --release --bin anl --target-dir .tools/memory-default \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/default-build.log"
+          cargo +1.99.1 build --locked --release --features memory-evidence \
+            --bin anl --example memory_evidence --target-dir .tools/memory-evidence \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/evidence-build.log"
+      - name: Validate memory corpus and boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 validation/memory/run.py audit \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/corpus-audit.log"
+          python3 validation/memory/run.py gate \
+            --groups static,bridge,pairs,controls,bounds,output-bounds \
+            --rust "$GITHUB_WORKSPACE/.tools/memory-default/release/anl" \
+            --evidence "$GITHUB_WORKSPACE/.tools/memory-evidence/release/anl" \
+            --exporter "$GITHUB_WORKSPACE/.tools/memory-evidence/release/examples/memory_evidence" \
+            --pair "$GITHUB_WORKSPACE/formal/.lake/build/bin/anl_memory_pair_checker" \
+            --raw "$GITHUB_WORKSPACE/formal/.lake/build/bin/anl_memory_raw_probe" \
+            --reference "$GITHUB_WORKSPACE/formal/.lake/build/bin/anl_memory_reference_runner" \
+            --cc "$(command -v cc)" \
+            --out "$RUNNER_TEMP/anl-memory-ci/corpus" \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/corpus.log"
+      - name: Audit recorded memory performance evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 benchmarks/memory.py audit \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/performance-evidence-audit.log"
+      - name: Preserve validation evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: memory-validation-${{ matrix.os }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/anl-memory-ci
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 14

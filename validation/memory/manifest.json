@@ -1,0 +1,2290 @@
+{
+  "allocation_profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "bridge": [
+    {
+      "core": "cases/exported/negative-skips-initializer.json",
+      "default": true,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "invalid_length"
+      },
+      "expected_trace": "expected/negative-skips-initializer.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-negative-skips-initializer",
+      "name": "negative-skips-initializer",
+      "native": true,
+      "plan": "plans/source-negative-skips-initializer.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/negative-skips-initializer.json",
+      "resource_reason": null,
+      "source": "cases/source/negative-skips-initializer.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/zero-initializer-once.json",
+      "default": true,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "10"
+      },
+      "expected_trace": "expected/zero-initializer-once.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-zero-initializer-once",
+      "name": "zero-initializer-once",
+      "native": true,
+      "plan": "plans/source-zero-initializer-once.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/zero-initializer-once.json",
+      "resource_reason": null,
+      "source": "cases/source/zero-initializer-once.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/target-rejection-after-initializer.json",
+      "default": true,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "1"
+      },
+      "expected_trace": "expected/target-rejection-after-initializer.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-target-rejection-after-initializer",
+      "name": "target-rejection-after-initializer",
+      "native": true,
+      "plan": "plans/source-target-rejection-after-initializer.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/target-rejection-after-initializer.json",
+      "resource_reason": null,
+      "source": "cases/source/target-rejection-after-initializer.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/target-initializer-trap.json",
+      "default": true,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "expected_trace": "expected/target-initializer-trap.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-target-initializer-trap",
+      "name": "target-initializer-trap",
+      "native": true,
+      "plan": "plans/source-target-initializer-trap.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/target-initializer-trap.json",
+      "resource_reason": null,
+      "source": "cases/source/target-initializer-trap.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/fill-and-write.json",
+      "default": true,
+      "default_refusal_values": [
+        "-1"
+      ],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "797"
+      },
+      "expected_trace": "expected/fill-and-write.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-fill-and-write",
+      "name": "fill-and-write",
+      "native": true,
+      "plan": "plans/source-fill-and-write.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/fill-and-write.json",
+      "resource_reason": null,
+      "source": "cases/source/fill-and-write.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/refusal-keeps-initializer-effects.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9"
+      },
+      "expected_trace": "expected/refusal-keeps-initializer-effects.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-refusal-keeps-initializer-effects",
+      "name": "refusal-keeps-initializer-effects",
+      "native": true,
+      "plan": "plans/source-refusal-keeps-initializer-effects.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/refusal-keeps-initializer-effects.json",
+      "resource_reason": null,
+      "source": "cases/source/refusal-keeps-initializer-effects.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/mixed-value-resource-contexts.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42735"
+      },
+      "expected_trace": "expected/mixed-value-resource-contexts.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-mixed-value-resource-contexts",
+      "name": "mixed-value-resource-contexts",
+      "native": true,
+      "plan": "plans/source-mixed-value-resource-contexts.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/mixed-value-resource-contexts.json",
+      "resource_reason": null,
+      "source": "cases/source/mixed-value-resource-contexts.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/write-index-rhs-store-order.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "1104"
+      },
+      "expected_trace": "expected/write-index-rhs-store-order.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-write-index-rhs-store-order",
+      "name": "write-index-rhs-store-order",
+      "native": true,
+      "plan": "plans/source-write-index-rhs-store-order.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/write-index-rhs-store-order.json",
+      "resource_reason": null,
+      "source": "cases/source/write-index-rhs-store-order.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/negative-index-skips-rhs.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "index_out_of_bounds"
+      },
+      "expected_trace": "expected/negative-index-skips-rhs.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-negative-index-skips-rhs",
+      "name": "negative-index-skips-rhs",
+      "native": true,
+      "plan": "plans/source-negative-index-skips-rhs.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/negative-index-skips-rhs.json",
+      "resource_reason": null,
+      "source": "cases/source/negative-index-skips-rhs.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/upper-index-skips-rhs.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "index_out_of_bounds"
+      },
+      "expected_trace": "expected/upper-index-skips-rhs.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-upper-index-skips-rhs",
+      "name": "upper-index-skips-rhs",
+      "native": true,
+      "plan": "plans/source-upper-index-skips-rhs.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/upper-index-skips-rhs.json",
+      "resource_reason": null,
+      "source": "cases/source/upper-index-skips-rhs.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/index-effects-before-bounds.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "index_out_of_bounds"
+      },
+      "expected_trace": "expected/index-effects-before-bounds.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-index-effects-before-bounds",
+      "name": "index-effects-before-bounds",
+      "native": true,
+      "plan": "plans/source-index-effects-before-bounds.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/index-effects-before-bounds.json",
+      "resource_reason": null,
+      "source": "cases/source/index-effects-before-bounds.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/empty-read-traps.json",
+      "default": true,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "index_out_of_bounds"
+      },
+      "expected_trace": "expected/empty-read-traps.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-empty-read-traps",
+      "name": "empty-read-traps",
+      "native": true,
+      "plan": "plans/source-empty-read-traps.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/empty-read-traps.json",
+      "resource_reason": null,
+      "source": "cases/source/empty-read-traps.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/late-loan-and-argument-capture.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "10129"
+      },
+      "expected_trace": "expected/late-loan-and-argument-capture.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-late-loan-and-argument-capture",
+      "name": "late-loan-and-argument-capture",
+      "native": true,
+      "plan": "plans/source-late-loan-and-argument-capture.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/late-loan-and-argument-capture.json",
+      "resource_reason": null,
+      "source": "cases/source/late-loan-and-argument-capture.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/recursive-view-and-fresh-owner.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "338"
+      },
+      "expected_trace": "expected/recursive-view-and-fresh-owner.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-recursive-view-and-fresh-owner",
+      "name": "recursive-view-and-fresh-owner",
+      "native": true,
+      "plan": "plans/source-recursive-view-and-fresh-owner.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/recursive-view-and-fresh-owner.json",
+      "resource_reason": null,
+      "source": "cases/source/recursive-view-and-fresh-owner.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/nested-site-order.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "18"
+      },
+      "expected_trace": "expected/nested-site-order.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-nested-site-order",
+      "name": "nested-site-order",
+      "native": true,
+      "plan": "plans/source-nested-site-order.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/nested-site-order.json",
+      "resource_reason": null,
+      "source": "cases/source/nested-site-order.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/repeated-site-empty-identity.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "2"
+      },
+      "expected_trace": "expected/repeated-site-empty-identity.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-repeated-site-empty-identity",
+      "name": "repeated-site-empty-identity",
+      "native": true,
+      "plan": "plans/source-repeated-site-empty-identity.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/repeated-site-empty-identity.json",
+      "resource_reason": null,
+      "source": "cases/source/repeated-site-empty-identity.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/normal-release-before-later-trap.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "expected_trace": "expected/normal-release-before-later-trap.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-normal-release-before-later-trap",
+      "name": "normal-release-before-later-trap",
+      "native": true,
+      "plan": "plans/source-normal-release-before-later-trap.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/normal-release-before-later-trap.json",
+      "resource_reason": null,
+      "source": "cases/source/normal-release-before-later-trap.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/tuple-ordinary-view-argument.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "13"
+      },
+      "expected_trace": "expected/tuple-ordinary-view-argument.json",
+      "fuel": 100000,
+      "group": "source",
+      "id": "source-tuple-ordinary-view-argument",
+      "name": "tuple-ordinary-view-argument",
+      "native": true,
+      "plan": "plans/source-tuple-ordinary-view-argument.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/tuple-ordinary-view-argument.json",
+      "resource_reason": null,
+      "source": "cases/source/tuple-ordinary-view-argument.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/slots-exact-fit.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 2,
+      "expected_outcome": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "expected_trace": "expected/slots-exact-fit.json",
+      "fuel": 1000000,
+      "group": "source",
+      "id": "source-slots-exact-fit",
+      "name": "slots-exact-fit",
+      "native": false,
+      "plan": "plans/source-slots-exact-fit.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/slots-exact-fit.json",
+      "resource_reason": null,
+      "source": "cases/source/slots-exact-fit.anl",
+      "status": "trap",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/slots-pending-view.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/slots-pending-view.json",
+      "fuel": 1000000,
+      "group": "source",
+      "id": "source-slots-pending-view",
+      "name": "slots-pending-view",
+      "native": false,
+      "plan": "plans/source-slots-pending-view.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/slots-pending-view.json",
+      "resource_reason": "slots",
+      "source": "cases/source/slots-pending-view.anl",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/live-cells-exact.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "1048576"
+      },
+      "expected_trace": "expected/live-cells-exact.json",
+      "fuel": 3000000,
+      "group": "source",
+      "id": "source-live-cells-exact",
+      "name": "live-cells-exact",
+      "native": false,
+      "plan": "plans/source-live-cells-exact.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/live-cells-exact.json",
+      "resource_reason": null,
+      "source": "cases/source/live-cells-exact.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/live-cells-over.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/live-cells-over.json",
+      "fuel": 3000000,
+      "group": "source",
+      "id": "source-live-cells-over",
+      "name": "live-cells-over",
+      "native": false,
+      "plan": "plans/source-live-cells-over.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/live-cells-over.json",
+      "resource_reason": "live_cells",
+      "source": "cases/source/live-cells-over.anl",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/live-cells-nested-over.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/live-cells-nested-over.json",
+      "fuel": 3000000,
+      "group": "source",
+      "id": "source-live-cells-nested-over",
+      "name": "live-cells-nested-over",
+      "native": false,
+      "plan": "plans/source-live-cells-nested-over.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/live-cells-nested-over.json",
+      "resource_reason": "live_cells",
+      "source": "cases/source/live-cells-nested-over.anl",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/exported/refusal-refunds-live-reservations.json",
+      "default": false,
+      "default_refusal_values": [],
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "7"
+      },
+      "expected_trace": "expected/refusal-refunds-live-reservations.json",
+      "fuel": 3000000,
+      "group": "source",
+      "id": "source-refusal-refunds-live-reservations",
+      "name": "refusal-refunds-live-reservations",
+      "native": false,
+      "plan": "plans/source-refusal-refunds-live-reservations.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/refusal-refunds-live-reservations.json",
+      "resource_reason": null,
+      "source": "cases/source/refusal-refunds-live-reservations.anl",
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "default": false,
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/fill-fuel-5.json",
+      "fuel": 5,
+      "group": "core",
+      "id": "core-fill-fuel-5",
+      "name": "fill-fuel-5",
+      "native": false,
+      "plan": "plans/core-fill-fuel-5.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/minimal-refusal.json",
+      "resource_reason": "fill_fuel",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "default": false,
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/fill-fuel-6.json",
+      "fuel": 6,
+      "group": "core",
+      "id": "core-fill-fuel-6",
+      "name": "fill-fuel-6",
+      "native": false,
+      "plan": "plans/core-fill-fuel-6.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/minimal-refusal.json",
+      "resource_reason": "expression_fuel",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "default": false,
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9"
+      },
+      "expected_trace": "expected/fill-fuel-7.json",
+      "fuel": 7,
+      "group": "core",
+      "id": "core-fill-fuel-7",
+      "name": "fill-fuel-7",
+      "native": false,
+      "plan": "plans/core-fill-fuel-7.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/minimal-refusal.json",
+      "resource_reason": null,
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/zero-no-fill.json",
+      "default": true,
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/zero-no-fill-3.json",
+      "fuel": 3,
+      "group": "core",
+      "id": "core-zero-no-fill-3",
+      "name": "zero-no-fill-3",
+      "native": false,
+      "plan": "plans/core-zero-no-fill-3.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/zero-no-fill.json",
+      "resource_reason": "expression_fuel",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/zero-no-fill.json",
+      "default": true,
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "expected_trace": "expected/zero-no-fill-4.json",
+      "fuel": 4,
+      "group": "core",
+      "id": "core-zero-no-fill-4",
+      "name": "zero-no-fill-4",
+      "native": false,
+      "plan": "plans/core-zero-no-fill-4.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/zero-no-fill.json",
+      "resource_reason": null,
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/target-no-fill.json",
+      "default": true,
+      "exit": 3,
+      "expected_outcome": {
+        "outcome": "resource_limit"
+      },
+      "expected_trace": "expected/target-no-fill-3.json",
+      "fuel": 3,
+      "group": "core",
+      "id": "core-target-no-fill-3",
+      "name": "target-no-fill-3",
+      "native": false,
+      "plan": "plans/core-target-no-fill-3.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/target-no-fill.json",
+      "resource_reason": "expression_fuel",
+      "status": "resource_limit",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/target-no-fill.json",
+      "default": true,
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9"
+      },
+      "expected_trace": "expected/target-no-fill-4.json",
+      "fuel": 4,
+      "group": "core",
+      "id": "core-target-no-fill-4",
+      "name": "target-no-fill-4",
+      "native": false,
+      "plan": "plans/core-target-no-fill-4.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": "replay/target-no-fill.json",
+      "resource_reason": null,
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/profile32.json",
+      "default": true,
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9"
+      },
+      "expected_trace": "oracles/core-recorded-profile-target-rejection.json",
+      "fuel": 100000,
+      "group": "core",
+      "id": "core-recorded-profile-target-rejection",
+      "name": "recorded-profile-target-rejection",
+      "native": false,
+      "plan": "plans/core-recorded-profile-target-rejection.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 4,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 32,
+        "size_bits": 32
+      },
+      "replay": null,
+      "resource_reason": null,
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/v3-scalar.json",
+      "default": true,
+      "exit": 0,
+      "expected_outcome": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "expected_trace": "oracles/core-v3-scalar-embedding.json",
+      "fuel": 100000,
+      "group": "core",
+      "id": "core-v3-scalar-embedding",
+      "name": "v3-scalar-embedding",
+      "native": false,
+      "plan": "plans/core-v3-scalar-embedding.json",
+      "profile": {
+        "abi": "anl-buffer-c11-v1",
+        "char_bits": 8,
+        "i64_align": 8,
+        "i64_bytes": 8,
+        "ptrdiff_bits": 64,
+        "size_bits": 64
+      },
+      "replay": null,
+      "resource_reason": null,
+      "status": "value",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-forged-heap-site.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-forged-heap-site",
+      "name": "invalid-forged-heap-site",
+      "native": false,
+      "plan": "plans/core-invalid-forged-heap-site.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-resource-out-of-range.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-resource-out-of-range",
+      "name": "invalid-resource-out-of-range",
+      "native": false,
+      "plan": "plans/core-invalid-resource-out-of-range.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-wrong-read-annotation.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-wrong-read-annotation",
+      "name": "invalid-wrong-read-annotation",
+      "native": false,
+      "plan": "plans/core-invalid-wrong-read-annotation.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-owner-in-raw-initializer.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-owner-in-raw-initializer",
+      "name": "invalid-owner-in-raw-initializer",
+      "native": false,
+      "plan": "plans/core-invalid-owner-in-raw-initializer.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-owner-in-raw-failure.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-owner-in-raw-failure",
+      "name": "invalid-owner-in-raw-failure",
+      "native": false,
+      "plan": "plans/core-invalid-owner-in-raw-failure.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-extra-constructor-field.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-extra-constructor-field",
+      "name": "invalid-extra-constructor-field",
+      "native": false,
+      "plan": "plans/core-invalid-extra-constructor-field.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-wrong-revision.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-wrong-revision",
+      "name": "invalid-wrong-revision",
+      "native": false,
+      "plan": "plans/core-invalid-wrong-revision.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-wrong-profile-abi.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-wrong-profile-abi",
+      "name": "invalid-wrong-profile-abi",
+      "native": false,
+      "plan": "plans/core-invalid-wrong-profile-abi.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-entry-view.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-entry-view",
+      "name": "invalid-entry-view",
+      "native": false,
+      "plan": "plans/core-invalid-entry-view.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-unused-read-write.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-unused-read-write",
+      "name": "invalid-unused-read-write",
+      "native": false,
+      "plan": "plans/core-invalid-unused-read-write.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-dead-raw-read-write.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-dead-raw-read-write",
+      "name": "invalid-dead-raw-read-write",
+      "native": false,
+      "plan": "plans/core-invalid-dead-raw-read-write.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-ordinary-call-view-signature.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-ordinary-call-view-signature",
+      "name": "invalid-ordinary-call-view-signature",
+      "native": false,
+      "plan": "plans/core-invalid-ordinary-call-view-signature.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-call-view-mode-mismatch.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-call-view-mode-mismatch",
+      "name": "invalid-call-view-mode-mismatch",
+      "native": false,
+      "plan": "plans/core-invalid-call-view-mode-mismatch.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-call-view-ordinary-arity.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-call-view-ordinary-arity",
+      "name": "invalid-call-view-ordinary-arity",
+      "native": false,
+      "plan": "plans/core-invalid-call-view-ordinary-arity.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-read-view-edit-escalation.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-read-view-edit-escalation",
+      "name": "invalid-read-view-edit-escalation",
+      "native": false,
+      "plan": "plans/core-invalid-read-view-edit-escalation.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-missing-heap-initializer.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-missing-heap-initializer",
+      "name": "invalid-missing-heap-initializer",
+      "native": false,
+      "plan": "plans/core-invalid-missing-heap-initializer.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-duplicate-root.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-duplicate-root",
+      "name": "invalid-duplicate-root",
+      "native": false,
+      "plan": "plans/core-invalid-duplicate-root.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-escaped-duplicate-resource.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-escaped-duplicate-resource",
+      "name": "invalid-escaped-duplicate-resource",
+      "native": false,
+      "plan": "plans/core-invalid-escaped-duplicate-resource.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-duplicate-site.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-duplicate-site",
+      "name": "invalid-duplicate-site",
+      "native": false,
+      "plan": "plans/core-invalid-duplicate-site.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    },
+    {
+      "core": "cases/core/invalid-noncanonical-resource-number.json",
+      "default": true,
+      "exit": 1,
+      "expected_outcome": {
+        "outcome": "invalid_ir"
+      },
+      "expected_trace": null,
+      "fuel": 0,
+      "group": "core",
+      "id": "core-invalid-noncanonical-resource-number",
+      "name": "invalid-noncanonical-resource-number",
+      "native": false,
+      "plan": "plans/core-invalid-noncanonical-resource-number.json",
+      "profile": null,
+      "replay": null,
+      "resource_reason": null,
+      "status": "rejected",
+      "transitions": 262144
+    }
+  ],
+  "c_stdout_limit": 67108864,
+  "command_timeout_seconds": 45,
+  "compatibility": [
+    {
+      "name": "scalar",
+      "source": "cases/compat/scalar.anl",
+      "value": "42",
+      "verify": false
+    },
+    {
+      "name": "tuple",
+      "source": "cases/compat/tuple.anl",
+      "value": "42",
+      "verify": false
+    }
+  ],
+  "generators": [
+    {
+      "base": "cases/core/minimal.json",
+      "bytes": 1048576,
+      "kind": "padded-core",
+      "name": "core-bytes-1048576",
+      "over": false,
+      "sha256": "6be16a12a49b0a82e041a86d893bd989b4f532ebc83e805fb85bab6d66d1566b"
+    },
+    {
+      "base": "cases/core/minimal.json",
+      "bytes": 1048577,
+      "kind": "padded-core",
+      "name": "core-bytes-1048577",
+      "over": true,
+      "sha256": "29ce17ba32d5a8e82e385048ecc759aa1243bf1e5171e0052600bb2ea8e385af"
+    },
+    {
+      "base": "cases/mir/minimal.json",
+      "bytes": 8388608,
+      "kind": "padded-mir",
+      "name": "mir-bytes-8388608",
+      "over": false,
+      "sha256": "c8ba66c6cb2264b2dba31bc9abd71c8dcece0f1bcd5d17ee8e46fdd4610f5424"
+    },
+    {
+      "base": "cases/mir/minimal.json",
+      "bytes": 8388609,
+      "kind": "padded-mir",
+      "name": "mir-bytes-8388609",
+      "over": true,
+      "sha256": "5f8731eaa6f14abfd7f3a31237cf0de86112eed5b3585932b0a4a8feef96ddc7"
+    },
+    {
+      "base": "replay/minimal-success.json",
+      "bytes": 8388608,
+      "kind": "padded-replay",
+      "name": "replay-bytes-8388608",
+      "over": false,
+      "sha256": "0b301b47580b4d65f147b9b2da80405f9d08fb2e29e99aafe2a4dbd126713b1a"
+    },
+    {
+      "base": "replay/minimal-success.json",
+      "bytes": 8388609,
+      "kind": "padded-replay",
+      "name": "replay-bytes-8388609",
+      "over": true,
+      "sha256": "6a79228f0323c44229293f733ae78643702483f7970fbe41cd09e101f187c5aa"
+    },
+    {
+      "bytes": 4532799,
+      "cause": "All shape fields/ordinals/sites/pairing valid; <8MiB. Fuel 0 prevents source evaluation/output-event growth after accepted preflight. Script reachability is not claimed.",
+      "events": 65536,
+      "fuel": 0,
+      "kind": "empty-event-replay",
+      "name": "replay-events-65536",
+      "over": false,
+      "pairs": 32768,
+      "sha256": "be37664c580398d07b6ae88d8305ecaf91e324cb89a443eb263be5cd2b00583d",
+      "source": "cases/source/event-input-cap.anl"
+    },
+    {
+      "bytes": 4532870,
+      "cause": "All shape fields/ordinals/sites/pairing valid; <8MiB. Fuel 0 prevents source evaluation/output-event growth after accepted preflight. Script reachability is not claimed.",
+      "events": 65537,
+      "fuel": 0,
+      "kind": "empty-event-replay",
+      "name": "replay-events-65537",
+      "over": true,
+      "pairs": 32768,
+      "sha256": "ebad0edd36442c3349e5a2689a87195d41b607ee0aba0225de685b2b41cc076c",
+      "source": "cases/source/event-input-cap.anl"
+    }
+  ],
+  "native_timeout_seconds": 20,
+  "output_bounds": [
+    {
+      "expected": "expected/events-exact.json.gz",
+      "expected_bytes": 4532802,
+      "expected_exit": 0,
+      "expected_sha256": "9fcb8e043f70162267c22192a12a9ae40ff457f1924d68b6d72565d6dccad814",
+      "fuel": 1000000,
+      "name": "events-exact",
+      "source": "cases/output/events-exact.anl"
+    },
+    {
+      "expected": "expected/events-over.json.gz",
+      "expected_bytes": 4532820,
+      "expected_exit": 4,
+      "expected_sha256": "deb34dd83dc053df3c84be76ab2720e0aa50b097d4e59514f8387f04ed0c0422",
+      "fuel": 1000000,
+      "name": "events-over",
+      "source": "cases/output/events-over.anl"
+    }
+  ],
+  "pairs": [
+    {
+      "core": "cases/core/minimal.json",
+      "mir": "cases/mir/minimal.json",
+      "name": "canonical-minimal",
+      "status": "accepted"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/typed-noncanonical-constant.json",
+      "name": "typed-noncanonical-constant",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/profile-mismatch.json",
+      "name": "profile-mismatch",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/sibling-temp-escape.json",
+      "name": "sibling-temp-escape",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/owner-visible-in-initializer.json",
+      "name": "owner-visible-in-initializer",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/duplicate-temp-definition.json",
+      "name": "duplicate-temp-definition",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/forged-dense-count.json",
+      "name": "forged-dense-count",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/missing-resource-table.json",
+      "name": "missing-resource-table",
+      "status": "rejected"
+    },
+    {
+      "core": "cases/core/minimal.json",
+      "independent_typing": "checked_by_raw_group",
+      "mir": "cases/mir/wrong-yield-type.json",
+      "name": "wrong-yield-type",
+      "status": "rejected"
+    }
+  ],
+  "raw": [
+    {
+      "kind": "core",
+      "path": "cases/core/minimal.json"
+    },
+    {
+      "kind": "mir",
+      "path": "cases/mir/typed-noncanonical-constant.json"
+    },
+    {
+      "kind": "mir",
+      "path": "cases/mir/profile-mismatch.json"
+    }
+  ],
+  "replay_invalid": [
+    {
+      "name": "nonconsecutive-request",
+      "replay": "replay/invalid-nonconsecutive-request.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "wrong-site",
+      "replay": "replay/invalid-wrong-site.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "zero-request",
+      "replay": "replay/invalid-zero-request.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "unclosed-value",
+      "replay": "replay/invalid-unclosed-value.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "release-refusal",
+      "replay": "replay/invalid-release-refusal.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "unknown-trap",
+      "replay": "replay/invalid-unknown-trap.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "resource-script",
+      "replay": "replay/invalid-resource-script.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "infrastructure-script",
+      "replay": "replay/invalid-infrastructure-script.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "missing-completion",
+      "replay": "replay/invalid-missing-completion.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "extra-request-field",
+      "replay": "replay/invalid-extra-request-field.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "wrong-profile",
+      "replay": "replay/invalid-wrong-profile.json",
+      "source": "cases/source/minimal.anl"
+    },
+    {
+      "name": "duplicate-response",
+      "replay": "replay/invalid-duplicate-response.json",
+      "source": "cases/source/minimal.anl"
+    }
+  ],
+  "resource_diagnostics": {
+    "expression_fuel": "fuel exhausted",
+    "fill_fuel": "buffer attempted-fill fuel exhausted",
+    "live_cells": "live buffer cell limit exceeded",
+    "slots": "active environment and argument slot limit exceeded"
+  },
+  "schema": "anl-memory-validation-v1",
+  "semantic_revision": "anl-owned-buffers-v1",
+  "source_graphs": [
+    {
+      "entry": "cases/compat/scalar.anl",
+      "files": [
+        {
+          "bytes": 24,
+          "path": "cases/compat/scalar.anl",
+          "sha256": "109a24c1c113e227320031184173f20e9105324086e7b5d49b38aec58fb346da"
+        }
+      ]
+    },
+    {
+      "entry": "cases/compat/tuple.anl",
+      "files": [
+        {
+          "bytes": 49,
+          "path": "cases/compat/tuple.anl",
+          "sha256": "60cc99c56cb0a2d2c387de011ebeac7f80bf97c4943bfbe8e6f8061f320b390d"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/empty-read-traps.anl",
+      "files": [
+        {
+          "bytes": 61,
+          "path": "cases/source/empty-read-traps.anl",
+          "sha256": "83ea299d6ae3769567085c571feeac0d1fa8bb235415aca83377dd33d172a8ab"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/fill-and-write.anl",
+      "files": [
+        {
+          "bytes": 96,
+          "path": "cases/source/fill-and-write.anl",
+          "sha256": "df644ef265f1813378e056bea2429ae4bdf1a1a42717cd4b39bb977243277594"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/index-effects-before-bounds.anl",
+      "files": [
+        {
+          "bytes": 170,
+          "path": "cases/source/index-effects-before-bounds.anl",
+          "sha256": "0427ea61007d41767c4b782567935251af8da84bf6bd5f2edcd12ee346432651"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/late-loan-and-argument-capture.anl",
+      "files": [
+        {
+          "bytes": 311,
+          "path": "cases/source/late-loan-and-argument-capture.anl",
+          "sha256": "329b9707f038244e82bf66e8490736e5543689c3e4a0596806b2745803b7fee5"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/live-cells-exact.anl",
+      "files": [
+        {
+          "bytes": 56,
+          "path": "cases/source/live-cells-exact.anl",
+          "sha256": "5f83bccc3dd6afa391bda7f07c9aa6037222293b64d359354cbce7de7d1aabf6"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/live-cells-nested-over.anl",
+      "files": [
+        {
+          "bytes": 86,
+          "path": "cases/source/live-cells-nested-over.anl",
+          "sha256": "8064d928f0abfae95e12a9ec51c1b2e23697fdf982e248e33e6e0aa90d3eff1f"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/live-cells-over.anl",
+      "files": [
+        {
+          "bytes": 56,
+          "path": "cases/source/live-cells-over.anl",
+          "sha256": "fe88e6fa803b1f41d4b55612ddbc5ce2a572b8d0aaa2aedce4347de04385ed01"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/minimal.anl",
+      "files": [
+        {
+          "bytes": 43,
+          "path": "cases/source/minimal.anl",
+          "sha256": "7437dbc03cbd1d0188c01b47311d7bf3a3e6da6a06898fea1ac63ee940785c22"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/mixed-value-resource-contexts.anl",
+      "files": [
+        {
+          "bytes": 365,
+          "path": "cases/source/mixed-value-resource-contexts.anl",
+          "sha256": "2e3aa52e24805a5c50d29030d1df52f6b657a5b9e46fa66d4e8546d8492646af"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/negative-index-skips-rhs.anl",
+      "files": [
+        {
+          "bytes": 114,
+          "path": "cases/source/negative-index-skips-rhs.anl",
+          "sha256": "40a781f8a562a44ec50cc8c763611acf4c1c4382e2c095d80f55e3e424bfa98d"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/negative-skips-initializer.anl",
+      "files": [
+        {
+          "bytes": 97,
+          "path": "cases/source/negative-skips-initializer.anl",
+          "sha256": "436093918e1102520f57ff47d1351f8623afd7779c0842034ba16bdbf07b981c"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/nested-site-order.anl",
+      "files": [
+        {
+          "bytes": 172,
+          "path": "cases/source/nested-site-order.anl",
+          "sha256": "2e6c84beec721a5dc2ebdf56c66d6488ae3b90352ccbc6f042230b1ef285cbe3"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/normal-release-before-later-trap.anl",
+      "files": [
+        {
+          "bytes": 102,
+          "path": "cases/source/normal-release-before-later-trap.anl",
+          "sha256": "0bbd273d32c92b105c4ef66959c1e35da8e4d6e3e96e33d16d17e745bfa07110"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/recursive-view-and-fresh-owner.anl",
+      "files": [
+        {
+          "bytes": 357,
+          "path": "cases/source/recursive-view-and-fresh-owner.anl",
+          "sha256": "070b66324f3757f8c17020ee2be463c61d0ab4a64be5c69b691ec4242860b840"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/refusal-keeps-initializer-effects.anl",
+      "files": [
+        {
+          "bytes": 85,
+          "path": "cases/source/refusal-keeps-initializer-effects.anl",
+          "sha256": "a65fd0b73188cb8e309e33157afc5d491046f9a136c0291d04acbb4790887c34"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/refusal-refunds-live-reservations.anl",
+      "files": [
+        {
+          "bytes": 134,
+          "path": "cases/source/refusal-refunds-live-reservations.anl",
+          "sha256": "9246bb0c70483ace355ba2e9f7be7958b9d5ada25833dcddcf1d9913c9d7e2a8"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/repeated-site-empty-identity.anl",
+      "files": [
+        {
+          "bytes": 158,
+          "path": "cases/source/repeated-site-empty-identity.anl",
+          "sha256": "0fead5aed26aa445d96c22852b70b9312f588b2e3f26546aa6b050015747f967"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/slots-exact-fit.anl",
+      "files": [
+        {
+          "bytes": 71451,
+          "path": "cases/source/slots-exact-fit.anl",
+          "sha256": "b05b146e10af2bb6d07c9ab75581ef40678468f2ecabac4058de5d81c833a50e"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/slots-pending-view.anl",
+      "files": [
+        {
+          "bytes": 71471,
+          "path": "cases/source/slots-pending-view.anl",
+          "sha256": "29e7d59c2e185369a99a6405949e991561e6387542c6d8c58cd265ef0935c9a9"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/target-initializer-trap.anl",
+      "files": [
+        {
+          "bytes": 80,
+          "path": "cases/source/target-initializer-trap.anl",
+          "sha256": "5b710720a307fd4bc36067a13b3cdeecdcce5b81a8a60b9c279374dcb55ff9ca"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/target-rejection-after-initializer.anl",
+      "files": [
+        {
+          "bytes": 106,
+          "path": "cases/source/target-rejection-after-initializer.anl",
+          "sha256": "a8ecd60ec1af05e621a110b4d8a5a0b5b7a7f81a4af1446fffe0170fb7fe404d"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/tuple-ordinary-view-argument.anl",
+      "files": [
+        {
+          "bytes": 234,
+          "path": "cases/source/tuple-ordinary-view-argument.anl",
+          "sha256": "b9ef5ad641c69f325e65851960d8aed72d75f7b5fbe23c431e0892ebd0dad4e6"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/upper-index-skips-rhs.anl",
+      "files": [
+        {
+          "bytes": 113,
+          "path": "cases/source/upper-index-skips-rhs.anl",
+          "sha256": "9a7a6c00a586a0cc94f345e0f34009911ece2b3dec5572abcf3d3a166a7f9beb"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/write-index-rhs-store-order.anl",
+      "files": [
+        {
+          "bytes": 145,
+          "path": "cases/source/write-index-rhs-store-order.anl",
+          "sha256": "f5e6f69d9cc77f7d096319fadd2bb0558213d0ee6acd19c53892ca4f40bd979b"
+        }
+      ]
+    },
+    {
+      "entry": "cases/source/zero-initializer-once.anl",
+      "files": [
+        {
+          "bytes": 104,
+          "path": "cases/source/zero-initializer-once.anl",
+          "sha256": "2e65a0957a8e8edb7ed3031b433672ba76c3dacfabc69687be3f18c25d252b50"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/bad-dead-index.anl",
+      "files": [
+        {
+          "bytes": 71,
+          "path": "cases/static/bad-dead-index.anl",
+          "sha256": "4a853257a998f378f68f660fffd4f3b9beaf30cc4abeaff10af7574c07fc3b34"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/bare-identifier-only.anl",
+      "files": [
+        {
+          "bytes": 47,
+          "path": "cases/static/bare-identifier-only.anl",
+          "sha256": "edabc08590e1b354b07b52cf5c2fd7fd2f444191dcbdafa646e5dfac0ff06ee4"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/duplicate-view-name.anl",
+      "files": [
+        {
+          "bytes": 54,
+          "path": "cases/static/duplicate-view-name.anl",
+          "sha256": "85e96e4e83f91ce7430e8013011f46c607e9f271a1523bfa8f6fa6b9c6e0a65a"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/ordinary-arity-mismatch.anl",
+      "files": [
+        {
+          "bytes": 96,
+          "path": "cases/static/ordinary-arity-mismatch.anl",
+          "sha256": "0ad1958722752a7cff0640d7d20ceef593730b06bfe1803e3ca0ed40f4d96b30"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/ordinary-shadow-blocks-resource.anl",
+      "files": [
+        {
+          "bytes": 71,
+          "path": "cases/static/ordinary-shadow-blocks-resource.anl",
+          "sha256": "ccfe401e1aee7fcd6e5143425dac1180a9d882ed6b3d1bf4302e5d5cb6fbf7be"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/owner-as-value.anl",
+      "files": [
+        {
+          "bytes": 47,
+          "path": "cases/static/owner-as-value.anl",
+          "sha256": "6610a8644b637c12dd07c759c0eb488c63f19a3485fad5c776354b2227879164"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/owner-in-failure.anl",
+      "files": [
+        {
+          "bytes": 49,
+          "path": "cases/static/owner-in-failure.anl",
+          "sha256": "fdd745964065aa8cdeda94e30473722fa612137da41153b9611f6447d641e824"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/owner-in-initializer.anl",
+      "files": [
+        {
+          "bytes": 49,
+          "path": "cases/static/owner-in-initializer.anl",
+          "sha256": "cafb604ac46346806627bde91d3c94bd84fe9509ff2395a91a5f726bee946757"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/read-escalates-edit.anl",
+      "files": [
+        {
+          "bytes": 102,
+          "path": "cases/static/read-escalates-edit.anl",
+          "sha256": "93f577bdd4840f936e1f91af193b3228ec1319cd3b72bb48fe01a6727dfe840b"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/read-write-unused.anl",
+      "files": [
+        {
+          "bytes": 55,
+          "path": "cases/static/read-write-unused.anl",
+          "sha256": "2848f19a024588b1dfcd4408d27be07a7710c512b89ad5d79ed744df5a5f5878"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/resource-in-specification.anl",
+      "files": [
+        {
+          "bytes": 73,
+          "path": "cases/static/resource-in-specification.anl",
+          "sha256": "eee11638f661fdb6840c93191c4e129b6cda2eb514ef47c6f5027b0a1634d60d"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/two-views.anl",
+      "files": [
+        {
+          "bytes": 61,
+          "path": "cases/static/two-views.anl",
+          "sha256": "d6fdf5a8c16551e510fbd5c08b3eb111987190fdaad5bb6364823b26b830b567"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/view-argument-missing.anl",
+      "files": [
+        {
+          "bytes": 64,
+          "path": "cases/static/view-argument-missing.anl",
+          "sha256": "6ec5f37ca61e56ffdd0d03fb607a89694666ce960fc9078daf61b0f575e09225"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/view-entry.anl",
+      "files": [
+        {
+          "bytes": 37,
+          "path": "cases/static/view-entry.anl",
+          "sha256": "946b5af2820b0e26aecc6401734f7171312ec7e2a0831b9feedb86d399e6c59d"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/view-library.anl",
+      "files": [
+        {
+          "bytes": 40,
+          "path": "cases/static/view-library.anl",
+          "sha256": "a80b023f0e8f548f32c3a944fcb7b5760e1e43b7f844229623a0269efa109b6a"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/view-not-first.anl",
+      "files": [
+        {
+          "bytes": 54,
+          "path": "cases/static/view-not-first.anl",
+          "sha256": "7ebd015ae3d6c648ca4db1ce637c311905d179df47087b6737897dd952bcd990"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/view-type-as-result.anl",
+      "files": [
+        {
+          "bytes": 38,
+          "path": "cases/static/view-type-as-result.anl",
+          "sha256": "5b0edcc9f5ffaa01690c8a81ef1c0fff0c7d7fe522697591ccc3d96445e52d57"
+        }
+      ]
+    },
+    {
+      "entry": "cases/static/wrong-view-call-mode.anl",
+      "files": [
+        {
+          "bytes": 94,
+          "path": "cases/static/wrong-view-call-mode.anl",
+          "sha256": "e0265cf298c69054ba656ec2fd970c25f6c6dfcbbe3e8009c2b5a490245c190f"
+        }
+      ]
+    },
+    {
+      "entry": "cases/verify/dead-heap.anl",
+      "files": [
+        {
+          "bytes": 60,
+          "path": "cases/verify/dead-heap.anl",
+          "sha256": "8706adab49162bf280e52b5e8c3bb6fad7913c112734f4493b6beca546e0cba4"
+        }
+      ]
+    },
+    {
+      "entry": "cases/verify/imported/main.anl",
+      "files": [
+        {
+          "bytes": 31,
+          "path": "cases/verify/imported/main.anl",
+          "sha256": "88e011440b1b1af55d14b07f76605d28edf99fac8e039fb593611152a1cb3d74"
+        },
+        {
+          "bytes": 43,
+          "path": "cases/verify/imported/hidden.anl",
+          "sha256": "6ad65d940b12e624e428c26599e5898ae19caef982272e33e3a9cce02c9e5bd9"
+        }
+      ]
+    },
+    {
+      "entry": "cases/verify/unused-view.anl",
+      "files": [
+        {
+          "bytes": 58,
+          "path": "cases/verify/unused-view.anl",
+          "sha256": "51e79a76c0c5ee0f080b6cb30f9975b9d60bf2deee3ff15e978a6c5d95804c1b"
+        }
+      ]
+    },
+    {
+      "entry": "cases/output/events-exact.anl",
+      "files": [
+        {
+          "bytes": 130,
+          "path": "cases/output/events-exact.anl",
+          "sha256": "e726f8f4dd8e4d358d377c18099928b69fee052e8ce8ff90547c434d5f461f94"
+        }
+      ]
+    },
+    {
+      "entry": "cases/output/events-over.anl",
+      "files": [
+        {
+          "bytes": 130,
+          "path": "cases/output/events-over.anl",
+          "sha256": "0a15211230c76d3679686876495a86144927feafafab770f7924a10567f345a6"
+        }
+      ]
+    }
+  ],
+  "static": [
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "read-write-unused",
+      "source": "cases/static/read-write-unused.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "read-escalates-edit",
+      "source": "cases/static/read-escalates-edit.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "owner-in-initializer",
+      "source": "cases/static/owner-in-initializer.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "owner-in-failure",
+      "source": "cases/static/owner-in-failure.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "owner-as-value",
+      "source": "cases/static/owner-as-value.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "ordinary-shadow-blocks-resource",
+      "source": "cases/static/ordinary-shadow-blocks-resource.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "duplicate-view-name",
+      "source": "cases/static/duplicate-view-name.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "view-not-first",
+      "source": "cases/static/view-not-first.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "two-views",
+      "source": "cases/static/two-views.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "wrong-view-call-mode",
+      "source": "cases/static/wrong-view-call-mode.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "view-argument-missing",
+      "source": "cases/static/view-argument-missing.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "ordinary-arity-mismatch",
+      "source": "cases/static/ordinary-arity-mismatch.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "bad-dead-index",
+      "source": "cases/static/bad-dead-index.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "resource-in-specification",
+      "source": "cases/static/resource-in-specification.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "bare-identifier-only",
+      "source": "cases/static/bare-identifier-only.anl"
+    },
+    {
+      "check_exit": 1,
+      "eval_exit": 1,
+      "name": "view-type-as-result",
+      "source": "cases/static/view-type-as-result.anl"
+    },
+    {
+      "check_exit": 0,
+      "eval_exit": 1,
+      "name": "view-entry",
+      "source": "cases/static/view-entry.anl"
+    },
+    {
+      "check_exit": 0,
+      "eval_exit": 1,
+      "name": "view-library",
+      "source": "cases/static/view-library.anl"
+    }
+  ],
+  "stderr_limit": 65536,
+  "stdout_limit": 8388608,
+  "verify": [
+    {
+      "name": "unused-view",
+      "source": "cases/verify/unused-view.anl"
+    },
+    {
+      "name": "dead-heap",
+      "source": "cases/verify/dead-heap.anl"
+    },
+    {
+      "name": "unused-import",
+      "source": "cases/verify/imported/main.anl",
+      "source_count": 2
+    }
+  ]
+}

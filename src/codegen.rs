@@ -1,7 +1,7 @@
 //! Validated MIR to portable C11 and a host-native executable.
 use crate::{
     bounded::{Buffer, OutputError},
-    mir::{self, Block, Operation},
+    mir::{self, Block, MemoryOperation, Operation},
     types::{BinaryOp, Program, TupleShape, Type, UnaryOp},
 };
 use std::{
@@ -23,22 +23,35 @@ pub fn emit_c(program: &Program, entry: usize) -> Result<String, OutputError> {
     emit_c_with_limit(program, entry, MAX_PRODUCT_C_BYTES)
 }
 fn emit_c_with_limit(source: &Program, entry: usize, limit: usize) -> Result<String, OutputError> {
-    let products = source.has_flat_products();
+    let products = source.has_flat_products() || source.allocation_profile.is_some();
     let program = mir::lower(source, entry).map_err(|error| error.to_string())?;
-    let mut text = Buffer::new(
-        products.then_some(limit),
-        "emitted v2 C exceeds 67108864 bytes",
-    );
+    emit_lowered(&program, products.then_some(limit))
+}
+pub(crate) fn emit_lowered(
+    program: &mir::Program,
+    limit: Option<usize>,
+) -> Result<String, OutputError> {
+    let mut text = Buffer::new(limit, "emitted v2 C exceeds 67108864 bytes");
     // Each typed expression lowers once, without callee expansion. Tuple width bounds
     // each added construction/projection/comparison to at most eight field operations.
-    let result = emit_translation_unit(&program, &mut text);
+    let result = emit_translation_unit(program, &mut text);
     if result.is_err() && !text.exhausted() {
         return Err(OutputError::Infrastructure("C formatting failed".into()));
     }
     text.finish()
 }
 fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Result {
-    text.write_str(RUNTIME)?;
+    if program.allocation_profile.is_some() {
+        text.write_str("#include \"runtime.h\"\n")?;
+    }
+    if program.allocation_profile.is_some() {
+        text.write_str(&RUNTIME.replace(
+            "static _Noreturn void apl_trap(const char *tag) {\n",
+            "static _Noreturn void apl_trap(const char *tag) {\n    anl_memory_trap(tag);\n",
+        ))?;
+    } else {
+        text.write_str(RUNTIME)?;
+    }
     let mut shapes = BTreeSet::new();
     fn add(ty: Type, shapes: &mut BTreeSet<TupleShape>) {
         if let Type::Tuple(shape) = ty {
@@ -49,6 +62,20 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
         for instruction in &block.instructions {
             add(instruction.destination.ty, shapes);
             match &instruction.kind {
+                Operation::Memory(memory) => match memory.as_ref() {
+                    MemoryOperation::HeapScope {
+                        initial,
+                        success,
+                        failure,
+                        ..
+                    } => {
+                        scan(initial, shapes);
+                        scan(success, shapes);
+                        scan(failure, shapes);
+                    }
+                    MemoryOperation::Write { value, .. } => scan(value, shapes),
+                    _ => {}
+                },
                 Operation::Branch {
                     then_block,
                     else_block,
@@ -90,9 +117,19 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
     for (id, function) in program.functions.iter().enumerate() {
         signature(id, function, text)?;
         text.write_str(" {\n")?;
-        emit_block(&function.body, text, 1)?;
+        emit_block(&function.body, text, 1, id, program.allocation_profile)?;
         writeln!(text, "    return t{};\n}}", function.body.yield_value.id)?;
     }
+    let begin = if program.allocation_profile.is_some() {
+        "    anl_memory_begin();\n"
+    } else {
+        ""
+    };
+    let finish = if program.allocation_profile.is_some() {
+        "    anl_memory_value(result);\n"
+    } else {
+        ""
+    };
     write!(
         text,
         r#"
@@ -100,8 +137,8 @@ int main(void) {{
 #ifdef SIGPIPE
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return 4;
 #endif
-    int64_t result = apl_f{}();
-    if (printf("%" PRId64 "\n", result) < 0 || fflush(stdout) == EOF) {{
+{begin}    int64_t result = apl_f{}();
+{finish}    if (printf("%" PRId64 "\n", result) < 0 || fflush(stdout) == EOF) {{
         (void)fputs("anl: cannot write stdout\n", stderr);
         return 4;
     }}
@@ -131,22 +168,42 @@ fn c_type(ty: Type) -> Cow<'static, str> {
 }
 fn signature(id: usize, function: &mir::Function, text: &mut Buffer) -> fmt::Result {
     write!(text, "static {} apl_f{id}(", c_type(function.result))?;
-    if function.params.is_empty() {
+    if function.params.is_empty() && function.view.is_none() {
         text.write_str("void")?;
     }
+    if let Some((_, resource)) = function.view {
+        write!(text, "anl_buffer r{resource}")?;
+    }
     for (i, param) in function.params.iter().enumerate() {
-        if i > 0 {
+        if i > 0 || function.view.is_some() {
             text.write_str(", ")?;
         }
         write!(text, "{} t{}", c_type(param.ty), param.id)?;
     }
     text.write_str(")")
 }
-fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
+fn emit_block(
+    block: &Block,
+    text: &mut Buffer,
+    indent: usize,
+    function: usize,
+    profile: Option<crate::memory::AllocationProfile>,
+) -> fmt::Result {
     let padding = "    ".repeat(indent);
     for instruction in &block.instructions {
         let target = instruction.destination;
         match &instruction.kind {
+            Operation::Memory(memory) => {
+                emit_memory(
+                    memory,
+                    target,
+                    text,
+                    indent,
+                    function,
+                    profile.expect("checked memory profile"),
+                )?;
+                continue;
+            }
             Operation::Branch {
                 condition,
                 then_block,
@@ -159,13 +216,13 @@ fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
                     target.id,
                     condition.id
                 )?;
-                emit_block(then_block, text, indent + 1)?;
+                emit_block(then_block, text, indent + 1, function, profile)?;
                 write!(
                     text,
                     "{padding}    t{} = t{};\n{padding}}} else {{\n",
                     target.id, then_block.yield_value.id
                 )?;
-                emit_block(else_block, text, indent + 1)?;
+                emit_block(else_block, text, indent + 1, function, profile)?;
                 write!(
                     text,
                     "{padding}    t{} = t{};\n{padding}}}\n",
@@ -187,7 +244,7 @@ fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
                     slot.id,
                     initial.id
                 )?;
-                emit_block(body, text, indent + 1)?;
+                emit_block(body, text, indent + 1, function, profile)?;
                 write!(
                     text,
                     "{padding}    t{} = t{};\n{padding}}}\n",
@@ -197,13 +254,13 @@ fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
             }
             Operation::While { condition, body } => {
                 writeln!(text, "{padding}for (;;) {{")?;
-                emit_block(condition, text, indent + 1)?;
+                emit_block(condition, text, indent + 1, function, profile)?;
                 write!(
                     text,
                     "{padding}    if (!t{}) break;\n{padding}    {{\n",
                     condition.yield_value.id
                 )?;
-                emit_block(body, text, indent + 2)?;
+                emit_block(body, text, indent + 2, function, profile)?;
                 write!(text, "{padding}    }}\n{padding}}}\n")?;
             }
             Operation::Store(slot, value) => {
@@ -275,13 +332,114 @@ fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
             }
             Operation::Load(slot) => write!(text, "s{}", slot.id)?,
             Operation::Store(..) | Operation::While { .. } => text.write_str("0")?,
-            Operation::Branch { .. } | Operation::MutableScope { .. } => {
+            Operation::Memory(_) | Operation::Branch { .. } | Operation::MutableScope { .. } => {
                 unreachable!("structured result emitted above")
             }
         }
         text.write_str(";\n")?;
     }
     Ok(())
+}
+
+fn emit_memory(
+    m: &MemoryOperation,
+    target: mir::Temp,
+    text: &mut Buffer,
+    indent: usize,
+    function: usize,
+    profile: crate::memory::AllocationProfile,
+) -> fmt::Result {
+    let p = "    ".repeat(indent);
+    let t = target.id;
+    match m {
+        MemoryOperation::HeapScope {
+            site,
+            owner,
+            length,
+            initial,
+            success,
+            failure,
+        } => {
+            writeln!(
+                text,
+                "{p}{} t{t};\n{p}{{\n{p}    if (t{} < 0) apl_trap(\"invalid_length\");",
+                c_type(target.ty),
+                length.id
+            )?;
+            emit_block(initial, text, indent + 1, function, Some(profile))?;
+            writeln!(
+                text,
+                "{p}    anl_buffer r{owner} = {{NULL, t{}}};\n{p}    bool ok{t} = false;\n{p}    if ((uint64_t)t{} <= UINT64_C({})) {{",
+                length.id,
+                length.id,
+                profile.max_cells()
+            )?;
+            writeln!(
+                text,
+                "{p}        if (r{owner}.length == 0) {{ anl_memory_empty_open(UINT64_C({function}), UINT64_C({site})); ok{t} = true; }} else {{"
+            )?;
+            writeln!(
+                text,
+                "{p}            r{owner}.data = anl_memory_request(r{owner}.length, UINT64_C({function}), UINT64_C({site}));\n{p}            ok{t} = r{owner}.data != NULL;\n{p}            if (ok{t}) for (int64_t i{t} = 0; i{t} < r{owner}.length; ++i{t}) r{owner}.data[(size_t)i{t}] = t{};\n{p}        }}\n{p}    }}\n{p}    if (ok{t}) {{",
+                initial.yield_value.id
+            )?;
+            emit_block(success, text, indent + 2, function, Some(profile))?;
+            writeln!(
+                text,
+                "{p}        t{t} = t{};\n{p}        if (r{owner}.length == 0) anl_memory_empty_close(UINT64_C({function}), UINT64_C({site})); else anl_memory_release(r{owner}.data, UINT64_C({function}), UINT64_C({site}));\n{p}    }} else {{",
+                success.yield_value.id
+            )?;
+            emit_block(failure, text, indent + 2, function, Some(profile))?;
+            writeln!(
+                text,
+                "{p}        t{t} = t{};\n{p}    }}\n{p}}}",
+                failure.yield_value.id
+            )
+        }
+        MemoryOperation::Length { resource } => {
+            writeln!(text, "{p}int64_t t{t} = r{resource}.length;")
+        }
+        MemoryOperation::Read { resource, index } => {
+            writeln!(
+                text,
+                "{p}if (t{} < 0 || t{} >= r{resource}.length) apl_trap(\"index_out_of_bounds\");\n{p}int64_t t{t} = r{resource}.data[(size_t)t{}];",
+                index.id, index.id, index.id
+            )
+        }
+        MemoryOperation::Write {
+            resource,
+            index,
+            value,
+        } => {
+            writeln!(
+                text,
+                "{p}if (t{} < 0 || t{} >= r{resource}.length) apl_trap(\"index_out_of_bounds\");\n{p}{{",
+                index.id, index.id
+            )?;
+            emit_block(value, text, indent + 1, function, Some(profile))?;
+            writeln!(
+                text,
+                "{p}    int64_t write{t} = t{};\n{p}    r{resource}.data[(size_t)t{}] = write{t};\n{p}}}\n{p}unsigned char t{t} = 0;",
+                value.yield_value.id, index.id
+            )
+        }
+        MemoryOperation::CallView {
+            function,
+            resource,
+            arguments,
+            ..
+        } => {
+            write!(
+                text,
+                "{p}{} t{t} = apl_f{function}(r{resource}",
+                c_type(target.ty)
+            )?;
+            for a in arguments {
+                write!(text, ", t{}", a.id)?;
+            }
+            writeln!(text, ");")
+        }
+    }
 }
 
 /// Compile with the host C toolchain and publish only a successfully linked binary.
@@ -301,7 +459,71 @@ fn build_with_limit(
     output: &Path,
     limit: usize,
 ) -> Result<(), OutputError> {
+    build_with_options(
+        program,
+        entry,
+        source,
+        output,
+        limit,
+        &BuildOptions::default(),
+    )
+}
+#[derive(Default)]
+struct BuildOptions<'a> {
+    #[cfg(feature = "memory-evidence")]
+    evidence: Option<&'a crate::memory_evidence::EvidenceOptions>,
+    marker: std::marker::PhantomData<&'a ()>,
+}
+impl BuildOptions<'_> {
+    fn protect(&self, _path: &Path) -> Result<(), String> {
+        #[cfg(feature = "memory-evidence")]
+        if let Some(e) = self.evidence {
+            e.protect_destination(_path)?;
+        }
+        Ok(())
+    }
+    fn active(&self) -> bool {
+        #[cfg(feature = "memory-evidence")]
+        {
+            self.evidence.is_some()
+        }
+        #[cfg(not(feature = "memory-evidence"))]
+        {
+            false
+        }
+    }
+}
+#[cfg(feature = "memory-evidence")]
+pub fn build_evidence(
+    program: &Program,
+    entry: usize,
+    source: &Path,
+    output: &Path,
+    evidence: &crate::memory_evidence::EvidenceOptions,
+) -> Result<(), OutputError> {
+    evidence.check_program(program)?;
+    build_with_options(
+        program,
+        entry,
+        source,
+        output,
+        MAX_PRODUCT_C_BYTES,
+        &BuildOptions {
+            evidence: Some(evidence),
+            marker: std::marker::PhantomData,
+        },
+    )
+}
+fn build_with_options(
+    program: &Program,
+    entry: usize,
+    source: &Path,
+    output: &Path,
+    limit: usize,
+    options: &BuildOptions<'_>,
+) -> Result<(), OutputError> {
     protect_sources(program, source, output)?;
+    options.protect(output)?;
     let c = emit_c_with_limit(program, entry, limit)?;
     let parent = output
         .parent()
@@ -320,10 +542,54 @@ fn build_with_limit(
     let binary = staging.0.join("program");
     fs::write(&c_path, c).map_err(|error| format!("cannot write generated C: {error}"))?;
     let cc = env::var_os("CC").unwrap_or_else(|| OsString::from("cc"));
-    let result = Command::new(&cc)
+    let result = if let Some(profile) = program.allocation_profile {
+        let (header, runtime) = crate::memory::runtime_sources(profile);
+        #[cfg(feature = "memory-evidence")]
+        if let Some(e) = options.evidence {
+            fs::write(staging.0.join("evidence.h"), e.native_config()?)
+                .map_err(|error| error.to_string())?;
+        }
+        fs::write(staging.0.join("runtime.h"), header).map_err(|e| e.to_string())?;
+        let runtime_path = staging.0.join("runtime.c");
+        fs::write(&runtime_path, runtime).map_err(|e| e.to_string())?;
+        let program_object = staging.0.join("program.o");
+        let runtime_object = staging.0.join("runtime.o");
+        for (input, object) in [(&c_path, &program_object), (&runtime_path, &runtime_object)] {
+            let mut command = Command::new(&cc);
+            command.args(["-std=c11", "-O2", "-fno-lto", "-x", "c", "-c"]);
+            if options.active() {
+                command.arg("-DANL_MEMORY_EVIDENCE=1");
+            }
+            let result = command
+                .arg(input)
+                .arg("-o")
+                .arg(object)
+                .output()
+                .map_err(|e| format!("cannot execute C compiler: {e}"))?;
+            if !result.status.success() || !object.is_file() {
+                return Err(format!(
+                    "C compilation failed ({}):\n{}{}",
+                    result.status,
+                    String::from_utf8_lossy(&result.stdout),
+                    String::from_utf8_lossy(&result.stderr)
+                )
+                .into());
+            }
+        }
+        Command::new(&cc)
+            .arg("-fno-lto")
+            .arg(&program_object)
+            .arg(&runtime_object)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .map_err(|e| format!("cannot link C objects: {e}"))?
+    } else {
+        Command::new(&cc)
         .args(["-std=c11", "-O2", "-x", "c"])
         .arg(&c_path).arg("-o").arg(&binary).output()
-        .map_err(|error| format!("cannot execute C compiler {}: {error}; install a C11 toolchain or set CC to its executable path", Path::new(&cc).display()))?;
+        .map_err(|error| format!("cannot execute C compiler {}: {error}; install a C11 toolchain or set CC to its executable path", Path::new(&cc).display()))?
+    };
     if !result.status.success() {
         return Err(format!(
             "C compiler {} failed ({}):\n{}{}",
@@ -339,6 +605,7 @@ fn build_with_limit(
     }
     // Recheck after the external compiler completes before replacing an output.
     protect_sources(program, source, &destination)?;
+    options.protect(&destination)?;
     fs::rename(&binary, &destination).map_err(|error| {
         format!(
             "cannot publish executable {}: {error}",
@@ -353,7 +620,22 @@ pub fn run(program: &Program, entry: usize, source: &Path) -> Result<u8, OutputE
     let directory = TempDir::new(&env::temp_dir())?;
     let binary = directory.0.join("program");
     build(program, entry, source, &binary)?;
-    let status = Command::new(&binary)
+    run_binary(&binary)
+}
+#[cfg(feature = "memory-evidence")]
+pub fn run_evidence(
+    program: &Program,
+    entry: usize,
+    source: &Path,
+    evidence: &crate::memory_evidence::EvidenceOptions,
+) -> Result<u8, OutputError> {
+    let directory = TempDir::new(&env::temp_dir())?;
+    let binary = directory.0.join("program");
+    build_evidence(program, entry, source, &binary, evidence)?;
+    run_binary(&binary)
+}
+fn run_binary(binary: &Path) -> Result<u8, OutputError> {
+    let status = Command::new(binary)
         .status()
         .map_err(|error| format!("cannot run native executable: {error}"))?;
     status.code().and_then(|code| u8::try_from(code).ok())
@@ -411,9 +693,9 @@ fn protect_source(source: &Path, output: &Path) -> Result<(), String> {
 }
 
 static NEXT_TEMP: AtomicU64 = AtomicU64::new(0);
-struct TempDir(PathBuf);
+pub(crate) struct TempDir(pub(crate) PathBuf);
 impl TempDir {
-    fn new(parent: &Path) -> Result<Self, String> {
+    pub(crate) fn new(parent: &Path) -> Result<Self, String> {
         for _ in 0..256 {
             let id = NEXT_TEMP.fetch_add(1, Ordering::Relaxed);
             let path = parent.join(format!(".apl-native-{}-{id}", std::process::id()));

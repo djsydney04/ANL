@@ -1,9 +1,9 @@
 # Architecture decisions
 
-These proposed decisions define one compatible implementation direction. Technical
-review is pending. They establish no implemented feature, theorem or measured
-performance result. Each decision can change when executable evidence supports
-a better approach.
+These decisions describe the implementation direction. Implemented subsets are
+identified by links to their specifications and proof coverage; the broader
+language design remains planned. A design choice alone establishes no theorem
+or measured performance result.
 
 ## AD-01: explicit types at interfaces, inference within functions
 
@@ -26,7 +26,10 @@ lexical loans reduce initial analysis complexity. The cost is conservative
 rejection of some valid programs. [Region-based memory management](https://www.sciencedirect.com/science/article/pii/S0890540196926139)
 informs the arena alternative; [RustBelt](https://plv.mpi-sws.org/rustbelt/)
 motivates obligations for unsafe wrappers. Heap safety requires its own store,
-permission, lifetime and cleanup proofs beyond scalar typing.
+permission, lifetime and cleanup proofs beyond scalar typing. The implemented
+[scoped-buffer subset](../../spec/owned-buffers.md) now supplies that separate finite
+model for fixed-length initialized `i64` owners and one call-scoped view. Whole-value
+moves, aggregate references and escaping borrows remain future extensions.
 
 ## AD-03: checked scalar semantics before heap extensions
 

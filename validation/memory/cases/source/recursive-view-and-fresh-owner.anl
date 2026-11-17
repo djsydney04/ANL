@@ -1,0 +1,13 @@
+fn main() -> i64 {
+heap b: i64[1] = 0 {
+    walk(edit b, 3);
+    let result = inspect(read b);
+    result + 100 * b[0]
+} else { -1 }
+}
+fn walk(edit b: i64[], n: i64) -> unit {
+    if n == 0 {} else { b[0] = b[0] + 1; walk(edit b, n - 1); }
+}
+fn inspect(read b: i64[]) -> i64 {
+    heap fresh: i64[1] = 7 { fresh[0] = 8; 10 * b[0] + fresh[0] } else { -1 }
+}

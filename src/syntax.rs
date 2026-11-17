@@ -1,7 +1,7 @@
 use crate::{
     MAX_DEPTH, MAX_SOURCE_BYTES, MAX_TOKENS,
     diagnostic::{Diagnostic, Span},
-    types::{BinaryOp, Type, UnaryOp},
+    types::{BinaryOp, Type, UnaryOp, ViewMode},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -16,6 +16,8 @@ enum TokenKind {
     False,
     Ty(Type),
     Dot,
+    LBracket,
+    RBracket,
     LParen,
     RParen,
     LBrace,
@@ -127,6 +129,8 @@ fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
             } else {
                 i += 1;
                 match bytes[start] {
+                    b'[' => TokenKind::LBracket,
+                    b']' => TokenKind::RBracket,
                     b'.' => TokenKind::Dot,
                     b'(' => TokenKind::LParen,
                     b')' => TokenKind::RParen,
@@ -190,6 +194,7 @@ fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
 
 #[derive(Debug)]
 pub struct Function {
+    pub view: Option<ViewParameter>,
     pub name: String,
     pub public: bool,
     pub span: Span,
@@ -223,6 +228,40 @@ pub struct File {
     pub modules: Vec<Module>,
 }
 #[derive(Debug)]
+pub struct ViewParameter {
+    pub name: String,
+    pub mode: ViewMode,
+    pub span: Span,
+}
+#[derive(Debug)]
+pub enum MemoryExpr {
+    Heap {
+        name: String,
+        length: Box<Expr>,
+        initial: Box<Expr>,
+        success: Box<Expr>,
+        failure: Box<Expr>,
+    },
+    Length {
+        name: String,
+    },
+    Read {
+        name: String,
+        index: Box<Expr>,
+    },
+    Write {
+        name: String,
+        index: Box<Expr>,
+        value: Box<Expr>,
+    },
+    CallView {
+        name: String,
+        resource: String,
+        mode: ViewMode,
+        arguments: Vec<Expr>,
+    },
+}
+#[derive(Debug)]
 pub struct Parameter {
     pub name: String,
     pub ty: Type,
@@ -236,6 +275,7 @@ pub struct Expr {
 }
 #[derive(Debug)]
 pub enum ExprKind {
+    Memory(Box<MemoryExpr>),
     Tuple(Vec<Expr>),
     Project {
         value: Box<Expr>,
@@ -406,6 +446,15 @@ impl Parser {
         }
         Ok(Expr { kind, span, depth })
     }
+    fn view_start(&self) -> Option<ViewMode> {
+        match (
+            &self.current().kind,
+            self.tokens.get(self.pos + 1).map(|t| &t.kind),
+        ) {
+            (TokenKind::Ident(mode), Some(TokenKind::Ident(_))) => ViewMode::from_name(mode),
+            _ => None,
+        }
+    }
     fn program(mut self) -> Result<File, Diagnostic> {
         let mut functions = Vec::new();
         let mut modules = Vec::new();
@@ -434,6 +483,26 @@ impl Parser {
             let (name, _) = self.name()?;
             self.expect(TokenKind::LParen, "(")?;
             let mut params = Vec::new();
+            let view = if let Some(mode) = self.view_start() {
+                self.bump();
+                let (name, span) = self.name()?;
+                self.expect(TokenKind::Colon, ":")?;
+                self.expect(TokenKind::Ty(Type::I64), "i64")?;
+                self.expect(TokenKind::LBracket, "[")?;
+                self.expect(TokenKind::RBracket, "]")?;
+                if !self.at(&TokenKind::RParen) {
+                    self.expect(TokenKind::Comma, ",")?;
+                    if self.at(&TokenKind::RParen) {
+                        return Err(Diagnostic::new(
+                            self.current().span,
+                            "trailing view comma is not allowed",
+                        ));
+                    }
+                }
+                Some(ViewParameter { name, mode, span })
+            } else {
+                None
+            };
             if !self.at(&TokenKind::RParen) {
                 loop {
                     let (name, span) = self.name()?;
@@ -486,6 +555,7 @@ impl Parser {
             }
             let body = self.block()?;
             functions.push(Function {
+                view,
                 name,
                 public,
                 span: start.join(body.span),
@@ -606,7 +676,43 @@ impl Parser {
                 self.expect(TokenKind::Semi, "; after assignment")?;
                 statements.push(Statement::Assign { name, span, value });
             } else {
-                let value = self.expression()?;
+                let mut value = self.expression()?;
+                if self.eat(&TokenKind::Assign) {
+                    let ExprKind::Memory(memory) = value.kind else {
+                        return Err(Diagnostic::new(
+                            value.span,
+                            "indexed assignment requires a buffer",
+                        ));
+                    };
+                    let MemoryExpr::Read { name, index } = *memory else {
+                        return Err(Diagnostic::new(
+                            value.span,
+                            "indexed assignment requires a buffer index",
+                        ));
+                    };
+                    let rhs = self.expression()?;
+                    let span = value.span.join(rhs.span);
+                    let d = 1 + index.depth.max(rhs.depth);
+                    value = self.node(
+                        ExprKind::Memory(Box::new(MemoryExpr::Write {
+                            name,
+                            index,
+                            value: Box::new(rhs),
+                        })),
+                        span,
+                        d,
+                    )?;
+                    self.expect(TokenKind::Semi, "; after indexed assignment")?;
+                    depth = depth.max(value.depth + 1);
+                    statements.push(Statement::Discard(value));
+                    if statements.len() >= MAX_DEPTH {
+                        return Err(Diagnostic::resource(
+                            self.current().span,
+                            "block binding limit exceeded",
+                        ));
+                    }
+                    continue;
+                }
                 depth = depth.max(value.depth + 1);
                 if self.eat(&TokenKind::Semi) {
                     statements.push(Statement::Discard(value));
@@ -708,8 +814,57 @@ impl Parser {
     }
     fn postfix(&mut self) -> Result<Expr, Diagnostic> {
         let mut value = self.primary()?;
-        while self.eat(&TokenKind::Dot) {
+        loop {
+            if self.eat(&TokenKind::LBracket) {
+                let ExprKind::Name(name) = value.kind else {
+                    return Err(Diagnostic::new(
+                        value.span,
+                        "buffer base must be a bare identifier",
+                    ));
+                };
+                if name.contains("::") {
+                    return Err(Diagnostic::new(
+                        value.span,
+                        "buffer base must be a bare identifier",
+                    ));
+                }
+                let index = self.expression()?;
+                let end = self.expect(TokenKind::RBracket, "]")?.span;
+                let depth = index.depth + 1;
+                value = self.node(
+                    ExprKind::Memory(Box::new(MemoryExpr::Read {
+                        name,
+                        index: Box::new(index),
+                    })),
+                    value.span.join(end),
+                    depth,
+                )?;
+                continue;
+            }
+            if !self.eat(&TokenKind::Dot) {
+                break;
+            }
             let token = self.bump();
+            if matches!(&token.kind, TokenKind::Ident(name) if name == "length") {
+                let ExprKind::Name(name) = value.kind else {
+                    return Err(Diagnostic::new(
+                        value.span,
+                        "buffer base must be a bare identifier",
+                    ));
+                };
+                if name.contains("::") {
+                    return Err(Diagnostic::new(
+                        value.span,
+                        "buffer base must be a bare identifier",
+                    ));
+                }
+                value = self.node(
+                    ExprKind::Memory(Box::new(MemoryExpr::Length { name })),
+                    value.span.join(token.span),
+                    1,
+                )?;
+                continue;
+            }
             let TokenKind::Integer(index) = token.kind else {
                 return Err(Diagnostic::new(
                     token.span,
@@ -738,6 +893,45 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
         if self.at(&TokenKind::LBrace) {
             return self.block();
+        }
+        if matches!(&self.current().kind, TokenKind::Ident(s) if s == "heap")
+            && matches!(
+                self.tokens.get(self.pos + 1).map(|t| &t.kind),
+                Some(TokenKind::Ident(_))
+            )
+            && self.tokens.get(self.pos + 2).map(|t| &t.kind) == Some(&TokenKind::Colon)
+            && self.tokens.get(self.pos + 3).map(|t| &t.kind) == Some(&TokenKind::Ty(Type::I64))
+            && self.tokens.get(self.pos + 4).map(|t| &t.kind) == Some(&TokenKind::LBracket)
+        {
+            let start = self.bump().span;
+            let (name, _) = self.name()?;
+            self.bump();
+            self.bump();
+            self.bump();
+            let length = self.expression()?;
+            self.expect(TokenKind::RBracket, "]")?;
+            self.expect(TokenKind::Assign, "=")?;
+            let initial = self.expression()?;
+            let success = self.block()?;
+            self.expect(TokenKind::Else, "else")?;
+            let failure = self.block()?;
+            let depth = 1 + length
+                .depth
+                .max(initial.depth)
+                .max(success.depth)
+                .max(failure.depth);
+            let span = start.join(failure.span);
+            return self.node(
+                ExprKind::Memory(Box::new(MemoryExpr::Heap {
+                    name,
+                    length: Box::new(length),
+                    initial: Box::new(initial),
+                    success: Box::new(success),
+                    failure: Box::new(failure),
+                })),
+                span,
+                depth,
+            );
         }
         let token = self.bump();
         let (kind, span, depth) = match token.kind {
@@ -801,6 +995,22 @@ impl Parser {
                 if self.eat(&TokenKind::LParen) {
                     let mut arguments = Vec::new();
                     let mut depth = 1;
+                    let view = if let Some(mode) = self.view_start() {
+                        self.bump();
+                        let (resource, _) = self.name()?;
+                        if !self.at(&TokenKind::RParen) {
+                            self.expect(TokenKind::Comma, ",")?;
+                            if self.at(&TokenKind::RParen) {
+                                return Err(Diagnostic::new(
+                                    self.current().span,
+                                    "trailing view comma is not allowed",
+                                ));
+                            }
+                        }
+                        Some((resource, mode))
+                    } else {
+                        None
+                    };
                     if !self.at(&TokenKind::RParen) {
                         loop {
                             let argument = self.expression()?;
@@ -813,7 +1023,16 @@ impl Parser {
                     }
                     let end = self.expect(TokenKind::RParen, ")")?.span;
                     (
-                        ExprKind::Call { name, arguments },
+                        if let Some((resource, mode)) = view {
+                            ExprKind::Memory(Box::new(MemoryExpr::CallView {
+                                name,
+                                resource,
+                                mode,
+                                arguments,
+                            }))
+                        } else {
+                            ExprKind::Call { name, arguments }
+                        },
                         token.span.join(end),
                         depth,
                     )

@@ -1,7 +1,7 @@
 # Trust boundaries and guarantee ledger
 
 Status: evidence ledger for immutable scalar revision `m1-2026-11-16` and the
-separate `local-state-2026-11-17` extension, with the wider language still planned. Rust source checking, interpretation, modules,
+separate local-state, flat-tuple and `anl-owned-buffers-v1` extensions, with the wider language still planned. Rust source checking, interpretation, modules,
 native compilation, local scalar state and loops, scalar and flat-tuple contract
 verification with invariants and acyclic calls, and strict v0/v1 interchange have executable
 conformance coverage. Lean's expression and recursive-function models have kernel-checked
@@ -52,6 +52,24 @@ No result certifies Rust generation, source annotation or ID reconstruction,
 SMT/solver answers or native execution. Product generation completeness, solver
 completeness, production-bound sufficiency and termination remain open.
 
+The [owned-buffer model](../../formal/PROOFS.md#owned-buffers-and-coremir-correspondence)
+adds raw syntax and independent typing, finite heap and capability safety,
+read-loan preservation, source-site provenance, normal cleanup and a separate
+resource-accounted reference wrapper. Canonical model Core/MIR lowering has finite
+completed correspondence in both directions under the same allocator responses,
+including exact world and current/suspended capability state. Actual `Pair.check`
+and `Wire.checkDocuments` acceptance supply that relationship. Their strict
+readers validate every function, annotation, identity and profile; byte/JSON
+interpretation and compiled execution remain trust boundaries.
+
+The reference corpus covers 53 cases: 18 values, 8 traps, 7 resource-limited
+prefixes and 20 rejections. It complements earlier production/native captures;
+it is finite comparison evidence, not a universal compiler theorem. Administrative
+exhaustion, infrastructure failures and missing/malformed reports are incomplete.
+No proof equates Core/MIR transition budgets, resource cutoffs or exhausted states.
+No new native performance claim follows from this evidence. Heap contract
+verification remains explicitly unsupported with exit 7.
+
 ## What a claim covers
 
 Every claim records the program or formal artifact, property, semantic revision, supported feature subset, platform, toolchain, assumptions, and evidence method. Type checking, testing, runtime checking, solver discharge, kernel proof, and translation validation remain distinct. A guarantee about one layer does not automatically extend to another layer.
@@ -63,17 +81,17 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Component | What depends on it | Current evidence and required strengthening |
 | --- | --- | --- |
 | Language definitions and theorem statements | Whether checked mathematics describes intended ANL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
-| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 558 theorem names, and separate kernel replay of 72 modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
+| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the earlier APL inventory has 558 named theorem audits and 72 separate module replays. The additional memory package has 72 ANL source modules with an all-declaration audit and separate-process kernel replay. The public check scripts retain both scopes; counts are not whole-language proof measures. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
 | Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. The flat-tuple machine has finite run/step correspondence and forward finite v1 embedding under its stated premises. Typed model runs cannot reach invalid. The actual v2 reader's successful return supplies the typing premise, and its execution wrapper preserves that guarantee at every budget. V1/v2 transition budgets differ from Rust expression/depth/allocation/slot limits; resource comparisons are inconclusive. JSON-text interpretation, v0/v1 reader correspondence, Lean compilation and runtime remain trusted or tested boundaries. No per-artifact kernel certificate is produced. |
 | Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs, file modules, and initialized local state, including scope, permissions, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
-| Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
+| Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Owner/read/edit checks are implemented for scoped buffers with one call-scoped view. Independent model safety and actual-artifact pair validation cover the documented subset. Production checker correctness, general moves/escaping borrows, effects and concurrency remain open. |
 | Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier supports scalar and flat-tuple functions with mutable locals, annotated loops and acyclic calls; it rejects missing invariants and recursion before tools run. Lean proves call-free, finite body-expansion, loop-free state, and invariant-loop generator soundness under successful generation and the documented premises. The loop model includes actual-machine safety, normal coverage, typed entry contracts and exact mathematical query partition. Separately, verification-ready typing, typed preconditions, a supplied decreasing call rank and input environment length imply a uniform generation height for the actual model. Rank existence/extraction, source graph correspondence, fixed production limits, separate AST-inlining equivalence, production named-condition correspondence, and production bridges remain open (partial FM-07). |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Z3 5.3.3 is pinned. The driver records exact tool/query hashes, bounds time and I/O, validates status/models, and requires successful process termination. Real-solver and failure-protocol tests passed in Linux/macOS CI at `a7e0b38591ba76255e561cda60099bc8bc422543` ([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Results remain `smt-trusted`; models are unreplayed and no certificate checker is implemented. |
-| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR with initialized scalar slots and loops. Tests cover scope, ordering, state changes, branches, and traps. These validators do not prove translation correctness. ANL optimization passes remain unimplemented. |
+| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR with initialized scalar slots and loops. Tests cover scope, ordering, state changes, branches, and traps. A separate formal canonical memory lowerer has finite completed Core/MIR correspondence in both directions, and successful pair validation connects actual artifacts to it. This does not prove the Rust implementation or source/module lowering. ANL optimization passes remain unimplemented. |
 | C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. Native and module checks passed macOS AArch64 and Linux x86-64 CI at `19d726c`; compiler, linker, and host behavior remain trusted. LLVM is planned. |
-| Runtime and allocator | Cleanup, layout, I/O, concurrency, and memory safety | Scalar arithmetic/trap/output helpers are implemented and tested. Interpreter tuple storage and reclamation depend on Rust and its allocator and are outside the mathematical runtime model. Source-level owning heap APIs, resource cleanup, source I/O and concurrency remain later features requiring their own contracts and evidence. |
+| Runtime and allocator | Cleanup, layout, I/O, concurrency, and memory safety | Scalar arithmetic/trap/output helpers are implemented and tested. Interpreter tuple storage and reclamation depend on Rust and its allocator and are outside the mathematical runtime model. Scoped `i64` owners, call views and normal cleanup are implemented, with a separate finite heap/capability model. The hosted C allocator, Rust backing and native execution remain trusted; no host allocation-success or physical-memory bound is proved. General owned APIs, source I/O, concurrency and ANL OS memory management remain open. |
 | Unsafe ANL and foreign libraries | Any safe abstraction that depends on them | Explicit contracts, versioned dependencies, and reviewed wrappers. Foreign violations can invalidate dependent safety claims. |
 | OS and hardware | Execution, scheduling, memory, I/O, and clock assumptions | Explicit platform support and integration tests. A language proof does not verify these components. |
 | Package resolution and distribution | Which code and proofs are actually consumed | Locked content hashes, reproducible inputs, provenance, artifact integrity, and clean installation tests. |
@@ -89,7 +107,8 @@ Do not collapse these labels into a generic green check. The named Lean
 expression and recursive-function theorems discharge FM-01 through FM-05 for that
 model. Completeness requires sufficient depth and fuel; it does not prove
 termination or completeness at fixed CLI limits. Rust/model correspondence proofs
-(FM-06) and lowering proofs (FM-08) remain open. The separate local-state proofs
+(FM-06) remain open. FM-08 now has the scoped canonical memory lowering result
+above; production/optimization/native lowering remains open. The separate local-state proofs
 cover their typed machine and forward finite v0 embedding; they do not prove
 reverse divergence correspondence or identical production resource limits.
 FM-07 includes sound finite body expansion with callee preconditions,

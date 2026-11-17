@@ -79,6 +79,11 @@ impl Generator<'_> {
         self.visit(depth)?;
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            ExprKind::Memory(_) => {
+                return Err(Failure::Unsupported(
+                    "buffers and views are not supported".into(),
+                ));
+            }
             ExprKind::Tuple(_) | ExprKind::Project { .. } => {
                 return Err(Failure::Unsupported(
                     "flat products are outside scalar verification".into(),

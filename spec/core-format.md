@@ -13,6 +13,15 @@ The [flat-tuple v2 extension](flat-products.md#version-selection-and-core-json)
 takes precedence when any part of the checked program contains a tuple. It adds
 tuple types, construction and projection without changing the v0 rules below.
 
+The [owned-buffer v3 extension](owned-buffers.md#core-v3-interchange) has highest
+precedence: any loaded heap/buffer/view form or view signature selects
+`anl-core-v3`, revision `anl-owned-buffers-v1`. It adds an allocation profile,
+optional view signatures, independent resource indices and canonical heap sites.
+Memory-free exports keep their earlier v0/v1/v2 rules. Explicit memory-free v3
+inputs are checked, but re-export may normalize them to a lower revision. V3 has
+no standalone expression document. The [memory MIR](memory-mir.md) and
+[evidence protocols](memory-evidence.md) define its companion interfaces.
+
 ## Documents
 
 A program is an object with exactly these members:

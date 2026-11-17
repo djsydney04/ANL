@@ -5,7 +5,10 @@ use crate::{
     diagnostic::Span,
     eval::{EvalError, Value as Scalar},
     syntax,
-    types::{BinaryOp, Expr, ExprKind, Function, Program, Type, UnaryOp},
+    types::{
+        BinaryOp, Expr, ExprKind, Function, MemoryExpr, Program, ResourceMode, Type, UnaryOp,
+        ViewMode,
+    },
 };
 use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value, json};
@@ -33,7 +36,7 @@ pub struct Artifact {
 }
 
 // serde_json::Value keeps the final duplicate member; reject duplicates first.
-struct StrictValue(Value);
+pub(crate) struct StrictValue(pub(crate) Value);
 impl<'de> Deserialize<'de> for StrictValue {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct StrictVisitor;
@@ -92,7 +95,10 @@ impl<'de> Deserialize<'de> for StrictValue {
 fn invalid(message: impl Into<String>) -> ImportError {
     ImportError::Invalid(message.into())
 }
-fn object<'a>(value: &'a Value, fields: &[&str]) -> Result<&'a Map<String, Value>, ImportError> {
+pub(crate) fn object<'a>(
+    value: &'a Value,
+    fields: &[&str],
+) -> Result<&'a Map<String, Value>, ImportError> {
     let object = value
         .as_object()
         .ok_or_else(|| invalid("expected object"))?;
@@ -104,16 +110,16 @@ fn object<'a>(value: &'a Value, fields: &[&str]) -> Result<&'a Map<String, Value
     }
     Ok(object)
 }
-fn string(value: &Value) -> Result<&str, ImportError> {
+pub(crate) fn string(value: &Value) -> Result<&str, ImportError> {
     value.as_str().ok_or_else(|| invalid("expected string"))
 }
-fn natural(value: &Value) -> Result<usize, ImportError> {
+pub(crate) fn natural(value: &Value) -> Result<usize, ImportError> {
     value
         .as_u64()
         .and_then(|n| usize::try_from(n).ok())
         .ok_or_else(|| invalid("expected natural-number index"))
 }
-fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
+pub(crate) fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
     if let Some(name) = value.as_str() {
         return Type::from_name(name).ok_or_else(|| invalid("unknown scalar type"));
     }
@@ -136,7 +142,7 @@ fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
         crate::types::TupleShape::new(&fields).map_err(|e| invalid(e.to_string()))?,
     ))
 }
-fn array(value: &Value) -> Result<&Vec<Value>, ImportError> {
+pub(crate) fn array(value: &Value) -> Result<&Vec<Value>, ImportError> {
     value.as_array().ok_or_else(|| invalid("expected array"))
 }
 
@@ -159,6 +165,13 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("missing schema"))?;
     let fields: &[&str] = match schema {
+        "anl-core-v3" => &[
+            "schema",
+            "semantic_revision",
+            "allocation_profile",
+            "functions",
+            "entry",
+        ],
         "apl-core-v0" | "apl-core-v1" | "apl-core-v2" => {
             &["schema", "semantic_revision", "functions", "entry"]
         }
@@ -168,9 +181,17 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         _ => return Err(invalid("unsupported schema")),
     };
     let root = object(&value, fields)?;
-    let allow_products = matches!(schema, "apl-core-v2" | "apl-expr-v2");
+    let allow_memory = schema == "anl-core-v3";
+    let allocation_profile = if allow_memory {
+        Some(profile(&root["allocation_profile"])?)
+    } else {
+        None
+    };
+    let allow_products = allow_memory || matches!(schema, "apl-core-v2" | "apl-expr-v2");
     let allow_local_state = allow_products || matches!(schema, "apl-core-v1" | "apl-expr-v1");
-    let revision = if allow_products {
+    let revision = if allow_memory {
+        crate::memory::SEMANTIC_REVISION
+    } else if allow_products {
         FLAT_PRODUCTS_SEMANTIC_REVISION
     } else if allow_local_state {
         LOCAL_STATE_SEMANTIC_REVISION
@@ -181,9 +202,14 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         return Err(invalid("unsupported semantic revision"));
     }
     let mut importer = Importer {
+        views: Vec::new(),
+        resources: Vec::new(),
+        next_site: 0,
+        allow_memory,
         signatures: Vec::new(),
         next_id: 0,
-        allow_calls: matches!(schema, "apl-core-v0" | "apl-core-v1" | "apl-core-v2"),
+        allow_calls: allow_memory
+            || matches!(schema, "apl-core-v0" | "apl-core-v1" | "apl-core-v2"),
         allow_local_state,
         allow_products,
     };
@@ -191,9 +217,11 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         let body = importer.expr(&root["expression"], &mut Vec::new(), 0)?;
         return Ok(Artifact {
             program: Program {
+                allocation_profile: None,
                 sources: Default::default(),
                 contracts: None,
                 functions: vec![Function {
+                    view: None,
                     name: "expression".into(),
                     params: Vec::new(),
                     result: body.ty,
@@ -207,7 +235,19 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     let functions = array(&root["functions"])?;
     let mut names = HashSet::new();
     for (id, function) in functions.iter().enumerate() {
-        let function = object(function, &["id", "name", "params", "result", "body"])?;
+        let fields: &[&str] = if allow_memory {
+            &["id", "name", "view", "params", "result", "body"]
+        } else {
+            &["id", "name", "params", "result", "body"]
+        };
+        let function = object(function, fields)?;
+        importer
+            .views
+            .push(if allow_memory && !function["view"].is_null() {
+                Some(view(&function["view"])?)
+            } else {
+                None
+            });
         if natural(&function["id"])? != id {
             return Err(invalid("function ID must equal table index"));
         }
@@ -228,7 +268,10 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         .signatures
         .get(entry)
         .ok_or_else(|| invalid("entry function does not exist"))?;
-    if !entry_signature.0.is_empty() || entry_signature.1 != Type::I64 {
+    if importer.views[entry].is_some()
+        || !entry_signature.0.is_empty()
+        || entry_signature.1 != Type::I64
+    {
         return Err(invalid("entry must be nullary with i64 result"));
     }
     let mut checked = Vec::new();
@@ -241,11 +284,17 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
                 mutable: false,
             })
             .collect();
+        importer.next_site = 0;
+        importer.resources = importer.views[id]
+            .into_iter()
+            .map(ResourceMode::from)
+            .collect();
         let body = importer.expr(&function["body"], &mut env, 0)?;
         if body.ty != result {
             return Err(invalid("function result type mismatch"));
         }
         checked.push(Function {
+            view: importer.views[id],
             name: string(&function["name"])?.into(),
             params,
             result,
@@ -255,6 +304,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     }
     Ok(Artifact {
         program: Program {
+            allocation_profile,
             functions: checked,
             sources: Default::default(),
             contracts: None,
@@ -262,7 +312,45 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         entry,
     })
 }
+pub(crate) fn profile(value: &Value) -> Result<crate::memory::AllocationProfile, ImportError> {
+    let o = object(
+        value,
+        &[
+            "abi",
+            "char_bits",
+            "i64_bytes",
+            "i64_align",
+            "size_bits",
+            "ptrdiff_bits",
+        ],
+    )?;
+    if string(&o["abi"])? != "anl-buffer-c11-v1"
+        || natural(&o["char_bits"])? != 8
+        || natural(&o["i64_bytes"])? != 8
+    {
+        return Err(invalid("unsupported allocation profile"));
+    }
+    let n = |key: &str| -> Result<u32, ImportError> {
+        u32::try_from(natural(&o[key])?).map_err(|_| invalid("profile number out of range"))
+    };
+    let p = crate::memory::AllocationProfile {
+        i64_align: n("i64_align")?,
+        size_bits: n("size_bits")?,
+        ptrdiff_bits: n("ptrdiff_bits")?,
+    };
+    if !p.valid() {
+        return Err(invalid("unsupported allocation profile"));
+    }
+    Ok(p)
+}
+pub(crate) fn view(value: &Value) -> Result<ViewMode, ImportError> {
+    ViewMode::from_name(string(value)?).ok_or_else(|| invalid("unknown view mode"))
+}
 struct Importer {
+    views: Vec<Option<ViewMode>>,
+    resources: Vec<ResourceMode>,
+    next_site: usize,
+    allow_memory: bool,
     signatures: Vec<(Vec<Type>, Type)>,
     next_id: usize,
     allow_calls: bool,
@@ -283,6 +371,99 @@ fn local_position(length: usize, index: usize) -> Result<usize, ImportError> {
         .ok_or_else(|| invalid("unbound local index"))
 }
 impl Importer {
+    fn memory(
+        &mut self,
+        tag: &str,
+        obj: &Map<String, Value>,
+        env: &mut Vec<Binding>,
+        next: usize,
+    ) -> Result<MemoryExpr, ImportError> {
+        if tag == "heap" {
+            let site = natural(&obj["site"])?;
+            if site != self.next_site {
+                return Err(invalid("noncanonical heap site"));
+            }
+            self.next_site += 1;
+            let length = self.expr(&obj["length"], env, next)?;
+            let initial = self.expr(&obj["initial"], env, next)?;
+            if length.ty != Type::I64 || initial.ty != Type::I64 {
+                return Err(invalid("heap length/initializer must be i64"));
+            }
+            self.resources.push(ResourceMode::Owner);
+            let success = self.expr(&obj["success"], env, next);
+            self.resources.pop();
+            let success = success?;
+            let failure = self.expr(&obj["failure"], env, next)?;
+            if success.ty != failure.ty {
+                return Err(invalid("heap branch type mismatch"));
+            }
+            return Ok(MemoryExpr::Heap {
+                site,
+                length: Box::new(length),
+                initial: Box::new(initial),
+                success: Box::new(success),
+                failure: Box::new(failure),
+            });
+        }
+        let resource = natural(&obj["resource"])?;
+        let position = local_position(self.resources.len(), resource)?;
+        let permission = self.resources[position];
+        if tag == "buffer_length" {
+            return Ok(MemoryExpr::Length { resource });
+        }
+        if tag == "call_view" {
+            let mode = view(&obj["mode"])?;
+            let function = natural(&obj["function"])?;
+            let (params, _) = self
+                .signatures
+                .get(function)
+                .ok_or_else(|| invalid("unknown view callee"))?
+                .clone();
+            if self.views[function] != Some(mode) || !permission.lends(mode) {
+                return Err(invalid("invalid view permission"));
+            }
+            let args = array(&obj["arguments"])?;
+            if args.len() != params.len() {
+                return Err(invalid("view call arity mismatch"));
+            }
+            let mut arguments = Vec::new();
+            for (a, t) in args.iter().zip(params) {
+                let a = self.expr(a, env, next)?;
+                if a.ty != t {
+                    return Err(invalid("view argument type mismatch"));
+                }
+                arguments.push(a);
+            }
+            return Ok(MemoryExpr::CallView {
+                function,
+                resource,
+                mode,
+                arguments,
+            });
+        }
+        let index = self.expr(&obj["index"], env, next)?;
+        if index.ty != Type::I64 {
+            return Err(invalid("buffer index must be i64"));
+        }
+        if tag == "buffer_read" {
+            return Ok(MemoryExpr::Read {
+                resource,
+                index: Box::new(index),
+            });
+        }
+        if !permission.writable() {
+            return Err(invalid("cannot write a read view"));
+        }
+        let value = self.expr(&obj["value"], env, next)?;
+        if value.ty != Type::I64 {
+            return Err(invalid("buffer value must be i64"));
+        }
+        Ok(MemoryExpr::Write {
+            resource,
+            index: Box::new(index),
+            value: Box::new(value),
+        })
+    }
     fn expr(
         &mut self,
         value: &Value,
@@ -299,6 +480,15 @@ impl Importer {
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("missing expression tag"))?;
         let fields: &[&str] = match tag {
+            "heap" if self.allow_memory => &[
+                "tag", "ty", "site", "length", "initial", "success", "failure",
+            ],
+            "buffer_length" if self.allow_memory => &["tag", "ty", "resource"],
+            "buffer_read" if self.allow_memory => &["tag", "ty", "resource", "index"],
+            "buffer_write" if self.allow_memory => &["tag", "ty", "resource", "index", "value"],
+            "call_view" if self.allow_memory => {
+                &["tag", "ty", "function", "resource", "mode", "arguments"]
+            }
             "tuple" if self.allow_products => &["tag", "fields", "ty"],
             "project" if self.allow_products => &["tag", "value", "index", "ty"],
             "integer" | "boolean" => &["tag", "ty", "value"],
@@ -318,6 +508,17 @@ impl Importer {
         let annotation = ty(&obj["ty"], self.allow_products)?;
         let next = nesting + 1;
         let (inferred, kind, depth) = match tag {
+            "heap" | "buffer_length" | "buffer_read" | "buffer_write" | "call_view" => {
+                let kind = self.memory(tag, obj, env, next)?;
+                let ty = match &kind {
+                    MemoryExpr::Heap { success, .. } => success.ty,
+                    MemoryExpr::Write { .. } => Type::Unit,
+                    MemoryExpr::CallView { function, .. } => self.signatures[*function].1,
+                    _ => Type::I64,
+                };
+                let depth = 1 + kind.children().iter().map(|e| e.depth).max().unwrap_or(0);
+                (ty, ExprKind::Memory(Box::new(kind)), depth)
+            }
             "tuple" => {
                 let fields = array(&obj["fields"])?;
                 if !(1..=crate::types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
@@ -516,6 +717,10 @@ impl Importer {
                 )
             }
             "call" => {
+                let id = natural(&obj["function"])?;
+                if self.views.get(id).is_some_and(Option::is_some) {
+                    return Err(invalid("ordinary call targets a view function"));
+                }
                 if !self.allow_calls {
                     return Err(invalid("calls are outside expression fixture scope"));
                 }
@@ -568,7 +773,7 @@ impl Importer {
 /// Export the lowest applicable schema. This host API is fallible: v2 emission
 /// is bounded before materializing the JSON value; scalar wire bytes are unchanged.
 pub fn export(program: &Program, entry: usize) -> Result<Value, crate::bounded::OutputError> {
-    if program.has_flat_products() {
+    if program.has_memory() || program.has_flat_products() {
         return wire::export(program, entry, MAX_SOURCE_BYTES);
     }
     let functions: Vec<Value> = program.functions.iter().enumerate().map(|(id, function)| json!({
@@ -586,7 +791,7 @@ pub fn export(program: &Program, entry: usize) -> Result<Value, crate::bounded::
 }
 fn export_expr(expr: &Expr) -> Value {
     let mut value = match &expr.kind {
-        ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+        ExprKind::Memory(_) | ExprKind::Tuple(_) | ExprKind::Project { .. } => {
             unreachable!("aggregate export uses bounded serializer")
         }
         ExprKind::Integer(n) => json!({"tag":"integer", "value":n.to_string()}),
@@ -651,6 +856,9 @@ pub fn outcome(result: &Result<Scalar, EvalError>) -> Value {
         }
         Err(EvalError::Trap { kind, .. }) => json!({"outcome":"trap", "trap":kind.as_str()}),
         Err(EvalError::ResourceLimit { .. }) => json!({"outcome":"resource_limit"}),
+        Err(EvalError::Infrastructure(reason)) => {
+            json!({"outcome":"infrastructure_error","reason":reason})
+        }
         Err(EvalError::InvalidIr) => json!({"outcome":"invalid_ir"}),
     }
 }

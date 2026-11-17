@@ -211,6 +211,7 @@ pub struct Expr {
 
 #[derive(Clone, Debug)]
 pub enum ExprKind {
+    Memory(Box<MemoryExpr>),
     Tuple(Vec<Expr>),
     Project {
         value: Box<Expr>,
@@ -256,8 +257,97 @@ pub enum ExprKind {
     },
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ViewMode {
+    Read,
+    Edit,
+}
+impl ViewMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Read => "read",
+            Self::Edit => "edit",
+        }
+    }
+    pub(crate) fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "read" => Some(Self::Read),
+            "edit" => Some(Self::Edit),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ResourceMode {
+    Owner,
+    Read,
+    Edit,
+}
+impl ResourceMode {
+    pub(crate) fn writable(self) -> bool {
+        self != Self::Read
+    }
+    pub(crate) fn lends(self, mode: ViewMode) -> bool {
+        mode == ViewMode::Read || self.writable()
+    }
+}
+impl From<ViewMode> for ResourceMode {
+    fn from(mode: ViewMode) -> Self {
+        match mode {
+            ViewMode::Read => Self::Read,
+            ViewMode::Edit => Self::Edit,
+        }
+    }
+}
+#[derive(Clone, Debug)]
+pub enum MemoryExpr {
+    Heap {
+        site: usize,
+        length: Box<Expr>,
+        initial: Box<Expr>,
+        success: Box<Expr>,
+        failure: Box<Expr>,
+    },
+    Length {
+        resource: usize,
+    },
+    Read {
+        resource: usize,
+        index: Box<Expr>,
+    },
+    Write {
+        resource: usize,
+        index: Box<Expr>,
+        value: Box<Expr>,
+    },
+    CallView {
+        function: usize,
+        resource: usize,
+        mode: ViewMode,
+        arguments: Vec<Expr>,
+    },
+}
+impl MemoryExpr {
+    pub(crate) fn children(&self) -> Vec<&Expr> {
+        match self {
+            Self::Heap {
+                length,
+                initial,
+                success,
+                failure,
+                ..
+            } => vec![length, initial, success, failure],
+            Self::Length { .. } => vec![],
+            Self::Read { index, .. } => vec![index],
+            Self::Write { index, value, .. } => vec![index, value],
+            Self::CallView { arguments, .. } => arguments.iter().collect(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Function {
+    pub view: Option<ViewMode>,
     pub name: String,
     pub params: Vec<Type>,
     pub result: Type,
@@ -417,6 +507,7 @@ pub(crate) struct LoopAnnotation {
 
 #[derive(Clone, Debug)]
 pub(crate) struct FunctionContract {
+    pub(crate) view_name: Option<String>,
     pub(crate) source_name: String,
     pub(crate) param_names: Vec<String>,
     pub(crate) requires: Vec<Clause>,
@@ -438,15 +529,43 @@ pub(crate) struct FunctionContract {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub(crate) allocation_profile: Option<crate::memory::AllocationProfile>,
     pub(crate) functions: Vec<Function>,
     pub(crate) sources: Sources,
     pub(crate) contracts: Option<Vec<FunctionContract>>,
 }
 
 impl Program {
+    pub fn has_memory(&self) -> bool {
+        fn contains(e: &Expr) -> bool {
+            match &e.kind {
+                ExprKind::Memory(_) => true,
+                ExprKind::Tuple(xs) => xs.iter().any(contains),
+                ExprKind::Project { value, .. }
+                | ExprKind::Unary { operand: value, .. }
+                | ExprKind::Assign { value, .. } => contains(value),
+                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
+                    contains(value) || contains(body)
+                }
+                ExprKind::While { condition, body } => contains(condition) || contains(body),
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => contains(condition) || contains(then_branch) || contains(else_branch),
+                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
+                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
+                _ => false,
+            }
+        }
+        self.functions
+            .iter()
+            .any(|f| f.view.is_some() || contains(&f.body))
+    }
     pub fn has_local_state(&self) -> bool {
         fn contains(expr: &Expr) -> bool {
             match &expr.kind {
+                ExprKind::Memory(m) => m.children().into_iter().any(contains),
                 ExprKind::LetMut { .. } | ExprKind::Assign { .. } | ExprKind::While { .. } => true,
                 ExprKind::Let { value, body } => contains(value) || contains(body),
                 ExprKind::If {
@@ -508,7 +627,9 @@ impl Program {
     }
 
     pub fn semantic_revision(&self) -> &'static str {
-        if self.has_flat_products() {
+        if self.has_memory() {
+            crate::memory::SEMANTIC_REVISION
+        } else if self.has_flat_products() {
             crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION
         } else if self.has_local_state() {
             crate::core::LOCAL_STATE_SEMANTIC_REVISION
@@ -535,7 +656,7 @@ impl Program {
                 )
             })?;
         let main = &self.functions[id];
-        if !main.params.is_empty() || main.result != Type::I64 {
+        if main.view.is_some() || !main.params.is_empty() || main.result != Type::I64 {
             return Err(self.source_diagnostic(crate::diagnostic::Diagnostic::new(
                 main.span,
                 "executable entry must have signature fn main() -> i64",

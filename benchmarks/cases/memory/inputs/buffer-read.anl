@@ -1,0 +1,16 @@
+fn scan(read b: i64[], rounds: i64) -> i64 {
+    let mut total = 0;
+    let mut r = 0;
+    while (r < rounds) {
+        let mut i = 0;
+        while (i < b.length) {
+            total = total + b[i];
+            i = i + 1;
+        }
+        r = r + 1;
+    }
+    total
+}
+fn main() -> i64 {
+    heap b: i64[16384] = 7 { scan(read b, 64) } else { -1 }
+}

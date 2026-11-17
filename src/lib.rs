@@ -5,6 +5,9 @@ pub mod codegen;
 pub mod core;
 pub mod diagnostic;
 pub mod eval;
+pub mod memory;
+#[cfg(feature = "memory-evidence")]
+pub mod memory_evidence;
 mod mir;
 mod modules;
 mod resolve;

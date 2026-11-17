@@ -3,10 +3,12 @@
 ANL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
-while loops, lexical blocks, conditionals, recursive functions, and file modules.
+while loops, lexical blocks, conditionals, recursive functions, file modules, and
+scoped fixed-length `i64` buffers with read/edit call views.
 An optional verifier checks arithmetic safety and contracts for scalar and flat-tuple functions
-with mutable locals, annotated while loops and acyclic calls. Collections,
-ownership, source-level I/O, concurrency, and recursive verification remain in
+with mutable locals, annotated while loops and acyclic calls. Heap-bearing
+verification is unsupported. General collections and ownership transfers,
+source-level I/O, concurrency, and recursive verification remain in
 the [roadmap](roadmap.md).
 
 ## Build and run
@@ -60,6 +62,21 @@ path; `run` builds and runs a temporary executable. `CC` may select a compiler
 executable. See [native compilation](native-compilation.md) for output paths,
 traps, tool failures, and emitted C. Native execution uses the host stack without
 the interpreter's artificial fuel and nesting budgets.
+
+## Own a scoped buffer
+
+```sh
+./target/release/anl check examples/buffers/basic.anl
+./target/release/anl eval examples/buffers/basic.anl
+./target/release/anl run examples/buffers/basic.anl
+```
+
+With successful allocation the example prints `42`; allocation refusal returns
+`-1`. A `heap` success block owns its fixed-length initialized buffer. Helpers
+receive one first-position `read` or `edit` view that lasts only for the call.
+The [book chapter](book/owned-buffers.md) walks through the program, and the
+[specification](../spec/owned-buffers.md) defines order, scope and failure rules.
+`verify` on a memory-bearing graph exits 7 before launching a solver.
 
 ## Update locals in a loop
 
@@ -279,6 +296,20 @@ output-limit failure exits 3 before publication or compiler launch. These are
 checked tool limits, not heap-byte guarantees. Native execution does not inherit
 the interpreter's tuple counters. See the [exact accounting](../spec/flat-products.md#checked-resource-limits).
 
+Memory-bearing interpretation also bounds live and pending buffer storage at
+1,048,576 cells. Every owner (including an empty one) and view occupies a logical
+slot. A call reserves its full ordinary argument vector and pending view before
+arguments run. Positive representable allocation atomically checks cells, one
+owner slot and length units of fill fuel before requesting storage. Refusal
+refunds cells and the descriptor, not fill fuel. Negative length skips the
+initializer; other lengths evaluate it before target-size rejection. See the
+[complete resource policy](../spec/owned-buffers.md#reference-tool-resource-policy).
+
+The separate memory reference runner models those expression/fill charges and
+has an additional administrative transition budget. Its exhausted budget retains
+an incomplete prefix. The [protocol](../spec/memory-evidence.md#formal-reference-runner)
+distinguishes those results from interpreter resource limits and native failures.
+
 The Lean v1 and v2 models instead count machine transitions. Finite values and
 trap kinds can be compared across tools, but exhausted budgets are inconclusive;
 equal fuel numbers do not mean equal available work. The separate
@@ -325,7 +356,13 @@ unchanged `apl-core-v0` revision `m1-2026-11-16`. In scalar programs, any local-
 including one in an unused function, selects `apl-core-v1` revision
 `local-state-2026-11-17`. Tuple use anywhere instead selects `apl-core-v2`,
 revision `flat-products-2026-11-17`. Scalar-only v2 inputs normalize to v0/v1
-behavior. Each importer checks its own schema and revision.
+behavior. Any loaded memory constructor or view signature instead selects
+`anl-core-v3`, revision `anl-owned-buffers-v1`, with an explicit allocation profile.
+Each importer checks its own schema and revision. The [buffer Core rules](../spec/owned-buffers.md#core-v3-interchange)
+include all-function validation, independent resource indices and canonical sites.
+The Rust JSON parser admits at most 127 nested containers; the Lean reader permits
+1024. Both enforce a separate logical term depth of 128. These limits can reject
+different encodings of otherwise valid logical boundary terms.
 A modular program exports as one resolved function table;
 file boundaries and visibility are checked before export. Rust library users
 choose `anl::compile_file(path)` for imports or pure `anl::compile(source)` for

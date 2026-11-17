@@ -24,6 +24,9 @@ fn outcome(program: &anl::types::Program, fuel: u64) -> Outcome {
         Err(EvalError::Trap { kind, .. }) => Outcome::Trap(kind),
         Err(EvalError::ResourceLimit { reason, .. }) => Outcome::Resource(reason),
         Err(EvalError::InvalidIr) => Outcome::InvalidIr,
+        Err(EvalError::Infrastructure(reason)) => {
+            panic!("unexpected infrastructure failure: {reason}")
+        }
     }
 }
 fn checked(source: &str) -> anl::types::Program {

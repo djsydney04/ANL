@@ -1,0 +1,2628 @@
+{
+  "c_flags": [
+    "-std=c11",
+    "-O2",
+    "-fno-lto"
+  ],
+  "claims": "Per-command and per-native-process observations on this host only; no automatic pass threshold or speedup verdict.",
+  "profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "reference_transitions": 262144,
+  "rows": [
+    {
+      "c_source": "c/constant.c",
+      "compiler_sides": [
+        "baseline",
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "42\n"
+      },
+      "fuel": 1000000000,
+      "group": "control",
+      "name": "constant",
+      "native_sides": [
+        "baseline",
+        "candidate",
+        "c"
+      ],
+      "original": {
+        "bytes": 99,
+        "path": "benchmarks/cases/native-control.apl",
+        "sha256": "a53bf2cce5e25ea8a1c313ebe5c3180ae0caa615071c51772782ca337b6761dd"
+      },
+      "resource_upper_bounds": {
+        "cells": 0,
+        "depth": 16,
+        "expressions": 100,
+        "slots": 16,
+        "tuple_fields": 0
+      },
+      "source": "inputs/constant.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    },
+    {
+      "c_source": "c/recurrence.c",
+      "compiler_sides": [
+        "baseline",
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "1263606197\n"
+      },
+      "fuel": 1000000000,
+      "group": "control",
+      "name": "recurrence",
+      "native_sides": [
+        "baseline",
+        "candidate",
+        "c"
+      ],
+      "original": {
+        "bytes": 294,
+        "path": "benchmarks/cases/local-state-park-miller-1m.apl",
+        "sha256": "8b168797eff2005893fc6291c5345f93149806b3135481b0b4cd5702635abfaa"
+      },
+      "resource_upper_bounds": {
+        "cells": 0,
+        "depth": 64,
+        "expressions": 100000000,
+        "slots": 64,
+        "tuple_fields": 0
+      },
+      "source": "inputs/recurrence.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    },
+    {
+      "c_source": "c/tuple-calls.c",
+      "compiler_sides": [
+        "baseline",
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "20000500001\n"
+      },
+      "fuel": 1000000000,
+      "group": "control",
+      "name": "tuple-calls",
+      "native_sides": [
+        "baseline",
+        "candidate",
+        "c"
+      ],
+      "original": {
+        "bytes": 515,
+        "path": "benchmarks/cases/flat-products/tuples/fixtures/pair-calls-state.apl",
+        "sha256": "d25d27a09e0417b10f4cdda1cdf645d7da05d27b4b7665540d1fd59ffc900a78"
+      },
+      "resource_upper_bounds": {
+        "cells": 0,
+        "depth": 64,
+        "expressions": 100000000,
+        "slots": 64,
+        "tuple_fields": 400002
+      },
+      "source": "inputs/tuple-calls.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    },
+    {
+      "c_source": "c/buffer-read.c",
+      "companion": {
+        "fuel": 100000,
+        "source": "companions/buffer-read.anl",
+        "transition_upper_bound": 10000,
+        "transitions": 262144,
+        "value": "224"
+      },
+      "compiler_sides": [
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "7340032\n"
+      },
+      "fuel": 1000000000,
+      "group": "buffer",
+      "name": "buffer-read",
+      "native_sides": [
+        "candidate",
+        "c"
+      ],
+      "resource_upper_bounds": {
+        "cells": 16384,
+        "depth": 64,
+        "expressions": 100000000,
+        "slots": 64,
+        "tuple_fields": 0
+      },
+      "source": "inputs/buffer-read.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    },
+    {
+      "c_source": "c/buffer-edit.c",
+      "companion": {
+        "fuel": 100000,
+        "source": "companions/buffer-edit.anl",
+        "transition_upper_bound": 10000,
+        "transitions": 262144,
+        "value": "168"
+      },
+      "compiler_sides": [
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "537014272\n"
+      },
+      "fuel": 1000000000,
+      "group": "buffer",
+      "name": "buffer-edit",
+      "native_sides": [
+        "candidate",
+        "c"
+      ],
+      "resource_upper_bounds": {
+        "cells": 4096,
+        "depth": 64,
+        "expressions": 100000000,
+        "slots": 64,
+        "tuple_fields": 0
+      },
+      "source": "inputs/buffer-edit.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    },
+    {
+      "c_source": "c/buffer-owners.c",
+      "companion": {
+        "fuel": 100000,
+        "source": "companions/buffer-owners.anl",
+        "transition_upper_bound": 10000,
+        "transitions": 262144,
+        "value": "76"
+      },
+      "compiler_sides": [
+        "candidate"
+      ],
+      "expected": {
+        "exit": 0,
+        "stderr": "",
+        "stdout": "1834216\n"
+      },
+      "fuel": 1000000000,
+      "group": "buffer",
+      "name": "buffer-owners",
+      "native_sides": [
+        "candidate",
+        "c"
+      ],
+      "resource_upper_bounds": {
+        "cells": 16,
+        "depth": 64,
+        "expressions": 100000000,
+        "slots": 64,
+        "tuple_fields": 0
+      },
+      "source": "inputs/buffer-owners.anl",
+      "timeouts": {
+        "build": 120,
+        "check": 45,
+        "eval": 120,
+        "export": 45,
+        "native": 30,
+        "pair": 45,
+        "reference": 45
+      }
+    }
+  ],
+  "sample_rounds": 6,
+  "schedule": [
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "warmup",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 0,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 1,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "baseline"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 2,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 3,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 4,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    },
+    {
+      "case": "buffer-owners",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    },
+    {
+      "case": "buffer-edit",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    },
+    {
+      "case": "buffer-read",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "tuple-calls",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "recurrence",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "check",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "eval",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "build",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "candidate"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "baseline"
+    },
+    {
+      "case": "constant",
+      "operation": "native",
+      "phase": "sample",
+      "round": 5,
+      "side": "c"
+    }
+  ],
+  "schema": "anl-owned-buffer-performance-v1",
+  "warmup_rounds": 2
+}

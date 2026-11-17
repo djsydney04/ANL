@@ -1,0 +1,148 @@
+{
+  "additional_archive_fault_rejections": [
+    "missing historical command",
+    "changed numeric metric",
+    "relabel failed V2",
+    "missing warmup",
+    "changed raw outcome hash",
+    "mixed measured instrumentation"
+  ],
+  "archive_audit": {
+    "historical_commands": 568,
+    "historical_measurements": 336,
+    "historical_samples": 252,
+    "project_executions": 0,
+    "series": 42,
+    "status": "PASS"
+  },
+  "archive_entries": 2275,
+  "compiler_executions": 0,
+  "configuration": {
+    "file_bindings": 107,
+    "ordinary_environment_matches_historical": true,
+    "project_executions": 0,
+    "source_files": {
+      "baseline": 21,
+      "candidate": 52
+    },
+    "status": "PASS",
+    "timers_called": 0,
+    "tool_count": 10
+  },
+  "controller_text_preserved": [
+    "v1",
+    "v2",
+    "v3"
+  ],
+  "identity_only": 114,
+  "native_executions": 0,
+  "normalization_edits": 8638,
+  "normalized_json_strings_checked": 7926,
+  "numeric_boolean_null_values_checked": 28776,
+  "original_fault_rejections": 19,
+  "proof_executions": 0,
+  "scope": "Offline publication checks only. Synthetic stage results are harness observations, not real gate or benchmark results.",
+  "status": "PASS",
+  "synthetic_entrypoints": [
+    {
+      "failed_stage": null,
+      "mode": "gate",
+      "stages": [
+        "before",
+        "preflight",
+        "after"
+      ],
+      "status": "COMPLETE"
+    },
+    {
+      "failed_stage": "before",
+      "mode": "gate",
+      "stages": [
+        "before"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "preflight",
+      "mode": "gate",
+      "stages": [
+        "before",
+        "preflight"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "after",
+      "mode": "gate",
+      "stages": [
+        "before",
+        "preflight",
+        "after"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": null,
+      "mode": "experiment",
+      "stages": [
+        "before",
+        "preflight",
+        "pre-samples",
+        "measure",
+        "after"
+      ],
+      "status": "COMPLETE"
+    },
+    {
+      "failed_stage": "before",
+      "mode": "experiment",
+      "stages": [
+        "before"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "preflight",
+      "mode": "experiment",
+      "stages": [
+        "before",
+        "preflight"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "pre-samples",
+      "mode": "experiment",
+      "stages": [
+        "before",
+        "preflight",
+        "pre-samples"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "measure",
+      "mode": "experiment",
+      "stages": [
+        "before",
+        "preflight",
+        "pre-samples",
+        "measure"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    },
+    {
+      "failed_stage": "after",
+      "mode": "experiment",
+      "stages": [
+        "before",
+        "preflight",
+        "pre-samples",
+        "measure",
+        "after"
+      ],
+      "status": "FAILED_OR_INCONCLUSIVE"
+    }
+  ],
+  "timers_called": 0
+}

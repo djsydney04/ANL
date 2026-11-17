@@ -1,0 +1,26 @@
+fn edit_all(edit b: i64[], rounds: i64) -> unit {
+    let mut r = 0;
+    while (r < rounds) {
+        let mut i = 0;
+        while (i < b.length) {
+            b[i] = b[i] + i + 1;
+            i = i + 1;
+        }
+        r = r + 1;
+    }
+}
+fn scan(read b: i64[]) -> i64 {
+    let mut total = 0;
+    let mut i = 0;
+    while (i < b.length) {
+        total = total + b[i];
+        i = i + 1;
+    }
+    total
+}
+fn main() -> i64 {
+    heap b: i64[4096] = 3 {
+        edit_all(edit b, 64);
+        scan(read b)
+    } else { -1 }
+}

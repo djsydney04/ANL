@@ -2,11 +2,13 @@
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
 adapters, flat tuples, initialized local state and loops, validated structured MIR, C11 native
-backend, and scalar contract verifier with loop invariants and acyclic calls are implemented.
-Ownership/effects and language-server integration remain
+backend, scoped `i64` buffer owners/read-edit call views, and scalar/flat-tuple
+contract verification with loop invariants and acyclic calls are implemented.
+General movable ownership, effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
-recursive-function and separate local-state models, not Rust implementation correctness.
+recursive-function, local-state, flat-tuple and owned-buffer models. It does not
+prove Rust implementation correctness.
 
 ## Pipeline
 
@@ -28,7 +30,8 @@ flowchart LR
     Link --> Native[Native executable]
 ```
 
-M1 ends at typed core execution and formal comparison; the current M2 increment adds modules and native lowering. The ownership pass remains an extension point with no borrow claims for the scalar language. Verifier results annotate obligations; ordinary compilation does not silently certify contracts. A strict verified build mode eventually requires a configured set of proved obligations.
+M1 ends at typed core execution and formal comparison; the current M2 increment adds modules and native lowering. Scoped-buffer resource checks now enforce owner/read/edit modes and call lifetimes;
+general moves, escaping borrows and effects remain extension points. Verifier results annotate obligations; ordinary compilation does not silently certify contracts. A strict verified build mode eventually requires a configured set of proved obligations.
 
 The compiler is a Rust library called by the CLI, with language-server integration planned. The implementation toolchain is pinned to Rust 1.99.1. Each pass returns a result or structured diagnostics. No pass parses a preceding pass's displayed text.
 
@@ -49,7 +52,7 @@ An evaluation budget bounds interpreter work and call depth. The exact budget ac
 | Tokens and AST | Frontend; preserve syntax and source locations | UTF-8 byte spans refer to the source file; tokens cannot reference outside it; malformed input cannot panic | Lexer/parser negative and recovery tests, fuzzing |
 | Resolved core | Resolver; replace source names with function/local identities | Each reference is bound; functions have unique identities; parameter names are unique in their scope | Whole-program name validation |
 | Typed core | Type checker; semantic input for evaluator and verifier | Every expression has a scalar or validated flat-tuple type; branch types agree; call arguments match; all operators meet operand rules | Independent core checker and rejection fixtures |
-| MIR | Compiler; expose sequencing, branches, loops, typed value slots, traps, future moves/borrows/drop | Temporaries have single definitions; mutable slots are initialized, typed, and scope-local; loop condition/body yield bool/unit; one terminator per block; partial operations stay checked and sequenced | Structural validator, invalid-MIR tests, and evaluator/native comparison |
+| MIR | Compiler; expose sequencing, branches, loops, typed value slots, guarded buffer operations, scoped owners and call views | Temporaries have single definitions; mutable slots are initialized, typed, and scope-local; loop condition/body yield bool/unit; one terminator per block; partial operations stay checked and sequenced | Structural validator, invalid-MIR tests, and evaluator/native comparison |
 | Backend representation | Backend; implement MIR using C11 or LLVM | ABI/layout match target; no unchecked backend UB for safe core; source traps remain observable | Differential native execution and sanitizer tests |
 
 No serialized representation is trusted merely because it declares itself typed. Imports revalidate tags, numeric ranges, binding indices, call signatures and inferred types. Stable IDs are internal compiler identities; source names remain available for diagnostics. Shared interfaces use owned data and IDs rather than cross-pass references whose lifetimes couple unrelated subsystems.
@@ -67,6 +70,30 @@ has a private namespace with explicit public declarations; the [module rules](..
 define visibility, cycles, shared dependencies, and resource bounds. Spans identify
 a source file and UTF-8 byte offsets. Private source snapshots retain imported-file
 diagnostics and protect all source inputs from native output publication.
+
+## Owned-buffer representation and evidence
+
+The frontend adds contextual `heap`, `read` and `edit` syntax while preserving
+ordinary value types. Checked memory nodes carry raw resource indices separately
+from local indices. The program records `anl-owned-buffers-v1` and an explicit
+allocation profile. Any memory form or view signature anywhere in the loaded graph
+selects [Core v3](../../spec/owned-buffers.md#core-v3-interchange), ahead of the
+v0/v1/v2 routing rules. Import checks all functions, declarations, sites and entry.
+
+The [memory MIR protocol](../../spec/memory-mir.md) exposes heap branches, index
+guards, delayed write RHS blocks and already-captured call arguments. Static
+resource IDs differ from Core stack indices. Its validator checks all instruction,
+Temp, Slot and resource tables. The independent Lean pair checker validates both
+artifacts and compares MIR with canonical lowering. The finite simulation proves
+both completed directions under the same allocator responses and relates exact
+world/capability state; it is not a proof of the Rust lowerer, source elaboration,
+C backend or equal-budget exhaustion behavior.
+
+Memory-bearing `verify` returns the explicit unsupported v4 report before solver
+or C-tool discovery. Evidence tracing/replay is behind `memory-evidence`, with
+bounded outputs and path protection; ordinary builds ignore those controls.
+See the [evidence interface](../../spec/memory-evidence.md) for actual export,
+pair-check and formal reference-runner commands.
 
 ## Rust host API compatibility
 
@@ -103,11 +130,14 @@ Use versioned JSON: immutable programs retain `schema: "apl-core-v0"` with
 split. Tuple use anywhere instead selects `apl-core-v2` or `apl-expr-v2` with
 `flat-products-2026-11-17`. The [v2 contract](../../spec/flat-products.md#version-selection-and-core-json)
 defines flat types, construction, projection and scalar-only v2 normalization.
+Memory-bearing graphs instead select `anl-core-v3`/`anl-owned-buffers-v1` with
+the profile, view and resource rules above; this highest-priority route has no
+expression-only document.
 V0 fields and semantics are unchanged. V1 adds `let_mut`, `assign`, and
 `while`, and its importer checks target permissions, exact types, and loop-body
 unit results. See the [state interchange rules](../../spec/control-flow.md#typed-core-and-interchange). Its semantic content is a function table and entry function ID. Each function contains its ID, printable name, ordered parameter types, result type, and body. Module graphs export as one function table with collision-free generated names; visibility and file boundaries are not represented in this interchange. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `anl dump-core FILE` exports checked source; `anl eval-core FILE` independently validates and evaluates the artifact.
 
-Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID. New state in any checked scalar function, including an unused one, selects v1 for the whole export; tuple use takes precedence and selects v2.
+Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID. New state in any checked scalar function, including an unused one, selects v1 for the whole export; tuple use takes precedence and selects v2 when the graph has no memory forms.
 
 For the documented v0/v1 comparison, the Rust exporter and Lean importer are
 trusted adapters until separately verified. The Lean side independently validates

@@ -1,0 +1,8 @@
+fn main() -> i64 {
+let mut n = 0;
+while (n < 2) {
+    heap b:i64[1048576]=0{}else{};
+    n = n + 1;
+}
+heap c:i64[1]=7{c[0]}else{-1}
+}

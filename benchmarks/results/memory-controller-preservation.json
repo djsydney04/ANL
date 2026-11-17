@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "unchanged_definitions": [
+    "execute",
+    "outcome",
+    "metric_record",
+    "native_binding",
+    "validate_schedule",
+    "ordinary_environment",
+    "Experiment.call",
+    "Experiment.quiet",
+    "Experiment.bundle",
+    "Experiment.c_build",
+    "Experiment.preflight",
+    "Experiment.context",
+    "Experiment.measure"
+  ],
+  "exact_text_preserved": [
+    "execute",
+    "Experiment.measure"
+  ],
+  "original_controller_sha256": "75ba4d5129b984916ce2da467ab887c31981bab6d19079b740be1b58b08a6f98",
+  "public_controller_sha256": "be2a289fa17a3c4dc6229174f42e477d9b3dfb8c087a384e0d7d604087614dd3",
+  "adaptations": [
+    "package/file locations and explicit source/tool identity configuration",
+    "public strict oracle/reference helper imports",
+    "shell CC adapter launcher generated before gates",
+    "CC capture adapter location only",
+    "offline changed-tool discriminator uses this controller identity",
+    "audit/gate/fresh-experiment entrypoints and explicit new-experiment label"
+  ],
+  "compiler_executions": 0,
+  "measurements_collected": 0
+}

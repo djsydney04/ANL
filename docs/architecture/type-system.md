@@ -1,7 +1,8 @@
 # Type-system and executable-core specification
 
 Status: scalar types, flat tuples, functions, modules, typed contracts, initialized mutable
-locals, and while loops are implemented. The broader types, ownership, and
+locals, while loops, scoped `i64` buffers and read/edit call views are implemented.
+The broader types, movable ownership and
 effects below remain design proposals. The [grammar](../../spec/grammar.ebnf),
 [local-state rules](../../spec/control-flow.md), and [proof inventory](../../formal/PROOFS.md)
 separate source behavior from model guarantees and implementation correspondence.
@@ -28,6 +29,10 @@ The current runtime supports these forms:
 | `let mut x = e;` or `let mut x: T = e;` | Initialized mutable local with a fixed type |
 | `x = e;` | Assign the nearest mutable local after evaluating an identically typed right-hand side |
 | `while (c) { body }` | Boolean condition, unit-valued body, repeated in the current local state |
+| `heap b: i64[n] = initial { success } else { failure }` | Fixed-length initialized owner visible only in success; both branches have the same ordinary result type |
+| `b.length`, `b[index]` | Bare resource name; length is `i64`, reads check the signed index before loading |
+| `b[index] = value;` | Owner/edit permission; index guard precedes the integer RHS |
+| `fn f(read b: i64[], x: T) -> U` / `f(read b, x)` | One optional first call-scoped view, with matching read/edit mode |
 | `{ statements; final_expression }` | Lexical scope; omitted final expression has type `unit` |
 | `if c { a } else { b }` | `c: bool`; both branches have the same type |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, and unary `-`, on `i64` only |
@@ -48,7 +53,7 @@ Loop `invariant` clauses are checked as Boolean mathematical specification expre
 in the scope before the condition runs, then erased. Their truth and definedness
 are not established by type checking.
 Early `return`, `break`, `continue`, `for`, user-defined data,
-allocation, references, generics, I/O, concurrency, and source-level unsafe code
+general allocation APIs, escaping references, generics, I/O, concurrency, and source-level unsafe code
 remain unsupported; they remain full-language delivery requirements.
 
 Parameters and ordinary lets are immutable. `let mut x = x;` can make a mutable
@@ -111,6 +116,35 @@ Arithmetic typing proves operand compatibility, not absence of overflow or divis
 
 For the first expression-only mechanization, function calls are outside the theorem unless the proof explicitly models `Sigma`, function bodies, and substitution or environments. The compiler must not describe a whole program as formally type-safe solely because its expressions resemble the proven fragment.
 
+## Scoped resources and views
+
+The [owned-buffer revision](../../spec/owned-buffers.md) extends ordinary `Gamma`
+with an independent newest-first resource context `R`. Entries have owner, read
+or edit permission. Ordinary variables never shift a resource index; a new owner
+never shifts an ordinary index. Signatures have one optional view mode plus the
+ordinary parameter/result types. The complete function table is checked before
+entry execution, including unused bodies and dead branches; recursion is allowed.
+
+`heap b: i64[length] = initial { success } else { failure }` requires integer
+length and initializer, and equal ordinary branch result types. Only `success`
+extends `R` with the fresh owner. `.length` and indexed reads accept all resource
+modes; writes require owner or edit. Owner/edit may grant read or edit, while read
+may grant only read. A view is first and unique in both declaration and call, and
+its declared/call mode must match. It is not an ordinary parameter or value type.
+
+One nearest-binding source namespace prevents a resource lookup from skipping an
+ordinary shadow. Resource names cannot be returned, stored or copied into tuples.
+The whole-program checker separately checks annotations, IDs, names, entry shape,
+allocation profiles and canonical per-function heap sites; raw syntax carries no
+hidden typing proof. `HasType`, `ArgsTyped` and `WellFormedProgram` are independent
+judgments, with checker-equivalence theorems in `ANL.Memory`.
+
+Contracts and invariants remain ordinary-value expressions. Memory-bearing
+`verify` reports unsupported before external tools run. The current memory proof
+is finite machine safety and scoped loan/cleanup preservation, not a solver proof
+of user heap contracts. General moves, aggregate borrows and escaping lifetimes
+below remain planned extensions.
+
 ## Complete-language typing direction
 
 Generic parameters are explicit and universally quantified at declaration boundaries. Generic bodies are checked under those abstract parameters. Local lets do not introduce implicit polymorphism. Overload resolution uses explicit trait bounds and rejects ambiguous calls. Nominal data types prevent accidental representation-based interchange.
@@ -129,7 +163,7 @@ The complete-language checker carries unrestricted scalar bindings, affine resou
 
 `&'r T` permits reads during region `'r`; `&'r mut T` permits exclusive access. While a shared loan exists, overlapping storage cannot be mutated or moved. While an exclusive loan exists, access to overlapping storage is restricted to that loan and its active reborrows. A reborrow suspends the parent permission until the reborrow ends. A reference cannot outlive its storage.
 
-The first ownership implementation uses lexical regions, complete initialization, and whole-value moves. It rejects references stored in aggregates, self-referential values, partial moves, and escaping borrows until those cases have accepted rules. These are milestone restrictions, not the final data model.
+The later general ownership implementation will extend scoped buffers with lexical regions, complete initialization, and whole-value moves. It rejects references stored in aggregates, self-referential values, partial moves, and escaping borrows until those cases have accepted rules. These are milestone restrictions, not the final data model.
 
 The ownership pass consumes typed places and an explicit control-flow graph. It emits either diagnostics or move, loan, initialization, and cleanup facts attached to the same node and local IDs. A join retains a usable owner only if every incoming path supplies one. Back edges require a fixed point. A later pass cannot revive a moved value or ignore a live loan.
 
