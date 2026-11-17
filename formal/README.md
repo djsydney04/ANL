@@ -36,8 +36,8 @@ python3 formal/test_local_state.py --rust target/debug/apl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, audits the transitive axiom dependencies of 292 theorem names, and replays
-33 semantic modules through separate `leanchecker` processes. Build warnings are errors.
+syntax, audits the transitive axiom dependencies of 321 theorem names, and replays
+38 semantic modules through separate `leanchecker` processes. Build warnings are errors.
 The axiom audit fails on anything outside `propext`, `Classical.choice`, and
 `Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
 uniqueness and disjointness lemmas use `Classical.choice`.
@@ -273,6 +273,34 @@ remain separate. Guarded head domains do not constrain an inactive head in every
 mathematical model, so decoding policies must preserve that distinction. The
 [proof inventory](PROOFS.md#invariant-loop-generation-and-partial-correctness)
 records the precise theorem premises and remaining bridges.
+
+## Sufficient symbolic expansion height
+
+`LoopGenerationComplete` proves that the existing invariant generator succeeds
+at a sufficiently large height for verification-ready typed annotated functions
+and terms, typed result-free preconditions, a supplied decreasing natural call
+rank, and symbolic locals of the static context's length. The rank must cover
+every syntactic call, including calls in arguments, dead branches and loop
+conditions/bodies. Its existence and extraction from a source graph are separate
+questions.
+
+The bound is explicit: if `B` is one plus the sum of all function-body node
+counts, a term with call-rank ceiling `r` generates at `r * B + nodes(term) + 1`.
+`LoopGenerationCorollaries` also supplies a single height for the entire finite
+function table. These heights work for arbitrary symbolic contents, incoming
+paths and initial fresh counters; every output environment preserves the static
+context length. Sibling arguments, outcomes and branches reuse the smaller child
+height, so it is not a sequential work budget.
+
+No formula truth, arithmetic definedness, satisfiability, value denotation or
+runtime safety is assumed to prove generation. False or undefined typed
+assertions still generate obligations. A checked witness combines successful
+generation of an infinite loop with absence of a completed machine run at every
+finite budget. The result concerns finite expansion in the unbounded model; it
+provides no production work/memory bound, runtime termination result or
+completeness at fixed Rust limits. The existing soundness theorem still requires
+its separate support, representation and logical-validity premises. See the
+[exact inventory](PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank).
 
 ## Model and evidence
 

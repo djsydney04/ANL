@@ -29,7 +29,9 @@ available. Follow [getting started](getting-started.md) to run the tools and the
 evaluator correspondence is proved in both directions for the scalar function
 v0 model, with sufficient depth and fuel. Local state has a separate typed machine
 and finite transition/run correspondence. The concrete invariant-loop model now
-proves conditional safety and partial correctness over that machine. Production
+proves conditional safety and partial correctness over that machine. A separate
+supplied-rank theorem gives a uniform generation height under static typing,
+metadata and environment-length premises. Production
 invariant-loop verification is separately implemented with solver-trusted results.
 The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
@@ -117,8 +119,19 @@ require a typed precondition-satisfying input, and check normal-return
 postconditions. Exact mathematical query partition preserves the guarded checks.
 None of these results establishes loop termination.
 
-FM-07 remains partial: source call-graph checking, sufficient expansion bounds
-for acyclic programs, equivalence with a separate syntax-inlining pass,
+The separate [generation-height theorem](../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
+gives an explicit height for the actual invariant analyzer from verification-ready
+annotated typing, result-free `PreType` metadata for Boolean preconditions, a
+supplied natural rank decreasing on every syntactic call, and input environment
+length. It covers arguments, effectful conditions and source-dead branches.
+One table height works across functions and arbitrary symbolic contents, incoming
+paths and fresh counters, preserving normal-output environment length. Sibling
+analyses reuse child height. This finite unbounded-model totality result does not
+establish logical acceptance, implementation work/memory bounds, completeness at
+fixed Rust limits, or runtime termination.
+
+FM-07 remains partial: rank existence/extraction from an acyclic graph, source
+call-graph checking, equivalence with a separate syntax-inlining pass,
 production named-condition correspondence, and Rust/SMT/solver bridges remain
 open, including correspondence between the formal continuation/path-split
 generators and production merged flows. Source annotation attachment, global

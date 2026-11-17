@@ -495,8 +495,10 @@ locals, incoming path, fresh counter, and expansion height. It returns normal
 outcomes with values, environments and paths, a separate list of guarded checks,
 and the next counter. The height bounds syntax and callee-body expansion; it is
 not a runtime loop-unrolling bound. Generation may fail even for safe programs.
-Both branches and expanded callees must generate; no source call-graph completeness
-or fixed production-resource completeness theorem is claimed.
+Both branches and expanded callees must generate. The sufficient-height result
+below supplies generation success for verification-ready typed syntax with a
+supplied complete call rank. Source call-graph completeness and fixed
+production-resource completeness remain separate.
 
 Initialization and preservation checks each require independent invariant
 definedness and truth under their original incoming path. The established
@@ -648,6 +650,82 @@ silently strengthen this theorem's premise. An abstract head countermodel is not
 a replayed concrete source execution. Production loop verification uses solver
 trust, and no production termination claim follows.
 
+## Sufficient generation height with a supplied call rank
+
+`LoopGenerationSupport`, `LoopGenerationRank`, `LoopGenerationComplete`,
+`LoopGenerationCorollaries` and `LoopGenerationExamples` add 29 audited statements,
+preserving the preceding 292. They establish a sufficient expansion height for
+the unchanged `LoopVCG.analyze`. This result concerns symbolic generation, not
+logical acceptance, execution safety or production resource completeness.
+
+The premises are verification-ready annotated `WellTyped` functions and a body
+with annotated `HasType`; `PreconditionsTyped` for every table entry; a supplied
+natural rank covering every syntactic call; and a symbolic environment whose
+length equals the static context length. `PreType` is result-free static
+specification typing with declaration-order parameters and the existing scalar
+operator types. It has no truth, definedness or satisfiability premise.
+
+`CallsBelow rank ceiling e` and `ArgumentsBelow` traverse all syntax, including
+both branches, every call argument, effectful loop conditions and loop bodies.
+Every call to `f` must satisfy `rank f < ceiling`. `Ranked fs rank` requires this
+coverage of each function body under that function's own rank. The rank is a
+supplied witness: no theorem here constructs one from a separately defined DAG,
+extracts source call edges or certifies the production cycle checker.
+
+`nodes` counts term constructors and their children; `argumentNodes` sums the
+argument counts. Typed invariant/specification instantiation is structurally
+total and does not consume analyzer expansion height. The explicit bounds are:
+
+```text
+bodyBound fs = 1 + sum(nodes(fn.body) for fn in fs)
+sufficientHeight fs ceiling e = ceiling * bodyBound fs + nodes e + 1
+rankBound fs rank = 1 + sum(rank(i) for i in [0, fs.size))
+tableHeight = rankBound fs rank * bodyBound fs + bodyBound fs + 1
+```
+
+Structural children reduce node count. Expanded callee bodies reduce rank and
+have node count below `bodyBound`. The actual generator gives sibling arguments,
+outcomes and branches the same smaller child height; height is not a sequential
+work allowance. The proof inducts over that actual height and establishes
+normal-output environment length along with generation success.
+
+| Theorem in `APL.LoopGeneration` | Quantified statement and assumptions |
+| --- | --- |
+| `lookup_exists` | An in-bounds lookup in any finite symbolic list returns an element. |
+| `pre_instantiate`, `requires_total` | Typed result-free specifications and Boolean requires lists instantiate successfully for symbolic parameter lists of the declared length. |
+| `assertion_total`, `assertions_total` | Typed current-local assertions and invariant lists instantiate successfully for symbolic environments of the context length, even when their arithmetic is undefined. |
+| `shape_single`, `shape_combine`, `sequence_total`, `bind_total` | Outcome environment lengths and total child actions compose through the actual singleton, combination, sequence and bind constructors. |
+| `update_total`, `fresh_total`, `domain_total`, `head_total` | In-bounds updates and length-correct fresh-environment/domain/head construction succeed; updates and fresh environments preserve length. Mutable unit uses literal unit as in the existing generator. |
+| `sequence_results`, `bind_results`, `arguments_total`, `pop_total` | Generic output properties compose; argument generation preserves caller environment length and captures one value per argument; scope removal succeeds and drops one cell. |
+| `member_sum_bound`, `body_bounded`, `nodes_positive`, `argument_node_bound` | Finite syntax, argument and table-body sizes satisfy the displayed structural bounds. |
+| `arguments_rank`, `rank_cost_decreases` | Every argument inherits call-rank coverage, and an expanded callee has smaller weighted rank/size cost. |
+| `analyze_complete` | Under the typing, metadata, supplied-rank and length premises above, `ceiling * bodyBound fs + nodes e < height` implies that the actual `LoopVCG.analyze` returns some analysis and every outcome environment has length `Γ.length`. Complete induction discharges all child-totality premises. |
+| `uniform_generation`, `exists_uniform_height` | The explicit sufficient term height, or one existential height outside the inputs, works for every symbolic environment of the context length, every incoming path and every initial fresh counter. |
+| `function_generation` | For any table lookup, `Ranked` supplies the body call-rank premise and the concrete bound guarantees generation under immutable reversed parameters. |
+| `rank_bounded`, `table_uniform_height` | Every table entry's supplied rank is below `rankBound`; the single displayed table height works for every function and every symbolic input of its parameter length, path and fresh counter. |
+
+Symbolic contents are unrestricted. The theorem does not require supported
+variable IDs, denotation by actual values, a true path, valid generated checks,
+precondition satisfiability or invariant truth/definedness. It therefore does
+not replace the separate soundness theorem's premises. It preserves the length
+of every normal output environment without assuming a normal runtime return.
+
+The ten private kernel witnesses include a shared-call DAG with multiple
+parameters and a disconnected function; a call in an effectful nested-loop
+condition; false/undefined typed preconditions and invariants; arbitrary symbols
+and colliding fresh counters; rank contradictions for source-dead self-recursion,
+mutual recursion and a recursive argument inside a false loop body; and a
+universally undefined symbolic cell that still generates. Another witness pairs
+successful generation of `while true` with the actual `LocalState.run` returning
+`none` at every finite budget. Generation success does not imply runtime return.
+
+The theorem uses finite syntax, unbounded natural counters and unrestricted
+finite model collections. It gives no work, time, memory, query or allocation
+bound for an implementation and no completeness guarantee at fixed Rust limits.
+It does not assert minimal height, runtime termination, rank existence/extraction,
+source graph/annotation/contract correspondence, or Rust/SMT/solver/native
+correctness. Production loop verification remains separately `smt-trusted`.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
@@ -661,8 +739,8 @@ axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 292 inventoried names are included. The
-check script replays 33 semantic modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 321 inventoried names are included. The
+check script replays 38 semantic modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -686,7 +764,9 @@ index shifts, is tested through the actual compiler export path.
 FM-07 is partial: the call-free, finite call-expansion, loop-free local-state and
 invariant-loop model generators, ordered callee precondition obligations, contract
 soundness and the invariant generator's exact mathematical query partition are
-checked. Source call-graph validation, acyclic expansion completeness, separate
+checked. Sufficient symbolic expansion height is also proved for the invariant
+generator given a supplied complete call rank. Rank existence/extraction, source
+call-graph validation, source acyclic-expansion correspondence, separate
 syntax-inlining preservation, production named-condition correspondence and the
 production/SMT/solver bridges remain open. Runtime verification reports therefore
 remain solver-trusted, including the production invariant-loop route.

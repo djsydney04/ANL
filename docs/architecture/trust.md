@@ -12,7 +12,10 @@ preservation. Verification-condition proofs include loop-free local-state update
 finite body expansion and callee preconditions when generation succeeds. The
 concrete invariant-loop model connects valid generated checks to safety of actual
 machine runs at every budget and coverage of finite normal returns, including
-typed entry contracts and exact mathematical check partition. The production
+typed entry contracts and exact mathematical check partition. A separate
+supplied-rank theorem establishes a uniform height for actual model generation
+from verification-ready typing, typed preconditions and input environment length,
+independently of symbolic contents, path and initial fresh counter. The production
 verifier supports annotated loops and remains `smt-trusted`. Rust and
 source/module/backend correctness proofs and a qualified release remain open.
 Architecture review alone cannot change a component to verified.
@@ -40,13 +43,13 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Component | What depends on it | Current evidence and required strengthening |
 | --- | --- | --- |
 | Language definitions and theorem statements | Whether checked mathematics describes intended APL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
-| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 292 theorem names, and separate kernel replay of 33 semantic modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
+| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 321 theorem names, and separate kernel replay of 38 semantic modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
 | Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. Typed model runs cannot reach invalid. V1 transition budgets differ from Rust expression/depth limits; resource comparisons are inconclusive. JSON adapters and Lean compilation/runtime remain trusted or tested boundaries. |
 | Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs, file modules, and initialized local state, including scope, permissions, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
-| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier supports scalar functions with mutable locals, annotated loops and acyclic calls; it rejects missing invariants and recursion before tools run. Lean proves call-free, finite body-expansion, loop-free state, and invariant-loop generator soundness under successful generation and the documented premises. The loop model includes actual-machine safety, normal coverage, typed entry contracts and exact mathematical query partition. Source acyclicity/expansion completeness, separate AST-inlining equivalence, production named-condition correspondence, and production bridges remain open (partial FM-07). |
+| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier supports scalar functions with mutable locals, annotated loops and acyclic calls; it rejects missing invariants and recursion before tools run. Lean proves call-free, finite body-expansion, loop-free state, and invariant-loop generator soundness under successful generation and the documented premises. The loop model includes actual-machine safety, normal coverage, typed entry contracts and exact mathematical query partition. Separately, verification-ready typing, typed preconditions, a supplied decreasing call rank and input environment length imply a uniform generation height for the actual model. Rank existence/extraction, source graph correspondence, fixed production limits, separate AST-inlining equivalence, production named-condition correspondence, and production bridges remain open (partial FM-07). |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Z3 5.3.3 is pinned. The driver records exact tool/query hashes, bounds time and I/O, validates status/models, and requires successful process termination. Real-solver and failure-protocol tests passed in Linux/macOS CI at `a7e0b38591ba76255e561cda60099bc8bc422543` ([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Results remain `smt-trusted`; models are unreplayed and no certificate checker is implemented. |
 | Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR with initialized scalar slots and loops. Tests cover scope, ordering, state changes, branches, and traps. These validators do not prove translation correctness. APL optimization passes remain unimplemented. |
 | C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. Native and module checks passed macOS AArch64 and Linux x86-64 CI at `19d726c`; compiler, linker, and host behavior remain trusted. LLVM is planned. |
@@ -84,7 +87,17 @@ postcondition theorems also require successful generation and verification-ready
 annotated function/body typing. The query theorem
 preserves every original guarded check under mathematical tagging and grouping.
 Neither result proves production naming, source metadata or query generation.
-Source acyclicity/expansion completeness, separate syntax inlining, correspondence
+The separate [generation-height result](../../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
+uses result-free static `PreType` metadata and a supplied rank covering every
+syntactic call, including calls in arguments, conditions and source-dead code.
+Its explicit height works for every symbolic environment of the required length,
+every path and every fresh counter, preserving output environment length. It asserts
+neither truth nor definedness of specifications. Siblings reuse child height;
+finite model generation gives no implementation work/memory bound, fixed-budget
+completeness, logical acceptance or runtime termination claim.
+
+Rank existence/extraction from an acyclic graph, source call-graph checking,
+separate syntax inlining, correspondence
 between the formal continuation/path-split generators and Rust merged flows,
 source annotation attachment, global allocation-event history, production limits,
 SMT translation, solver answers and countermodel decoding remain unproved

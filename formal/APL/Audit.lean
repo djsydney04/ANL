@@ -5,6 +5,7 @@ import APL.LocalStateFrame
 import APL.LoopVCGSupport
 import APL.LoopAnnotations
 import APL.LoopVCGExamples
+import APL.LoopGenerationExamples
 import Lean
 
 open Lean Elab Command in
@@ -258,7 +259,36 @@ run_elab do
     ``APL.LoopVCG.query_list_exact,
     ``APL.LoopVCG.tagged_partition_exact,
     ``APL.LoopVCG.validity_partition_exact,
-    ``APL.LoopVCG.analyze_queries_run_sound]
+    ``APL.LoopVCG.analyze_queries_run_sound,
+    ``APL.LoopGeneration.lookup_exists,
+    ``APL.LoopGeneration.pre_instantiate,
+    ``APL.LoopGeneration.requires_total,
+    ``APL.LoopGeneration.assertion_total,
+    ``APL.LoopGeneration.assertions_total,
+    ``APL.LoopGeneration.shape_single,
+    ``APL.LoopGeneration.shape_combine,
+    ``APL.LoopGeneration.sequence_total,
+    ``APL.LoopGeneration.bind_total,
+    ``APL.LoopGeneration.update_total,
+    ``APL.LoopGeneration.fresh_total,
+    ``APL.LoopGeneration.domain_total,
+    ``APL.LoopGeneration.head_total,
+    ``APL.LoopGeneration.sequence_results,
+    ``APL.LoopGeneration.bind_results,
+    ``APL.LoopGeneration.arguments_total,
+    ``APL.LoopGeneration.pop_total,
+    ``APL.LoopGeneration.member_sum_bound,
+    ``APL.LoopGeneration.body_bounded,
+    ``APL.LoopGeneration.nodes_positive,
+    ``APL.LoopGeneration.argument_node_bound,
+    ``APL.LoopGeneration.arguments_rank,
+    ``APL.LoopGeneration.rank_cost_decreases,
+    ``APL.LoopGeneration.analyze_complete,
+    ``APL.LoopGeneration.uniform_generation,
+    ``APL.LoopGeneration.exists_uniform_height,
+    ``APL.LoopGeneration.function_generation,
+    ``APL.LoopGeneration.rank_bounded,
+    ``APL.LoopGeneration.table_uniform_height]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

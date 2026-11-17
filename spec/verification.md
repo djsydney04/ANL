@@ -339,6 +339,21 @@ generator's exact mathematical query partition does not prove production
 source metadata, query naming or SMT encoding. The implementation must report FM-07 as open
 or partial until its exact generator coverage has been independently reviewed.
 
+The separate [generation-height theorem](../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
+provides an explicit uniform height for the actual formal invariant analyzer.
+It requires verification-ready annotated function/body typing, result-free static
+`PreType` metadata for Boolean preconditions, a supplied natural rank decreasing
+on every syntactic call, and symbolic environment length matching the static
+context. The bound includes calls in arguments, effectful conditions and
+source-dead branches, works across arbitrary symbolic contents, incoming paths
+and fresh counters, and preserves normal-output environment length. Siblings
+reuse child height. This finite unbounded-model generation result neither assumes
+nor establishes specification truth, definedness or logical acceptance; existing
+soundness theorems retain their successful-generation and logical premises.
+Rank existence/extraction from an acyclic graph and source graph/metadata
+correspondence remain open. No implementation work/memory bound, completeness at
+fixed Rust limits, runtime termination, or Rust/SMT/native correctness follows.
+
 Acceptance requires real solver runs for valid and false postconditions,
 intermediate overflow, both division traps, signed division and remainder,
 short-circuit guards, lexical shadowing, cross-file calls and failed callee

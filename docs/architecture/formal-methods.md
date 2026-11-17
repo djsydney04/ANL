@@ -2,10 +2,11 @@
 
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
-[proof inventory](../../formal/PROOFS.md) records 292 audited theorem names,
-including the concrete invariant-loop generator and its connection to the actual
-local-state machine. Coverage follows the stated theorem premises and conclusions,
-not the number of supporting lemmas. FM-01 through FM-05 apply to the documented
+[proof inventory](../../formal/PROOFS.md) records 321 audited theorem names and
+38 separately replayed modules, including the concrete invariant-loop generator,
+its connection to the actual local-state machine, and a sufficient generation
+height under a supplied call rank. Coverage follows the stated theorem premises
+and conclusions, not the number of supporting lemmas. FM-01 through FM-05 apply to the documented
 v0 model; local state has its own typing, machine
 safety, finite correspondence, and forward v0 embedding results.
 
@@ -16,7 +17,10 @@ proves loop-free mutation, final environments, and typed entry contracts over th
 local-state machine. A separate invariant generator proves safety at every
 transition budget and partial correctness of normal returns, including possibly
 divergent loops and effectful conditions. Its mathematical check partition is
-exact. FM-07 remains partial: source call-graph checking, expansion completeness,
+exact. A separate theorem supplies a uniform generation height for that invariant
+generator from verification-ready typing, typed precondition metadata, a supplied
+decreasing call rank and the input environment length. FM-07 remains partial:
+rank existence/extraction from an acyclic graph, source call-graph checking,
 separate syntax-inlining equivalence, production named-condition correspondence,
 and Rust/SMT/solver bridges remain open. Production verification supports mutable
 scalar code with annotated loops and acyclic calls, and stays `smt-trusted`.
@@ -230,6 +234,24 @@ and all original checks, including validity under fresh extensions. Production
 names, source occurrences, clause metadata and query generation still need their
 own correspondence evidence.
 
+The separate [generation-height theorem](../../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
+constructs an explicit height for the unchanged `LoopVCG.analyze`. It requires
+verification-ready annotated function/body typing, result-free static `PreType`
+typing of each function's Boolean preconditions, a supplied natural rank that
+decreases on every syntactic call, and a symbolic environment matching the static
+context length. Call coverage includes every argument, effectful condition and
+source-dead branch. One table height works for every function, every symbolic
+input of the declared length, every incoming path and every fresh counter;
+every normal output environment retains the context length.
+
+This is totality of finite symbolic generation in the unbounded model. It does
+not require represented values, fresh input symbols, true paths, or true/defined
+assertions, and does not establish logical acceptance. Sibling branches,
+arguments and outcomes reuse child height, so the bound is not a sequential
+work or memory allowance. It neither constructs a rank from an acyclic graph
+nor proves completeness at fixed Rust limits or runtime termination. The
+soundness theorems retain their own successful-generation and logical premises.
+
 These proofs describe the formal path-split generator. The earlier loop-free
 generator uses continuations, and the Rust verifier uses distinct merged flows.
 Source lowering and annotation attachment, those production representations,
@@ -293,8 +315,10 @@ The Lean generators construct concrete formulas and prove soundness under
 independently interpreted logical obligations. Finite body expansion threads
 arguments left to right, inserts ordered callee-precondition definedness and truth,
 and enters the actual callee body with reversed argument symbols. Successful
-finite-height generation is a premise; it is distinct from evaluation fuel/depth
-and does not prove every acyclic source graph has a sufficient expansion bound.
+finite-height generation remains a premise of these soundness theorems and is
+distinct from evaluation fuel/depth. The separate supplied-rank result derives a
+sufficient height for the invariant model under its typing, metadata and length
+premises; it does not prove rank extraction or source-graph correspondence.
 Theorems cover nonvacuous entry contracts, returned postconditions, and exclusion
 of traps/invalid outcomes, while permitting resource limits. The invariant-loop
 model additionally proves safety and normal coverage at every actual machine

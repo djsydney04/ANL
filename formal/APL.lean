@@ -17,3 +17,8 @@ import APL.LoopVCGSoundness
 import APL.LoopVCGContracts
 import APL.LoopVCGQueries
 import APL.LoopVCGExamples
+import APL.LoopGenerationSupport
+import APL.LoopGenerationRank
+import APL.LoopGenerationComplete
+import APL.LoopGenerationCorollaries
+import APL.LoopGenerationExamples

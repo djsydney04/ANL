@@ -15,8 +15,22 @@ preservation, retains final false-guard effects, uses fresh extensions and typed
 frames, and adds typed nonvacuous contracts over original entry parameters plus
 an exact mathematical check partition. It does not establish termination.
 
+A separate [generation-height theorem](../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
+constructs an explicit uniform height for the unchanged formal `LoopVCG.analyze`.
+Its premises are verification-ready annotated typing, result-free static
+`PreType` metadata for each function's Boolean preconditions, a supplied natural
+rank decreasing on every syntactic call, and input environment length matching
+the static context. Calls in arguments, effectful conditions and source-dead
+branches are included. The height works for arbitrary symbolic contents, paths
+and fresh counters and preserves normal-output environment length. Sibling
+analyses reuse child height; the result concerns finite unbounded-model generation,
+not logical acceptance, work/memory bounds or completeness at fixed Rust limits.
+It adds no runtime feature or termination claim and leaves the soundness theorem's
+own successful-generation and logical premises unchanged.
+
 The formal continuation/path-split generators differ from Rust's merged-flow
-analysis. Source annotation attachment, production named-query metadata, global
+analysis. Rank existence/extraction from an acyclic graph, source call-graph
+checking, source annotation attachment, production named-query metadata, global
 allocation-event history, resource limits, SMT/solver/model correspondence and
 native correctness remain outside these proofs. Runtime semantics and semantic
 revisions are unchanged.
