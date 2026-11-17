@@ -1,8 +1,8 @@
 # Compiler architecture and integration contracts
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
-adapters, validated structured MIR, and C11 native backend are implemented.
-Ownership/effects, contract verification, and language-server integration remain
+adapters, validated structured MIR, C11 native backend, and pure acyclic contract
+verifier are implemented. Ownership/effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
 recursive-function model, not Rust implementation correctness.
@@ -33,7 +33,7 @@ The compiler is a Rust library called by the CLI, with language-server integrati
 
 ## M1 caller contract
 
-The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [scalar grammar](../../spec/grammar.ebnf) and [module declarations and paths](../../spec/modules.md). The checker accepts `i64`, `bool`, and unit, explicitly typed function parameters/results, immutable lets with optional local annotations, named function calls including recursion, conditional expressions, and the specified scalar operators. Each implemented form has an explicit formal coverage entry.
+The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [scalar grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `bool`, and unit, explicitly typed function parameters/results, immutable lets with optional local annotations, named function calls including recursion, conditional expressions, and the specified scalar operators. Each implemented form has an explicit formal coverage entry.
 
 The CLI provides `apl check FILE` and `apl eval FILE` in M1. `check` resolves and checks every function, including unused functions, and accepts a typed library file without `main`. `eval` checks first, requires exactly one nullary `main` in the root file with result type `i64`, then displays its decimal result followed by a newline. The implemented `build`, `run`, and `emit-c` commands inherit that entry requirement. Internal expression evaluators may return `bool` and unit, but those are not executable entry types. Successful commands exit 0. Invalid source exits 1. Execution traps exit 2. Evaluation resource exhaustion exits 3 and is not reported as a language trap or divergence proof. CLI invocation or infrastructure errors exit 4.
 
@@ -51,7 +51,7 @@ An evaluation budget bounds interpreter work and call depth. The exact budget ac
 
 No serialized representation is trusted merely because it declares itself typed. Imports revalidate tags, numeric ranges, binding indices, call signatures and inferred types. Stable IDs are internal compiler identities; source names remain available for diagnostics. Shared interfaces use owned data and IDs rather than cross-pass references whose lifetimes couple unrelated subsystems.
 
-The current Rust boundaries are internal `syntax`, `modules`, `resolve`, and `mir`, plus `types`, `core`, `eval`, `diagnostic`, and `codegen`. Checked Program contents are opaque to external mutation and construction; source compilation and core import establish their invariants. Contract verification remains a future component.
+The current Rust boundaries are internal `syntax`, `modules`, `resolve`, and `mir`, plus `types`, `core`, `eval`, `diagnostic`, `codegen`, and `verify`. Checked Program contents are opaque to external mutation and construction; source compilation and core import establish their invariants. The verifier consumes retained typed contract metadata; core import does not recreate it.
 
 `compile_file(path)` loads the bounded canonical file graph and checks all bodies.
 `compile(source)` performs no filesystem reads and rejects file imports. Each file
@@ -95,7 +95,19 @@ The linker driver receives structured arguments through a process API. It checks
 
 ## Verification and optimization boundaries
 
-Verification consumes typed core plus explicit contracts. It emits a report bound to source and core hashes, tool versions, assumptions, obligation identities, and per-obligation status. Its status vocabulary and trusted components are defined in the formal-methods specification. Unsupported syntax and solver timeouts cannot become successful proofs.
+`apl verify` consumes the complete checked source graph and its typed contracts.
+It checks ordered precondition definedness, satisfiability, runtime arithmetic
+safety, callee preconditions, and postconditions. Calls inline the actual body;
+recursive graphs are unsupported, and callee postconditions are never assumed.
+The [verification specification](../../spec/verification.md) defines the supported
+fragment, bounds, and exact report schema.
+
+Reports bind retained source snapshots, compiler and solver identities, limits,
+exact SMT commands, obligation locations, and per-obligation results. The driver
+uses Z3 5.3.3 with a shared deadline and bounded protocol I/O. Only an aggregate
+`verified` result succeeds, always labeled `smt-trusted`; candidate countermodels
+are unreplayed. Reports are not imported or cached as proof input. Ordinary
+compilation and core export erase contracts without dynamic checks or solver use.
 
 Planned MIR transforms start with validated constant folding and dead-block removal; the current backend performs no APL optimization passes. Each transform has a semantics statement and tests covering values, traps, and termination behavior within the tested scope. Later inlining, specialization, allocation elimination, loop transforms and layout optimization require explicit effect, alias and ownership conditions. A small transformation proof does not certify the backend.
 

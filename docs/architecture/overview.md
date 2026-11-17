@@ -1,7 +1,8 @@
 # APL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar core,
-native C11 compiler, file modules, and expression/recursive-function proofs.
+native C11 compiler, file modules, pure acyclic contract verification, and scoped
+expression, recursive-function, and verification-condition proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
 the complete-language release requirements open.
@@ -66,10 +67,11 @@ boolean operators short-circuit and conditionals select one branch. Resource
 limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
-release feature set. Native compilation and modules extend that core today;
-contracts, mutable data, memory and concurrency remain later increments.
+release feature set. Native compilation, modules, and opt-in pure acyclic contract
+verification extend that core today; mutable data, memory, and concurrency remain
+later increments.
 
-The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`,
+The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
 `dump-core`, and `eval-core`. It checks every function in the imported source
 graph, interprets or compiles the checked program, and independently validates
 imported [core JSON](../../spec/core-format.md). [Getting started](../getting-started.md)
@@ -98,9 +100,9 @@ flowchart TD
 ```
 
 The source frontend, module loader, typed core, Rust evaluator, Lean model,
-validated structured MIR, C11 code generator, and native linker driver exist
-today. Ownership/effects, contract verification, and broader runtime facilities
-remain planned stages of this pipeline.
+validated structured MIR, C11 code generator, native linker driver, and pure
+acyclic contract verifier exist today. Ownership/effects and broader runtime
+facilities remain planned stages of this pipeline.
 
 Rust implements the production frontend and toolchain. Lean independently models
 semantics and checks metatheory. This separation supports independent comparison
@@ -120,12 +122,18 @@ comparison and workload evaluation. Cranelift remains a credible alternative;
 MLIR is deferred until workloads justify multi-level transforms. Backend reputation
 does not establish APL performance or compiler correctness.
 
-Program verification first covers pure first-order loop-free functions. Weakest
-preconditions produce named safety and contract obligations. SMT automation is
-labeled with solver trust; kernel-checked evidence has a distinct trust level.
-Arithmetic obligations include intermediate range checks and source division
-semantics. Recursion, loops, heap state, concurrency and ghost erasure require
-explicit extensions. Assertions are obligations, never implicit assumptions.
+The implemented [program verifier](../verification.md) covers pure acyclic
+functions, including calls across modules. It expands actual bodies, checks
+callee preconditions, and generates named safety and contract obligations with
+checked intermediate ranges and truncating division. Preconditions must be
+defined and satisfiable. Z3 5.3.3 results are `smt-trusted`, and countermodels remain
+unreplayed. Compilation erases the typed clauses without proving them.
+
+A separate Lean call-free generator and contract logic have soundness proofs
+under interpreted logical obligations. FM-07 remains partial: call inlining,
+callee-precondition insertion, named decomposition, and the Rust/SMT/solver bridges
+are unproved. Recursion, assertions, loops, heap state, concurrency, and ghost
+code require further implementation and proof coverage.
 
 [Compiler contracts](compiler.md), [formal architecture](formal-methods.md) and
 [trust boundaries](trust.md) define pass interfaces, theorem coverage, verification
@@ -213,6 +221,8 @@ review and a requirement ledger that keeps every missing release capability open
 
 Every improvement cycle states a hypothesis and baseline, implements a language
 capability, checks affected proofs and regressions, measures relevant outcomes and
-integrates only accepted changes. The [current baseline](../../benchmarks/README.md)
-measures local release-CLI checking and interpretation with explicit outcome
-checks. It is an initial measurement, not a speedup or native-performance claim.
+integrates only accepted changes. The [baseline harnesses](../../benchmarks/README.md)
+measure local release-CLI checking, interpretation, native builds, and native
+execution with explicit outcome checks. The
+[native macOS arm64 report](../../benchmarks/results/native-macos-arm64.md) records
+actual observations and limits, without a cross-language performance claim.

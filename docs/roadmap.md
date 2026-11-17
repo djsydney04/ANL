@@ -22,8 +22,8 @@ contracts are stable. A phase number expresses dependencies, not a claim that al
 work in prior phases is finished.
 
 Current status: the scalar checker/interpreter, native C11 backend, file modules,
-strict core JSON interchange, and expression/recursive-function proofs are
-available. Follow [getting started](getting-started.md) to run the tools and the
+strict core JSON interchange, pure acyclic contract verification, and scoped Lean
+proofs are available. Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
 model, with sufficient depth and fuel. The [52 technical release requirements](requirements.md)
@@ -89,8 +89,21 @@ remain pending. Module resolution and backend correctness are tested boundaries.
 
 ## M3: program verification
 
-Add contracts, assertions, VC generation, solver/proof integration, and diagnostics.
-Acceptance includes true and false properties, counterexamples where supported,
+The current [verifier](verification.md) supports typed mathematical-integer
+`requires`/`ensures` clauses, guarded arithmetic-safety conditions, and acyclic
+call expansion across the complete loaded graph. It checks ordered precondition
+definedness and satisfiability, calls the pinned Z3 5.3.3, and emits exact source,
+tool, and query bindings. Results are `smt-trusted`; refuting models are unreplayed.
+Ordinary compilation erases contracts without dynamic checks.
+
+The [formal inventory](../formal/PROOFS.md) includes a concrete call-free generator
+and contract-logic soundness foundation. FM-07 remains partial: acyclic inlining,
+callee-precondition insertion, named-condition decomposition, and the production
+Rust/SMT/solver bridges remain open. Assertions, recursive verification, ghost
+code, and state properties still require implementation.
+
+Complete M3 acceptance includes true and false properties, counterexamples where
+supported,
 unknown/timeouts, missing/crashed tools, arithmetic faults, unsatisfied call
 preconditions, inconsistent specifications, and proof-regression CI. Expand to
 loop invariants, ghost code and state specifications when their language features

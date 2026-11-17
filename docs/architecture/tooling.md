@@ -1,7 +1,7 @@
 # Toolchain and developer ecosystem architecture
 
 Status: the CLI implements scalar checking, interpretation, native compilation,
-file modules, and core interchange. Package management, formatting, language-server
+file modules, core interchange, and pure acyclic contract verification. Package management, formatting, language-server
 integration, source debugging, and release distribution below remain design
 proposals unless explicitly identified as implemented.
 
@@ -9,9 +9,9 @@ proposals unless explicitly identified as implemented.
 
 The `apl` CLI calls the compiler library for parsing, resolution, type checking and diagnostics. The planned `apl-lsp` language server will use the same library. The formatter consumes a syntax representation retaining comments and trivia, because a semantic AST cannot preserve them reliably. The documentation generator consumes resolved public declarations and documentation comments. No client reverse-engineers another client's human-readable output.
 
-The current CLI contract is in [compiler architecture](compiler.md). Implemented commands are `check`, `eval`, `build`, `run`, `emit-c`, `dump-core`, `eval-core`, and `--version`. Unsupported commands fail explicitly. Phase 3 will add `verify` with per-obligation outcomes. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
+The current CLI contract is in [compiler architecture](compiler.md). Implemented commands are `check`, `eval`, `build`, `run`, `emit-c`, `verify`, `dump-core`, `eval-core`, and `--version`. Unsupported commands fail explicitly. `verify` reports per-obligation outcomes using Z3 5.3.3; its [guide](../verification.md) explains solver installation, limits, and trust. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
 
-Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. A JSON CLI mode has a schema version and includes structured status, never ANSI escape sequences.
+Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. The implemented `verify --json` mode emits the versioned `apl-verify-v0` report with structured status and exact source/tool/query identities; diagnostics go to stderr. General JSON diagnostics and the LSP adapter remain planned.
 
 ## Package and module identities
 
@@ -34,7 +34,7 @@ This separation follows the [Cargo manifest/lockfile precedent](https://doc.rust
 
 ## Build graph and reproducibility
 
-Build artifacts are keyed by source and dependency digests, compiler version, backend version, target triple, target features, profile, language edition, relevant environment values and runtime ABI. Verification caches additionally include contracts, solver version, proof options, assumptions and resource limits. A cached timeout cannot become a successful proof under a different configuration.
+Build artifacts are keyed by source and dependency digests, compiler version, backend version, target triple, target features, profile, language edition, relevant environment values and runtime ABI. Future verification caches must additionally include contracts, solver version, proof options, assumptions and resource limits. The current verifier binds reports to these inputs but does not import reports or cache proof results. A cached timeout must never become a successful proof under a different configuration.
 
 The driver resolves package dependencies, checks public interfaces, builds a module dependency graph, checks semantic bodies, specializes generic code, lowers and links. Incremental execution may skip unchanged work only when all semantic inputs are in the cache key. The first implementation uses a simple deterministic graph; parallel scheduling comes after race-free cache publication and cancellation handling.
 

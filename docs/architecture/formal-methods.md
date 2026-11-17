@@ -1,15 +1,16 @@
 # Formal semantics and verification architecture
 
-Status: formal obligations and planned verification interfaces, with an
-implemented Lean 4.36.0 scalar and recursive-function model for semantic revision
-`m1-2026-11-16`. The [proof inventory](../../formal/PROOFS.md) records 44 checked
-theorems, discharging FM-01 through FM-05 for the documented scalar
-expression/function model. Finite evaluator correspondence holds in both
-directions; program completeness quantifies sufficient depth and fuel. This does
-not establish termination or completeness at the CLI's fixed depth of 256. Rust
-correspondence, source/module/native lowering proofs, and the contract verifier
-remain open. The formal model, verifier and compiler maintain an explicit semantic
-revision and coverage inventory.
+Status: the pure acyclic contract verifier is implemented alongside the Lean
+4.36.0 model for semantic revision `m1-2026-11-16`. The
+[proof inventory](../../formal/PROOFS.md) records 61 checked theorems. FM-01 through
+FM-05 are discharged for the documented scalar expression/function model;
+finite program correspondence quantifies sufficient depth and fuel, without
+proving termination or completeness at the CLI's fixed depth of 256. A concrete
+call-free generator and contract logic provide a partial FM-07 foundation.
+Production verification remains `smt-trusted`: call inlining, callee-precondition
+insertion, named-condition decomposition, and Rust/SMT/solver correspondence are
+unproved, as are source/module/native lowering. The formal model, verifier and
+compiler maintain an explicit semantic revision and coverage inventory.
 
 ## Two distinct guarantees
 
@@ -122,13 +123,26 @@ flowchart LR
   Lean --> Report
 ```
 
-The verification IR preserves source locations, scalar types, checked-operation conditions, explicit branches, and named contract clauses. It rejects unsupported constructs before reporting proof success. The first supported program fragment is pure, first-order, and loop-free. Calls must be inlined without recursion or use validated summaries whose assumptions and proof status appear in the report.
+The implemented [verifier](../verification.md) consumes typed contract metadata
+and scalar core while preserving source locations, checked-operation conditions,
+branches, and named clauses. It checks every loaded function, including private
+and unused bodies. The call graph must be acyclic, including syntactically dead
+calls. Calls require the callee's preconditions and inline its actual body;
+postconditions are never assumed as summaries. Ownership/effect analysis and
+solver-certificate checking remain planned parts of the pipeline above.
 
 Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
 
 For a function with precondition `P`, postcondition `Q`, and body `e`, partial correctness requires that any execution satisfying `P` and returning a value satisfies `Q`. Trap freedom is a separate mandatory safety obligation in the default verification profile. Termination is a separate property. A recursive function is not proved total without a checked well-founded variant or equivalent argument.
 
-The initial VCG computes weakest preconditions. Bindings substitute values without capture. Conditionals create guarded obligations for the executed branch. `assert p` requires `p`; it is never silently treated as `assume p`. An explicit assumption appears in the trust report. Preconditions become assumptions within a callee and obligations at its callers. Unsupported foreign calls cannot be treated as pure functions automatically.
+The initial VCG computes guarded weakest-precondition obligations. Bindings
+substitute values without capture, and conditionals and Boolean short circuit
+guard only executed paths. Preconditions must be defined in declaration order
+and jointly satisfiable; a clause cannot use its own or a later clause's truth to
+justify division. Postconditions are checked independently. The
+[verification specification](../../spec/verification.md) defines these rules.
+`assert`, `assume`, and foreign calls are not implemented; future assertions must
+create obligations rather than silently become assumptions.
 
 For mutable loops, later VCG stages require invariant initialization, preservation, and an exit implication. Total correctness additionally requires a decreasing well-founded variant. Heap contracts need frame and aliasing rules compatible with ownership. Ghost state is erased only after checking that it cannot affect runtime values, control flow, effects, or resource authority.
 
@@ -138,7 +152,7 @@ Evidence categories are separate fields, so a program can be type checked and te
 
 | Verification result | Meaning |
 | --- | --- |
-| `verified` | Every requested obligation in the reported supported scope is discharged. The report specifies `smt-trusted` or `kernel-checked`, all assumptions, and whether termination was included. |
+| `verified` | Every requested obligation in the supported scope succeeds and every precondition is satisfiable. The current verifier reports only `smt-trusted`; it produces no checked termination proof or kernel-checked solver certificate. |
 | `failed` | At least one obligation has a refuting model or checked counterexample. A solver model remains labeled as a candidate until replay confirms an executable counterexample. |
 | `unknown` | A solver cannot decide, a time or memory limit is reached, or bounded reasoning is insufficient. No unproved obligation becomes verified. |
 | `unsupported` | Required syntax, effect, semantic feature, or contract cannot be modeled by this verifier. |
@@ -147,7 +161,12 @@ Evidence categories are separate fields, so a program can be type checked and te
 
 The report also contains independent `type_checked`, `tested`, and `dynamic_checks` evidence with scope. The driver returns success only when all requested obligations are verified. Mixed outcomes retain per-obligation details and return a non-success aggregate. Empty obligation sets report that nothing was proved. Contradictory preconditions receive a reachability diagnostic and are not presented as evidence of useful behavior.
 
-Artifacts bind source hashes, semantic revision, compiler and verifier versions, dependencies, target assumptions, obligation formula, solver version and arguments, result, and any proof or counterexample. A changed input invalidates cached evidence. Solver logs alone are not independently checkable proof certificates.
+Current reports bind retained source hashes, semantic revision, exact compiler
+and solver identities, options and limits, obligation formulas, attempted SMT
+commands, outcomes, and candidate parameter assignments. Models are marked
+`replayed: false`; they are not execution traces. Reports are not imported or
+cached as proof input. Changed inputs require another attempt. Solver logs are
+not independently checkable proof certificates.
 
 ## Memory, concurrency, and agent extension plan
 
@@ -161,4 +180,20 @@ Agent verification models tools as external transitions with explicit contracts 
 
 The pinned Lean toolchain, expression and recursive-function proofs, normal and trapping execution examples, coverage inventory, and negative cases are present under [formal/](../../formal/README.md). `formal/check.sh` performs a clean build, rejects incomplete proofs, audits transitive axiom dependencies, and replays declarations through Lean's kernel. The compiler's independent evaluator must match the formal evaluator on the shared corpus using the documented comparison command. Every documented gap remains in the roadmap; these checks establish only their inventoried model and executable-core coverage, not whole-language correctness.
 
-Before the verifier ships, tests must include a valid contract, a false postcondition, intermediate overflow, division faults, unreachable assumptions, short-circuit behavior, unsupported syntax, timeout, missing solver, malformed solver output, and stale artifact rejection. A deliberately broken VC generator must fail the relevant regression. No benchmark or test count substitutes for FM-07.
+The implemented verifier has tests for valid and false properties, intermediate
+overflow, division faults, unsatisfiable or undefined preconditions, guarded
+paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
+malformed protocol output, limits, and report identities. The Linux/macOS Rust
+jobs and Lean proof/comparison job passed for
+`a7e0b38591ba76255e561cda60099bc8bc422543`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Passing CI
+does not discharge the remaining FM-07 obligations.
+
+The separate Lean generator constructs concrete formulas and proves their
+soundness under independently interpreted logical obligations for call-free
+scalar terms and mathematical contracts. Its proofs cover ordered precondition
+definedness, nonvacuity, returned postconditions, and exclusion of traps/invalid
+outcomes; resource limits remain possible. They do not certify production call
+expansion, precondition insertion, named-condition decomposition, source-contract
+erasure, Rust generation, SMT serialization, or solver answers. These boundaries
+keep full FM-07 open.

@@ -3,14 +3,19 @@
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
 the scalar checker/interpreter, native C11 backend, file modules, core JSON
-adapters, and a Lean model with expression and recursive-function proofs. Follow
+adapters, a pure acyclic contract verifier, and a Lean model with expression,
+recursive-function, and call-free verification-condition proofs. Follow
 [getting started](docs/getting-started.md) to build and run source programs; the
 [proof inventory](formal/PROOFS.md) records finite model correspondence in both
 directions and the remaining source, Rust, module, and backend proof boundaries.
 
 ## Build and check
 
-From the repository root, use the pinned Rust 1.99.1 toolchain selected by rustup:
+From the repository root, use the pinned Rust 1.99.1 toolchain selected by rustup.
+Native tests require a host C11 compiler. Verification tests require Z3 5.3.3;
+install it using the [verification guide](docs/verification.md) and place `z3` on
+`PATH`, or set `APL_TEST_SOLVER` to its executable path before running the suite.
+A missing solver fails the semantic integration tests rather than skipping them.
 
 ```sh
 cargo build --release --locked
@@ -21,9 +26,9 @@ cargo test --locked --release
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
 ```
 
-Both test commands include the public API compile-fail doctests. Native tests
-require a host C11 compiler (`cc`, or an executable selected through `CC`). For formal
-changes, install the pinned Lean 4.36.0 tools as described in
+Both test commands include the public API compile-fail doctests. `CC` can select
+a host compiler executable. For formal changes, install the pinned Lean 4.36.0
+tools as described in
 [formal/README.md](formal/README.md), then run:
 
 ```sh
@@ -63,10 +68,13 @@ debug/release conformance and public API doctests on Linux and macOS, plus Lean
 proof checks and evaluator comparisons on Linux. A configured job is not evidence
 that it has passed on that platform; inspect the run for the revision under review.
 
-Native compilation will add binary execution and differential tests on supported
-platforms. Later checks cover verifier regressions, property testing, fuzzing,
-sanitizers, security analysis, performance, documentation examples, installation
-and release artifact integrity.
+The workflow includes native execution, module tests, arithmetic sanitizer
+probes, and contract/verifier regressions with the pinned real solver and controlled
+protocol-failure responders. At `a7e0b38591ba76255e561cda60099bc8bc422543`,
+the Linux and macOS Rust jobs and the Lean proof/comparison job all passed
+([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Later checks
+cover broader property testing, fuzzing, security, installation, and release
+artifact integrity.
 
 Use reproducible tool versions and lockfiles. Keep workflow permissions read-only
 unless a specific operation requires more. Keep secrets out of logs and source

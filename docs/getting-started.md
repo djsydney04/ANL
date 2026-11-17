@@ -3,9 +3,10 @@
 APL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, immutable bindings, lexical blocks, conditionals,
-named recursive functions, and explicit file modules. Source-level I/O, mutable
-state, collections, ownership, concurrency, and contracts remain in the
-[roadmap](roadmap.md).
+named recursive functions, and explicit file modules. An optional verifier checks
+arithmetic safety and contracts for pure acyclic functions. Source-level I/O,
+mutable state, collections, ownership, concurrency, and recursive verification
+remain in the [roadmap](roadmap.md).
 
 ## Build and run
 
@@ -72,6 +73,30 @@ loads a sibling `math.apl`; `pub fn` exposes a function, and `math::double(21)`
 calls it. The complete import graph is checked, including unused bodies. The
 [module guide](modules.md) explains nested namespaces, visibility, and paths.
 
+## Verify a function contract
+
+Install Z3 5.3.3 and put `z3` on `PATH` using the
+[verification guide](verification.md), then run:
+
+```sh
+./target/release/apl verify examples/contracts/increment.apl
+./target/release/apl verify examples/contracts/increment.apl --json
+```
+
+The example returns `verified` with `trust=smt-trusted` and exit 0. `--solver PATH`
+selects an executable explicitly. `--timeout-ms N` sets the whole attempt's budget
+after source checking; its default is 30000 milliseconds. The verifier checks every
+loaded function, including unused functions, for defined and satisfiable
+preconditions, checked-arithmetic safety, and each postcondition. Calls must form
+an acyclic graph; recursion reports `unsupported`.
+
+`requires` and `ensures` clauses use mathematical integers. Runtime expressions
+still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
+erase clauses without proving or dynamically enforcing them; scalar core export
+also erases them. Verification reports bind source, tools, and queries to their
+exact hashes. Refuting models are candidate inputs labeled `replayed: false`,
+not confirmed executions. The guide explains failed, unknown, and error outcomes.
+
 ## Examples
 
 The conformance suite executes each of these files and checks its full result.
@@ -83,6 +108,7 @@ The conformance suite executes each of these files and checks its full result.
 | [sum-primes.apl](../examples/sum-primes.apl) | Boolean helpers, short-circuiting, recursive traversal | 328 |
 | [scopes.apl](../examples/scopes.apl) | Inner shadowing, old-environment initializers, discarded unit results | 78 |
 | [modules/main.apl](../examples/modules/main.apl) | File namespaces and public functions | 42 |
+| [contracts/increment.apl](../examples/contracts/increment.apl) | Preconditions and a result postcondition | 42 |
 
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.
@@ -98,6 +124,9 @@ The minimum value is written `-9223372036854775808`; the positive magnitude
 | 2 | `arithmetic_overflow` or `division_by_zero` |
 | 3 | A tool resource limit was reached |
 | 4 | Invalid CLI invocation, missing file, or infrastructure error |
+| 5 | Verification found a refuted property or unsatisfiable preconditions |
+| 6 | Verification is unknown or exceeded its analysis/time limit |
+| 7 | Verification is unsupported or no functions were requested |
 
 Source diagnostics include a filename, line, and column. Imported-file errors
 and interpreter traps use the actual file's retained source snapshot. Runtime
@@ -119,6 +148,9 @@ language trap nor proof of divergence. Exact protocols are in
 
 ## Check this checkout
 
+The complete suite requires a host C11 compiler and Z3 5.3.3. Put `z3` on `PATH`,
+or set `APL_TEST_SOLVER` to its executable path.
+
 ```sh
 cargo fmt --all --check
 cargo clippy --all-targets --all-features -- -D warnings
@@ -127,14 +159,15 @@ cargo test --locked --release
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
 ```
 
-Native tests require a host C11 compiler. The black-box suite runs the actual CLI
-and generated executables against independent expected values and trap kinds. It
+The black-box suite runs the actual CLI and generated executables against
+independent expected values and trap kinds. It
 covers source and interchange rejection, whole-program checking, arithmetic,
 sequencing, scopes, recursion, short-circuiting, module visibility, source
-protection, and bounded resource failures. Native and module checks passed
-[Linux and macOS CI](https://github.com/djsydney04/ANL/actions/runs/44043755444)
-at revision `19d726c`. This is development evidence, not installation or release
-qualification.
+protection, and bounded resource failures. Native, module, contract, and verifier
+tests passed [Linux and macOS CI](https://github.com/djsydney04/ANL/actions/runs/44051779446)
+at revision `a7e0b38591ba76255e561cda60099bc8bc422543`, including real-solver and
+protocol-failure checks. The Lean proof/comparison job also passed. This is
+development evidence, not installation or release qualification.
 
 `apl dump-core FILE` exports checked source into the versioned JSON format, and
 `apl eval-core FILE [--fuel N]` independently validates a core artifact and emits
@@ -148,5 +181,6 @@ for the distinction between checked theorems, tested behavior, and remaining pro
 obligations.
 
 The [baseline instructions](../benchmarks/README.md) describe reproducible release
-CLI measurements. They establish an initial measurement, without a speedup claim
-or comparison with a native compiler.
+CLI and native measurements. The [native macOS arm64 report](../benchmarks/results/native-macos-arm64.md)
+records measured build/execution results and their limits; it makes no
+cross-language performance claim.
