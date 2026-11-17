@@ -1,4 +1,4 @@
-import APL.ProgramSafety
+import APL.ProgramEvalSoundness
 import Lean
 
 open Lean Elab Command in
@@ -13,7 +13,9 @@ run_elab do
     ``APL.Program.signatures_lookup, ``APL.Program.signatures_lookup_inv, ``APL.Program.checked_functions,
     ``APL.Program.resume_typed, ``APL.Program.preservation, ``APL.Program.progress,
     ``APL.Program.steps_preserve, ``APL.Program.safety, ``APL.Program.no_invalid,
-    ``APL.Program.closed_safety, ``APL.Program.entry_typed, ``APL.Program.entry_safety]
+    ``APL.Program.closed_safety, ``APL.Program.entry_typed, ``APL.Program.entry_safety,
+    ``APL.Program.eval_value_sound, ``APL.Program.eval_trap_sound, ``APL.Program.eval_invalid_sound,
+    ``APL.Program.eval_value_typed, ``APL.Program.eval_ne_invalid]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

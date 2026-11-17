@@ -75,8 +75,9 @@ continuation frames. The result type of every frame matches the next frame.
 The following theorems extend FM-01 through FM-03 and the checker guarantees to
 forward and mutually recursive functions. All operators, short circuits, traps,
 locals, lets, conditionals, argument transitions and call transitions are covered.
-No proof assumes termination. FM-04's program evaluator correspondence remains
-open, so the complete FM-05 obligation is still not discharged.
+No proof assumes termination. The actual bounded evaluator's finite-result
+soundness is also checked below. Reverse correspondence remains open, so the
+complete FM-05 obligation is still not discharged.
 
 | Theorem | Quantified statement and assumptions |
 | --- | --- |
@@ -96,6 +97,28 @@ open, so the complete FM-05 obligation is still not discharged.
 | `APL.Program.entry_typed` | An actual zero-parameter function gives a typed initial invocation state with its declared result type. |
 | `APL.Program.entry_safety` | `WellTyped fs`, a zero-parameter entry lookup and any finite reduction from that invocation imply a typed terminal state or a next step. |
 
+## Finite program evaluator soundness
+
+These theorems refer to the actual `APL.Program.eval` used by the program CLI.
+They quantify over any depth and fuel budgets, actual functions, untyped program
+terms and value environments. The soundness proofs require no typing hypothesis.
+Every successful argument evaluation follows source order and accumulates reversed
+callee values while preserving the caller's environment and continuation.
+
+The private trace-composition predicate imposes no condition for `resourceLimit`;
+none of the public soundness theorems accepts that result as its premise. A resource
+limit establishes neither divergence nor a finite terminal reduction. The
+existence of sufficient depth and fuel for every finite relation reduction remains
+unproved. In particular, the fixed CLI depth of 256 is not a completeness promise.
+
+| Theorem | Quantified statement and assumptions |
+| --- | --- |
+| `APL.Program.eval_value_sound` | `eval fs depth env e fuel = .ok (v, remaining)` implies `Steps fs (.eval e env k) (.ret v k)` for every continuation `k`. No typing assumption. |
+| `APL.Program.eval_trap_sound` | `eval fs depth env e fuel = .error (.trap kind)` implies `Steps fs (.eval e env k) (.trap kind)` for every continuation. No typing assumption. |
+| `APL.Program.eval_invalid_sound` | `eval fs depth env e fuel = .error .invalid` implies `Steps fs (.eval e env k) .invalid` for every continuation. Covers invalid untyped inputs as well. |
+| `APL.Program.eval_value_typed` | Under `WellTyped fs` and `HasType (signatures fs) (env.map Val.type) e t`, a successful actual evaluation returning `v` implies `v.type = t`. |
+| `APL.Program.eval_ne_invalid` | Under those same function-table and term-typing assumptions, actual evaluation cannot return `.error .invalid`. Values, defined arithmetic traps and resource exhaustion remain possible. |
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
@@ -107,7 +130,7 @@ axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 36 inventoried names are included.
+Its allowable set is explicit, and all 41 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -117,10 +140,11 @@ not establish that the formal definitions match every intended APL rule.
 
 FM-05 is partly discharged. Declarative program typing, checker soundness and
 completeness, type uniqueness, preservation, progress and finite reduction safety
-are checked for global functions and recursive calls. Correspondence between the
-actual bounded `APL.Program.eval` and `APL.Program.Step` is unproved in either
-direction. No theorem here concludes executable program safety from relation
-safety. The expression syntax intentionally has no call constructor; program
+are checked for global functions and recursive calls. Actual `APL.Program.eval`
+finite value/trap/invalid outcomes have checked relation traces, and typed programs
+have checked executable value typing and exclusion of invalid outcomes. The
+converse existence of sufficient depth and fuel for finite relation reductions
+is unproved. The expression syntax intentionally has no call constructor; program
 terms use a separate type to make that boundary visible.
 
 FM-06 is differential and negative testing evidence only. The Lean expression

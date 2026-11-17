@@ -4,7 +4,8 @@ This directory implements the `m1-2026-11-16` scalar expression model in Lean
 4.36.0. It includes untyped syntax, declarative typing, independently checked
 inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
-functions. Finite evaluator correspondence is proved for scalar expressions.
+functions. Finite evaluator correspondence is proved in both directions for scalar
+expressions. Finite program evaluation is proved sound against the call relation.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
@@ -80,11 +81,13 @@ Program documents run `APL.Program.eval`, a separate executable evaluator that
 supports named and mutually recursive calls. It charges one unit immediately
 before evaluating each expression, with a global decreasing budget and a
 256-expression nesting bound. Entry invocation is free; only evaluated arguments,
-branches and operands consume fuel. Its correspondence to
-`APL.Program.Step` is **not proved**. The program relation has its own checked
-preservation and progress proofs for well-typed function tables; these do not yet
-certify the executable program evaluator. Program execution is also covered by
-conformance tests.
+branches and operands consume fuel. Every finite value, trap or invalid outcome
+is proved to have a matching reduction under `APL.Program.Step`. Under a
+well-typed function table and term, returned values have the declared type and
+`invalid` cannot occur. Resource exhaustion makes no semantic claim. The converse,
+that a finite reduction has a sufficient depth and fuel budget, is **not proved**.
+The CLI's fixed depth bound is not a termination or completeness guarantee.
+Program execution is also covered by conformance tests.
 
 The CLI bounds files at 1,048,576 bytes, JSON nesting at 256, expression trees at
 128, and indices at 4,294,967,295. These limits and exhausted fuel report
@@ -113,10 +116,14 @@ language behavior; they do not establish divergence or type safety.
   transition, finite reduction safety, exclusion of invalid states, and entry
   safety. No termination assumption is made. Kernel-checked examples cover mutual
   recursion, heterogeneous argument order, bad arity and unknown function IDs.
+- `APL/ProgramEvalSoundness.lean` connects the actual bounded `Program.eval` to
+  finite relation traces for values, traps and invalid inputs. It proves returned
+  value typing and exclusion of invalid outcomes for well-typed programs. The
+  converse existence of sufficient depth and fuel remains open.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
   and strict interchange. The total program inference function is proved against
-  declarative typing; the JSON adapter, program evaluator correspondence, and
-  executable compilation remain trusted or tested boundaries.
+  declarative typing; the JSON adapter, evaluator completeness, and executable
+  compilation remain trusted or tested boundaries.
 - `APL/Smoke.lean` contains kernel-reduced arithmetic, trap, short-circuit,
   scoping, and typing examples. `test.py` drives the actual executables against
   specified expected outcomes and a separate Python integer oracle, including
