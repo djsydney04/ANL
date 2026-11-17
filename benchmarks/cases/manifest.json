@@ -1,0 +1,12 @@
+[
+  {"name":"factorial","file":"../../examples/factorial.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"3628800\n"}},
+  {"name":"gcd","file":"../../examples/gcd.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"21\n"}},
+  {"name":"sum-primes","file":"../../examples/sum-primes.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"328\n"}},
+  {"name":"fibonacci","file":"fibonacci.apl","fuel":1000000,"check":{"exit":0},"eval":{"exit":0,"stdout":"2584\n"}},
+  {"name":"sum-squares","file":"sum-squares.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"22140\n"}},
+  {"name":"short-circuit","file":"short-circuit.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"42\n"}},
+  {"name":"many-functions","file":"many-functions.apl","check":{"exit":0},"eval":{"exit":0,"stdout":"202\n"}},
+  {"name":"overflow","file":"overflow.apl","check":{"exit":0},"eval":{"exit":2,"stdout":"","stderr_contains":"arithmetic_overflow"}},
+  {"name":"division-by-zero","file":"division-by-zero.apl","check":{"exit":0},"eval":{"exit":2,"stdout":"","stderr_contains":"division_by_zero"}},
+  {"name":"invalid-unused","file":"invalid-unused.apl","check":{"exit":1,"stdout":""},"eval":{"exit":1,"stdout":""}}
+]

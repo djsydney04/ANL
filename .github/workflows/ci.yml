@@ -1,0 +1,69 @@
+name: M1 checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compiler:
+    name: Rust / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install pinned compiler toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo +1.99.1 fmt --all --check
+      - name: Check lints
+        run: cargo +1.99.1 clippy --locked --all-targets --all-features -- -D warnings
+      - name: Test development profile
+        run: cargo +1.99.1 test --locked --all-targets
+      - name: Test public API doctests
+        run: cargo +1.99.1 test --locked --doc
+      - name: Test release semantics
+        run: cargo +1.99.1 test --locked --release --all-targets
+      - name: Test release public API doctests
+        run: cargo +1.99.1 test --locked --release --doc
+      - name: Check benchmark semantic gate
+        run: python3 -m unittest discover -s benchmarks -p 'test_*.py'
+
+  formal:
+    name: Lean proofs and evaluator comparisons
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install pinned compiler toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal
+      - name: Install archive utility
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes zstd
+      - name: Install verified Lean release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tools
+          curl --fail --location --retry 3 \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0/lean-4.36.0-linux.tar.zst \
+            --output .tools/lean-4.36.0-linux.tar.zst
+          echo '2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb  .tools/lean-4.36.0-linux.tar.zst' | sha256sum --check --strict
+          tar --zstd --extract --file .tools/lean-4.36.0-linux.tar.zst --directory .tools
+          echo "$GITHUB_WORKSPACE/.tools/lean-4.36.0-linux/bin" >> "$GITHUB_PATH"
+      - name: Check formal toolchain
+        run: |
+          lean --version
+          test "$(lean --short-version)" = '4.36.0'
+          command -v leanchecker
+      - name: Check proofs, axioms, and kernel replay
+        run: formal/check.sh
+      - name: Build compiler for differential execution
+        run: cargo +1.99.1 build --locked
+      - name: Compare formal and production evaluators
+        run: python3 formal/test.py --rust target/debug/apl
