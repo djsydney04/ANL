@@ -106,10 +106,10 @@ fn same_named_functions_and_user_mangling_lookalikes_stay_distinct_in_core() {
     project.file("a.apl", "pub fn value()->i64{15} pub fn main()->i64{999}");
     project.file("b.apl", "pub fn value()->i64{25}");
     let program = value(&main, 42);
-    let json = core::export(&program, program.entry().unwrap());
+    let json = core::export(&program, program.entry().unwrap()).unwrap();
     assert_eq!(
         json,
-        core::export(&apl::compile_file(&main).unwrap(), program.entry().unwrap())
+        core::export(&apl::compile_file(&main).unwrap(), program.entry().unwrap()).unwrap()
     );
     let imported = core::import(&json.to_string()).unwrap();
     assert_eq!(
@@ -228,7 +228,7 @@ fn shared_diamond_dependencies_have_one_identity() {
     project.file("b.apl", "mod shared; pub fn answer()->i64{shared::value()}");
     project.file("shared.apl", "pub fn value()->i64{21}");
     let program = value(&main, 42);
-    let json = core::export(&program, program.entry().unwrap());
+    let json = core::export(&program, program.entry().unwrap()).unwrap();
     assert_eq!(json["functions"].as_array().unwrap().len(), 4);
 }
 
@@ -415,6 +415,7 @@ fn native_outputs_cannot_replace_any_transitive_source_or_alias() {
     assert!(
         apl::codegen::build(&program, program.entry().unwrap(), &unrelated, &hard)
             .unwrap_err()
+            .to_string()
             .contains("overwrite the source")
     );
 }

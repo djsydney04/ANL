@@ -6,13 +6,80 @@ pub enum Type {
     I64,
     Bool,
     Unit,
+    Tuple(TupleShape),
+}
+pub const MAX_TUPLE_FIELDS: usize = 8;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum ScalarType {
+    I64,
+    Bool,
+    Unit,
+}
+impl ScalarType {
+    pub fn as_type(self) -> Type {
+        match self {
+            Self::I64 => Type::I64,
+            Self::Bool => Type::Bool,
+            Self::Unit => Type::Unit,
+        }
+    }
+    pub fn as_str(self) -> &'static str {
+        self.as_type().as_str()
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TupleError;
+impl fmt::Display for TupleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("tuple requires 1..8 scalar fields")
+    }
+}
+impl std::error::Error for TupleError {}
+
+/// A nonempty flat product shape. Unused storage is always normalized.
+///
+/// ```compile_fail,E0451
+/// use apl::types::{TupleShape, ScalarType};
+/// let shape = TupleShape { fields: [ScalarType::Unit; 8], len: 0 };
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TupleShape {
+    fields: [ScalarType; MAX_TUPLE_FIELDS],
+    len: u8,
+}
+impl TupleShape {
+    pub fn new(fields: &[ScalarType]) -> Result<Self, TupleError> {
+        if !(1..=MAX_TUPLE_FIELDS).contains(&fields.len()) {
+            return Err(TupleError);
+        }
+        let mut shape = Self {
+            fields: [ScalarType::Unit; MAX_TUPLE_FIELDS],
+            len: fields.len() as u8,
+        };
+        shape.fields[..fields.len()].copy_from_slice(fields);
+        Ok(shape)
+    }
+    pub fn fields(&self) -> &[ScalarType] {
+        &self.fields[..usize::from(self.len)]
+    }
 }
 impl Type {
+    pub fn scalar(self) -> Option<ScalarType> {
+        match self {
+            Self::I64 => Some(ScalarType::I64),
+            Self::Bool => Some(ScalarType::Bool),
+            Self::Unit => Some(ScalarType::Unit),
+            Self::Tuple(_) => None,
+        }
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::I64 => "i64",
             Self::Bool => "bool",
             Self::Unit => "unit",
+            Self::Tuple(_) => "tuple",
         }
     }
     pub fn from_name(name: &str) -> Option<Self> {
@@ -26,7 +93,21 @@ impl Type {
 }
 impl fmt::Display for Type {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+        if let Self::Tuple(shape) = self {
+            f.write_str("(")?;
+            for (i, field) in shape.fields().iter().enumerate() {
+                if i > 0 {
+                    f.write_str(",")?;
+                }
+                f.write_str(field.as_str())?;
+            }
+            if shape.fields().len() == 1 {
+                f.write_str(",")?;
+            }
+            f.write_str(")")
+        } else {
+            f.write_str(self.as_str())
+        }
     }
 }
 
@@ -130,6 +211,11 @@ pub struct Expr {
 
 #[derive(Clone, Debug)]
 pub enum ExprKind {
+    Tuple(Vec<Expr>),
+    Project {
+        value: Box<Expr>,
+        index: usize,
+    },
     Integer(i64),
     Boolean(bool),
     Unit,
@@ -186,12 +272,16 @@ pub(crate) enum SpecType {
     Unit,
 }
 
-impl From<Type> for SpecType {
-    fn from(ty: Type) -> Self {
+impl SpecType {
+    pub(crate) fn checked(ty: Type, span: Span) -> Result<Self, Diagnostic> {
         match ty {
-            Type::I64 => Self::Int,
-            Type::Bool => Self::Bool,
-            Type::Unit => Self::Unit,
+            Type::I64 => Ok(Self::Int),
+            Type::Bool => Ok(Self::Bool),
+            Type::Unit => Ok(Self::Unit),
+            Type::Tuple(_) => Err(Diagnostic::new(
+                span,
+                "tuple references are not allowed in scalar specifications",
+            )),
         }
     }
 }
@@ -337,6 +427,8 @@ impl Program {
                     then_branch,
                     else_branch,
                 } => contains(condition) || contains(then_branch) || contains(else_branch),
+                ExprKind::Tuple(fields) => fields.iter().any(contains),
+                ExprKind::Project { value, .. } => contains(value),
                 ExprKind::Unary { operand, .. } => contains(operand),
                 ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
                 ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
@@ -351,8 +443,47 @@ impl Program {
             .any(|function| contains(&function.body))
     }
 
+    /// Structural feature detection includes unreachable code and retained source bindings.
+    pub fn has_flat_products(&self) -> bool {
+        fn contains(e: &Expr) -> bool {
+            if matches!(e.ty, Type::Tuple(_)) {
+                return true;
+            }
+            match &e.kind {
+                ExprKind::Tuple(_) | ExprKind::Project { .. } => true,
+                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
+                    contains(value) || contains(body)
+                }
+                ExprKind::Assign { value, .. } | ExprKind::Unary { operand: value, .. } => {
+                    contains(value)
+                }
+                ExprKind::While { condition, body } => contains(condition) || contains(body),
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => contains(condition) || contains(then_branch) || contains(else_branch),
+                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
+                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
+                _ => false,
+            }
+        }
+        self.functions.iter().any(|f| {
+            f.params
+                .iter()
+                .chain(std::iter::once(&f.result))
+                .any(|t| matches!(t, Type::Tuple(_)))
+                || contains(&f.body)
+        }) || self.contracts.as_ref().is_some_and(|cs| {
+            cs.iter()
+                .any(|c| c.bindings.iter().any(|b| matches!(b.ty, Type::Tuple(_))))
+        })
+    }
+
     pub fn semantic_revision(&self) -> &'static str {
-        if self.has_local_state() {
+        if self.has_flat_products() {
+            crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION
+        } else if self.has_local_state() {
             crate::core::LOCAL_STATE_SEMANTIC_REVISION
         } else {
             crate::core::SEMANTIC_REVISION

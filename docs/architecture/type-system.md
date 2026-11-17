@@ -1,6 +1,6 @@
-# Type-system and scalar-core specification
+# Type-system and executable-core specification
 
-Status: scalar types, functions, modules, typed contracts, initialized mutable
+Status: scalar types, flat tuples, functions, modules, typed contracts, initialized mutable
 locals, and while loops are implemented. The broader types, ownership, and
 effects below remain design proposals. The [grammar](../../spec/grammar.ebnf),
 [local-state rules](../../spec/control-flow.md), and [proof inventory](../../formal/PROOFS.md)
@@ -12,35 +12,37 @@ APL is a strict, statically typed, expression-oriented systems language. Functio
 
 The complete language requires primitive integers and floating-point numbers, Unicode scalar characters, UTF-8 text, arrays, slices, tuples, records, nominal algebraic data types, exhaustive matches, generics, closures, modules, explicit errors, mutation, and ownership. These remain delivery requirements even when a milestone supports a smaller subset.
 
-## Executable scalar boundary
+## Executable types and forms
 
-The current runtime supports these scalar forms:
+The current runtime supports these forms:
 
 | Form | Contract |
 | --- | --- |
 | `i64` | Mathematical integers in `[-2^63, 2^63-1]` with checked operations |
 | `bool` | Exactly `true` or `false` |
 | `unit` | One value, written `()` |
+| `(T1, ..., Tn)` | Flat tuple of 1–8 scalar fields; singleton spelling `(T,)` |
+| `tuple.N` | Constant in-bounds field projection; evaluates the complete base |
 | `fn name(x: T, ...) -> U { ... }` | Declared parameter and result types, named calls, recursion |
 | `let x = e;` or `let x: T = e;` | Immutable, monomorphic local binding |
-| `let mut x = e;` or `let mut x: T = e;` | Initialized mutable local with a fixed scalar type |
+| `let mut x = e;` or `let mut x: T = e;` | Initialized mutable local with a fixed type |
 | `x = e;` | Assign the nearest mutable local after evaluating an identically typed right-hand side |
 | `while (c) { body }` | Boolean condition, unit-valued body, repeated in the current local state |
 | `{ statements; final_expression }` | Lexical scope; omitted final expression has type `unit` |
 | `if c { a } else { b }` | `c: bool`; both branches have the same type |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, and unary `-`, on `i64` only |
-| Comparison | `<`, `<=`, `>`, `>=` on `i64`; `==`, `!=` on two scalars of the same type |
+| Comparison | `<`, `<=`, `>`, `>=` on `i64`; `==`, `!=` on two values of the same type/tuple shape |
 | Boolean operations | `!`, short-circuit `&&`, and short-circuit `||` |
-| Expression statement | Evaluate an expression, discard its scalar result, retain its trap behavior |
+| Expression statement | Evaluate an expression, discard its result, retain its trap behavior |
 
-An executable's root file contains exactly one `fn main() -> i64`. Other functions may return any scalar type. Every loaded function body is checked, including unreachable or unused functions. Duplicate function names within a file or parameter names are errors. A block rejects duplicate local binding names in that block. Inner blocks may shadow outer names. A local name shadows a same-named global function, so calling that local scalar is a type error.
+An executable's root file contains exactly one `fn main() -> i64`. Other functions may return any supported scalar or flat-tuple type. Every loaded function body is checked, including unreachable or unused functions. Duplicate function names within a file or parameter names are errors. A block rejects duplicate local binding names in that block. Inner blocks may shadow outer names. A local name shadows a same-named global function, so calling that local value is a type error.
 
 Calls may refer to later function declarations. Arity and each argument type must match the declared signature. Function identifiers cannot be stored, returned, or passed as values in M1. That restriction is removed with the higher-order-function milestone rather than emulated with unchecked pointers.
 
 [File modules](../../spec/modules.md) add private/public declarations and qualified
 names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
 type-checked and erased during ordinary execution. Their optional verifier accepts
-mutable scalar code with annotated loops and acyclic calls; recursion remains unsupported.
+mutable scalar code with annotated loops and acyclic calls; recursion and tuples remain unsupported by verification.
 Loop `invariant` clauses are checked as Boolean mathematical scalar expressions
 in the scope before the condition runs, then erased. Their truth and definedness
 are not established by type checking.
@@ -51,9 +53,16 @@ remain unsupported; they remain full-language delivery requirements.
 Parameters and ordinary lets are immutable. `let mut x = x;` can make a mutable
 copy of a parameter; the initializer runs before the new binding enters scope.
 Assignment checks the nearest binding's mutability and exact type, so an immutable
-shadow prevents assignment to an outer mutable cell. Scalar reads and function
-arguments copy values without exposing storage aliases. Every loop iteration
+shadow prevents assignment to an outer mutable cell. Reads and function arguments capture values without exposing storage aliases. Every loop iteration
 creates fresh body locals; exiting a scope removes only its own bindings.
+
+Flat tuples have ordered scalar field types and arity 1–8. Construction evaluates
+and captures fields left to right; projection evaluates the whole base once.
+Equality evaluates both same-shape operands before comparing fields. Saved tuple
+values survive later whole-value replacement. Nested tuples, destructuring,
+partial assignment and tuple ordering are excluded. The [flat-tuple
+specification](../../spec/flat-products.md) defines the exact source, interchange,
+resource and verifier boundaries; existing scalar rules below are unchanged.
 
 ## Scalar evaluation rules
 

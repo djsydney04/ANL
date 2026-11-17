@@ -1,5 +1,6 @@
 //! APL scalar checker, typed core interchange, reference evaluator, and native compiler.
 //! Formal proof scope is recorded separately under `formal/`.
+pub mod bounded;
 pub mod codegen;
 pub mod core;
 pub mod diagnostic;

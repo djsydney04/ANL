@@ -5,6 +5,10 @@ code, mutable scalar locals, and while loops with invariants. It uses Z3 5.3.3
 and reports solver-trusted results. It supports acyclic calls across source
 modules. Verification requires an invariant on every loaded loop and rejects
 recursive call graphs. Ordinary compilation supports unannotated loops and recursion.
+Flat tuples are executable but unsupported by verification. Any tuple in the loaded
+graph, including an unused signature, causes pre-tool exit 7 with `apl-verify-v2`,
+`trust: "not_established"` and no obligations. Scalar and invariant-loop proofs
+do not establish tuple properties; see the [exact boundary](../spec/flat-products.md#verification-boundary).
 
 ## Run a verification
 

@@ -41,7 +41,9 @@ fn valid_false_undefined_and_mathematical_annotations_erase_exactly() {
     let template = "fn main()->i64 {let mut x=0;let start=x;
         while(x<3) ANNOTATIONS {x=x+1;} x+39}";
     let plain = checked(&template.replace("ANNOTATIONS", ""));
-    let plain_core = core::export(&plain, plain.entry().unwrap()).to_string();
+    let plain_core = core::export(&plain, plain.entry().unwrap())
+        .unwrap()
+        .to_string();
     let plain_c = codegen::emit_c(&plain, plain.entry().unwrap()).unwrap();
     for clauses in [
         "invariant x>=start; invariant x<=3;".to_owned(),
@@ -51,7 +53,7 @@ fn valid_false_undefined_and_mathematical_annotations_erase_exactly() {
     ] {
         let annotated = checked(&template.replace("ANNOTATIONS", &clauses));
         let entry = annotated.entry().unwrap();
-        assert_eq!(core::export(&annotated, entry).to_string(), plain_core);
+        assert_eq!(core::export(&annotated, entry).unwrap().to_string(), plain_core);
         assert_eq!(codegen::emit_c(&annotated, entry).unwrap(), plain_c);
         assert_eq!(outcome(&annotated, 1000), Outcome::Value(Value::Integer(42)));
         assert_eq!(annotated.semantic_revision(), "local-state-2026-11-17");
@@ -93,9 +95,9 @@ fn erasure_preserves_every_tested_fuel_boundary_trap_kind_and_resource_reason() 
         let plain = checked(&template.replace("ANNOTATION", ""));
         let annotated =
             checked(&template.replace("ANNOTATION", "invariant false; invariant 1/0==0;"));
-        let plain_core = core::export(&plain, plain.entry().unwrap());
+        let plain_core = core::export(&plain, plain.entry().unwrap()).unwrap();
         assert_eq!(
-            core::export(&annotated, annotated.entry().unwrap()),
+            core::export(&annotated, annotated.entry().unwrap()).unwrap(),
             plain_core
         );
         assert_eq!(

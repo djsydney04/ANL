@@ -88,7 +88,7 @@ fn assert_native(source: &str, expected: Result<i64, &str>, sanitizer: bool) {
     let c = codegen::emit_c(&program, entry).unwrap();
     let reference = eval::evaluate(&program, entry, 10_000_000);
     if program.has_local_state() {
-        let wire = core::export(&program, entry);
+        let wire = core::export(&program, entry).unwrap();
         assert_eq!(wire["schema"], "apl-core-v1");
         let imported = core::import(&wire.to_string()).unwrap();
         assert_eq!(

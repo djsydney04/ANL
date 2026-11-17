@@ -1,6 +1,6 @@
 # Checked theorem inventory
 
-Semantic revisions: `m1-2026-11-16` and `local-state-2026-11-17`. Proof tool: Lean 4.36.0, official release
+Semantic revisions: `m1-2026-11-16`, `local-state-2026-11-17` and `flat-products-2026-11-17`. Proof tool: Lean 4.36.0, official release
 commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. The checking command is
 `formal/check.sh` from the repository root with the pinned Lean tools on `PATH`.
 It rebuilds all source, runs `APL/Audit.lean`, and replays the semantic modules
@@ -8,7 +8,9 @@ with `leanchecker`. The latter uses the Lean kernel; it is not an independently
 implemented proof checker.
 
 The inventory's variables quantify over the formal syntax and states. `Γ` is a
-list of scalar types, newest binding first. `e` is untyped expression syntax;
+list of scalar types, newest binding first, in the original judgments. State
+contexts also record binding permissions; the separate flat-products context
+admits bounded scalar tuple types. `e` is untyped expression syntax;
 `HasType Γ e t` is a separately defined inductive judgment. `s.Typed t` checks the
 expression, captured environments, and every continuation frame in a machine
 state. `Step` is an inductive small-step relation without a fuel parameter.
@@ -726,6 +728,98 @@ It does not assert minimal height, runtime termination, rank existence/extractio
 source graph/annotation/contract correspondence, or Rust/SMT/solver/native
 correctness. Production loop verification remains separately `smt-trusted`.
 
+## Flat scalar products with local state
+
+`FlatProductsValues`, `FlatProductsMachine`, `FlatProductsTyping`,
+`FlatProductsRun`, `FlatProductsSafety`, `FlatProductsEmbedding` and
+`FlatProductsExamples` add 55 audited general/support statements, preserving all
+preceding 321 statements and their dependency definitions. Their namespace is
+`APL.FlatProducts`; they describe a separate runtime model.
+
+`Flat α` contains a list with proofs of nonempty length at most eight. New `Ty`
+and `Val` each wrap an existing scalar or a bounded tuple of existing scalar
+fields. Ordered field types determine tuple shape. Unit is not an empty tuple,
+and a singleton tuple is distinct from its field. Scalar i64 values retain their
+existing range invariant, and operators reuse the existing scalar arithmetic
+through an explicit result embedding. Tuple equality and inequality require
+matching shapes and compare the completed field lists.
+
+`Term` is untyped syntax. Empty, overwide and nested construction, invalid
+projections, bad references and ill-typed operations remain representable.
+`HasType` and `ArgsTyped` are independent inductive judgments, separate from
+`infer`. Tuple typing matches every field against its bounded scalar shape;
+projection requires an actual in-bounds type lookup. `WellTyped fs` checks every
+actual function body against its declared result under immutable parameters in
+reversed declaration order. It permits recursion and makes no acyclicity,
+termination or arithmetic-safety assumption.
+
+The machine carries the current environment through each field and argument.
+Tuple frames retain captured scalar prefixes in reverse order and reverse once
+on completion. Projection consumes one completed base, including all constructor
+fields. Equality evaluates both operands. Local scopes pop their own binding
+while retaining outer mutations. Calls enter isolated captured-argument
+environments and restore the caller environment saved after argument effects.
+False loop exits retain the condition's final environment.
+
+| Theorem in `APL.FlatProducts` | Quantified statement and assumptions |
+| --- | --- |
+| `Flat.ext`, `Flat.make_fields` | Equal ordered fields determine equal bounded values/shapes; rebuilding an existing bounded list succeeds. |
+| `scalar_canonical`, `tuple_canonical` | A value-type equality yields the corresponding scalar or bounded tuple representation and its field-type equality. |
+| `embedResult_typed`, `unary_typed`, `binary_typed`, `shortCircuit_typed` | The old typed scalar result embeds; the declared unary input or successful binary type computation yields a typed result, allowing defined traps; a typed short-circuit result has the operator's result type. |
+| `construct_typed`, `project_typed` | Construction is typed when field types equal a bounded shape; projection is typed when the base has that tuple type and the requested shape lookup succeeds. |
+| `scalarList_complete`, `scalarList_sound`, `make_fields` | Scalar type-list conversion succeeds exactly on scalar wrappers; successful bounded-list construction retains the original fields. |
+| `infer_complete`, `infer_sound`, `type_unique` | Declarative typing and successful inference coincide for arbitrary signatures, contexts and terms; two typings have the same result type. Every term and argument-list constructor is covered. |
+| `signatures_lookup`, `signatures_lookup_inv`, `checked_functions` | Function and signature lookups agree in both directions; checking every actual body under reversed immutable parameters establishes `WellTyped`. |
+| `env_cons`, `env_tail`, `env_lookup`, `update_typed`, `update_other`, `immutable_unchanged` | Runtime cell types match the static context. Cons/tail preserve the correspondence, valid typed lookups exist, typed updates preserve it, and a single checked update leaves other cells and immutable bindings unchanged. |
+| `step_complete`, `step_sound`, `step_iff`, `deterministic`, `stopped_iff` | Independent `Step` and executable `step` coincide for arbitrary raw states/tables, so stepping is deterministic. Stopped states are empty-continuation returns, defined traps or raw invalid. |
+| `run_sound`, `run_complete`, `run_iff` | An actual successful run gives a finite trace and stopped final state. Conversely, every finite trace to a stopped state has some sufficient transition budget. No typing or termination premise is hidden in these correspondence results. |
+| `args_scalar_cons`, `args_scalar_nil`, `resume_typed` | Typed scalar field lists yield head/tail or empty-list facts; a typed operator result resumes under a typed environment and continuation. |
+| `preservation`, `progress`, `steps_preserve`, `safety`, `no_invalid` | Preservation requires a well-typed function table, typed initial state and one independent step. Progress requires a typed state. With the table premise, every finite trace preserves typing, is stopped or can take a step, and cannot reach invalid. All constructor obligations are discharged, including call bodies and tuple-prefix completion. |
+| `finite_run_safe`, `entry_typed`, `entry_safety` | A completed actual run from a typed state under a well-typed table returns the declared type with an empty continuation or a defined trap. Entry typing requires an actual nullary function lookup; entry safety additionally requires the well-typed table and a finite trace. |
+| `embed_typed`, `embed_signatures`, `embed_wellTyped`, `embed_update`, `embed_resume` | Old LocalState typing, function tables, cell updates and scalar operator results embed into the new model. |
+| `embed_step`, `embed_steps`, `embed_stopped` | Every old transition gives a new transition; finite traces and stopped states embed, including malformed and trapping raw states. |
+| `embed_finite_run`, `embed_finite_value`, `embed_finite_trap` | An actual completed old run yields some new budget with the embedded outcome; specialized value/trap results preserve final environments and values or trap kinds. This is forward finite embedding. |
+
+`EnvTyped` equates runtime cell types with static context types. Frame and
+continuation typing connect current and outer contexts and result types,
+including captured tuple prefixes and saved caller environments. These are
+structural typing premises, not an assumption of semantic safety. Progress alone
+does not replace the `WellTyped` table premise needed by preservation: a typed
+entry into an ill-typed table can still step to invalid. Raw assignment updates
+values without rechecking source permissions; the typed theorem uses the static
+permission premise.
+
+The nineteen private boundary examples cover field and argument snapshots,
+projection once and all-field evaluation, mutation order, equality effects,
+trap priority, whole-value replacement, caller isolation, recursive tuple
+returns, loop state, final false-guard mutation, width limits and raw rejection.
+An all-budget witness places a divergent first field before a later trap and
+applies the full finite-prefix safety theorem; reversing the fields preserves
+the prior trap. Another witness shows why the well-typed table premise cannot be
+dropped. Supporting private lemmas and examples are replayed with the module,
+not added to the audited public statement count.
+
+Type safety permits defined arithmetic traps and divergence. It does not prove
+trap freedom, runtime termination, reverse divergence correspondence or equal
+production resource accounting. The finite mathematical machine does not model
+Rust allocation/slot/output limits. Source parsing and elaboration, annotations,
+JSON adapters, Rust checking/evaluation, shared tuple storage and reclamation,
+MIR/native code, ownership and the SMT stack remain separate correspondence or
+trust obligations. No aggregate verification-condition generator is covered by
+these runtime theorems.
+
+The separate `APL.FlatProductsWire` reader and `MainV2` executable connect v2
+artifacts to this machine through tested decoding and type checks. They add no
+audited theorem names or semantic replay targets. `test_flat_products.py` checks
+hand-authored valid/malformed artifacts, source exports and old scalar embeddings
+against independently specified outcomes, including exact JSON field sorts and
+shape. Type rejection precedes evaluation even with zero fuel. Resource probes
+check tool-specific boundaries separately and do not count as finite semantic
+agreements. The suite is run with
+`python3 formal/test_flat_products.py --rust target/debug/apl` after building both
+formal executables and the compiler. Decoder correctness, source correspondence
+and compiled-executable correctness remain unproved by this inventory.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
@@ -739,8 +833,8 @@ axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 321 inventoried names are included. The
-check script replays 38 semantic modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 376 inventoried names are included. The
+check script replays 45 semantic modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -749,7 +843,7 @@ not establish that the formal definitions match every intended APL rule.
 ## Explicit gaps
 
 FM-01 through FM-05 are discharged for the documented v0 scalar expression/function
-model; the local-state extension has the separate scoped results above. Typing
+model; local state and flat scalar products have the separate scoped results above. Typing
 theorems alone do not establish termination or trap freedom. VCG guarantees
 require accepted logical obligations and the documented expansion boundary.
 No result establishes completeness at fixed CLI resource limits or correctness of source/module elaboration, Rust checking,
@@ -758,7 +852,7 @@ call constructor; program terms use a separate type to make that boundary visibl
 
 FM-06 is differential and negative testing evidence only. The Lean expression
 checker's soundness theorem does not prove the Rust frontend, checker, serializer,
-or either JSON adapter correct. Source elaboration, including discarded-let
+or any JSON adapter correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
 FM-07 is partial: the call-free, finite call-expansion, loop-free local-state and

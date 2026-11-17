@@ -45,6 +45,8 @@ pub(crate) struct Instruction {
 
 #[derive(Debug)]
 pub(crate) enum Operation {
+    Tuple(Vec<Temp>),
+    Project(Temp, usize),
     Integer(i64),
     Boolean(bool),
     Unit,
@@ -134,6 +136,16 @@ impl Builder {
         instructions: &mut Vec<Instruction>,
     ) -> Result<Temp> {
         let kind = match &expr.kind {
+            ExprKind::Tuple(fields) => {
+                let mut values = Vec::with_capacity(fields.len());
+                for field in fields {
+                    values.push(self.expr(field, locals, instructions)?);
+                }
+                Operation::Tuple(values)
+            }
+            ExprKind::Project { value, index } => {
+                Operation::Project(self.expr(value, locals, instructions)?, *index)
+            }
             ExprKind::Integer(n) => Operation::Integer(*n),
             ExprKind::Boolean(b) => Operation::Boolean(*b),
             ExprKind::Unit => Operation::Unit,
@@ -325,6 +337,32 @@ impl Validator<'_> {
     fn block(&mut self, block: &Block) -> Result<Type> {
         for instruction in &block.instructions {
             let ty = match &instruction.kind {
+                Operation::Tuple(fields) => {
+                    if !(1..=types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
+                        return Err(InvalidMir("tuple width"));
+                    }
+                    let mut shape = Vec::new();
+                    for field in fields {
+                        shape.push(
+                            self.use_temp(*field)?
+                                .scalar()
+                                .ok_or(InvalidMir("nested tuple"))?,
+                        );
+                    }
+                    Type::Tuple(
+                        types::TupleShape::new(&shape).map_err(|_| InvalidMir("tuple width"))?,
+                    )
+                }
+                Operation::Project(value, index) => {
+                    let Type::Tuple(shape) = self.use_temp(*value)? else {
+                        return Err(InvalidMir("projection of scalar"));
+                    };
+                    shape
+                        .fields()
+                        .get(*index)
+                        .ok_or(InvalidMir("projection out of bounds"))?
+                        .as_type()
+                }
                 Operation::Integer(_) => Type::I64,
                 Operation::Boolean(_) => Type::Bool,
                 Operation::Unit => Type::Unit,

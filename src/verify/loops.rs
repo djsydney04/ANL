@@ -529,6 +529,11 @@ impl Analysis<'_, '_, '_> {
     ) -> Result<Flow, Failure> {
         self.genr.visit(depth)?;
         let value = match &expr.kind {
+            ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+                return Err(Failure::Unsupported(
+                    "flat products are outside scalar verification".into(),
+                ));
+            }
             ExprKind::Integer(n) => self.genr.arena.int(&if *n < 0 {
                 format!("(- {})", n.unsigned_abs())
             } else {

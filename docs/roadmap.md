@@ -21,7 +21,7 @@ each implemented feature. M3 can progress alongside native compiler work once M1
 contracts are stable. A phase number expresses dependencies, not a claim that all
 work in prior phases is finished.
 
-Current status: the scalar checker/interpreter, native C11 backend, file modules,
+Current status: the scalar/flat-tuple checker and interpreter, native C11 backend, file modules,
 initialized mutable locals, while loops, versioned core JSON interchange, scalar
 contract verification with invariants and acyclic calls, and scoped Lean proofs are
 available. Follow [getting started](getting-started.md) to run the tools and the
@@ -33,6 +33,8 @@ proves conditional safety and partial correctness over that machine. A separate
 supplied-rank theorem gives a uniform generation height under static typing,
 metadata and environment-length premises. Production
 invariant-loop verification is separately implemented with solver-trusted results.
+Flat tuples have a separate typed runtime model with finite machine correspondence
+and a v2 adapter checked through executable comparisons.
 The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
@@ -161,6 +163,19 @@ correspondence or Rust/JSON/native correctness. Loop-free state verification has
 the separate model and implementation boundaries described in M3. Local
 runtime/proof checks and [hosted Linux/macOS Rust and Lean checks](https://github.com/djsydney04/ANL/actions/runs/44059286145)
 passed at `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`.
+
+The [flat-tuple slice](../spec/flat-products.md) adds 1–8 scalar fields,
+construction, constant projection, same-shape equality, multiple results and
+whole-value assignment through source, interpretation, v2 interchange and native
+compilation. Tuple verification is explicitly unsupported before tool discovery.
+The separate [runtime model](../formal/PROOFS.md#flat-scalar-products-with-local-state)
+proves inference equivalence, typed finite-trace safety, finite run/step
+correspondence and forward finite LocalState embedding. The v2 adapter is tested
+against Rust on independently specified values, traps and malformed inputs;
+resource-limited cases remain inconclusive. Source/JSON/Rust/native correspondence,
+shared-storage reclamation and termination are not established by those proofs.
+This does not complete L03: nested aggregates, arrays, slices, records and
+collections still require their own semantics and evidence.
 
 Implement the remainder of the type system, ownership/borrowing, data types,
 generics, closures, pattern matching, errors, effects, concurrency/async, I/O,

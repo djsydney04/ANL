@@ -256,6 +256,11 @@ fn model(text: &str, params: &[Type]) -> Result<Value, Failure> {
                 Sexp::Atom(v) if v == "false" => json!(false),
                 _ => return Err(Failure::Error("invalid solver Boolean model".into())),
             },
+            Type::Tuple(_) => {
+                return Err(Failure::Unsupported(
+                    "flat products are outside scalar verification".into(),
+                ));
+            }
             Type::Unit => return Err(Failure::Error("unexpected unit solver variable".into())),
         };
         assignments.push(
@@ -366,6 +371,11 @@ fn model_symbols(
                 Sexp::Atom(v) if v == "false" => json!(false),
                 _ => return Err(Failure::Error("invalid solver Boolean model".into())),
             },
+            Type::Tuple(_) => {
+                return Err(Failure::Unsupported(
+                    "flat products are outside scalar verification".into(),
+                ));
+            }
             Type::Unit => return Err(Failure::Error("unexpected unit solver variable".into())),
         };
         budget.charge(12)?;

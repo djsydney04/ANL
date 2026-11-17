@@ -1,9 +1,9 @@
 # APL architectural overview
 
-Status: architecture for the complete language, with an implemented scalar core,
-native C11 compiler, file modules, initialized scalar state and loops, scalar
+Status: architecture for the complete language, with an implemented scalar/flat-tuple core,
+native C11 compiler, file modules, initialized local state and loops, scalar
 contract verification with invariants and acyclic calls, and scoped immutable, local-state,
-and verification-condition proofs.
+flat-tuple runtime and verification-condition proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
 the complete-language release requirements open.
@@ -59,7 +59,9 @@ The original M1 core has `i64`, `bool`, unit, immutable bindings, blocks,
 conditionals, scalar operators, and named recursive functions. The separate
 [local-state revision](../../spec/control-flow.md) adds initialized mutable locals,
 assignment, and structured while statements without references or shared cells.
-The [grammar](../../spec/grammar.ebnf) defines the scalar syntax, extended by the
+The [flat-tuple extension](../../spec/flat-products.md) adds bounded scalar products,
+projection and whole-value replacement. The [grammar](../../spec/grammar.ebnf)
+defines source syntax, extended by the
 [module specification](../../spec/modules.md) for files and visibility. The executable
 entry is nullary `main` returning `i64`. Library checking does not require an entry.
 
@@ -71,8 +73,9 @@ limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
 release feature set. Native compilation, modules, local scalar state, and opt-in
-contract verification with loop invariants and acyclic calls extend that core today; aggregates, heap
-ownership, and concurrency remain later increments.
+contract verification with loop invariants and acyclic calls extend that core today.
+Flat tuples execute through the interpreter, v2 interchange and native backend;
+tuple verification, nested aggregates, heap ownership and concurrency remain later increments.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
 `dump-core`, and `eval-core`. It checks every function in the imported source

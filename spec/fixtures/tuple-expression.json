@@ -1,0 +1,1 @@
+{"schema":"apl-expr-v2","semantic_revision":"flat-products-2026-11-17","expression":{"tag":"tuple","fields":[{"tag":"integer","value":"42","ty":"i64"},{"tag":"boolean","value":true,"ty":"bool"},{"tag":"unit","ty":"unit"}],"ty":{"tuple":["i64","bool","unit"]}}}

@@ -56,9 +56,10 @@ impl VerificationReport {
     }
     pub fn human(&self) -> String {
         let mut text = format!(
-            "{}: {} obligations; trust=smt-trusted; contracts erased during ordinary execution",
+            "{}: {} obligations; trust={}; contracts erased during ordinary execution",
             self.data["status"].as_str().unwrap_or("error"),
-            self.data["obligations"].as_array().map_or(0, Vec::len)
+            self.data["obligations"].as_array().map_or(0, Vec::len),
+            self.data["trust"].as_str().unwrap_or("not_established")
         );
         if let Some(message) = self.data["message"].as_str() {
             text.push_str(&format!("\n{message}"));
@@ -217,6 +218,22 @@ pub fn verify_file(
         return Err(error);
     }
     let program = crate::compile_file(path)?;
+    if program.has_flat_products() {
+        return Ok(VerificationReport {
+            data: json!({
+                "schema":"apl-verify-v2", "semantic_revision":crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION,
+                "verification_revision":"apl-flat-products-unsupported-v1", "status":"unsupported", "trust":"not_established",
+                "scope":{"functions":"all_loaded","fragment":"unsupported_flat_products","arithmetic_safety":false,"partial_correctness":false,"termination_proved":false,"native_correctness":false,"model_proof":null},
+                "type_checked":true,"tested":false,"dynamic_checks":false,"contracts_erased":true,
+                "compiler":null,"solver":null,
+                "sources":program.sources.iter().enumerate().map(|(id,s)|json!({"id":id,"path":s.path.to_string_lossy(),"path_bytes_hex":path_hex(&s.path),"sha256":sha(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>(),
+                "functions":program.functions.iter().enumerate().map(|(id,f)|json!({"id":id,"name":f.name,"parameter_types":f.params,"result":f.result,"location":location(&program,f.span)})).collect::<Vec<_>>(),
+                "obligations":[],"message":"flat products are unsupported by the scalar verifier; no safety or partial-correctness claim was established"
+            }),
+            exit: 7,
+        });
+    }
+
     let deadline = Instant::now() + Duration::from_millis(options.timeout_ms);
     let route = if loops::contains(&program) {
         Route::Loops

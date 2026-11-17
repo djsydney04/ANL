@@ -550,6 +550,11 @@ impl<'a> Generator<'a> {
         self.visit(depth)?;
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+                return Err(Failure::Unsupported(
+                    "flat products are outside scalar verification".into(),
+                ));
+            }
             ExprKind::Integer(n) => Symbolic {
                 value: self.arena.int(&if *n < 0 {
                     format!("(- {})", n.unsigned_abs())
@@ -726,6 +731,7 @@ pub(super) fn supported(program: &Program) -> Result<(), Failure> {
         let mut work = vec![&function.body];
         while let Some(expr) = work.pop() {
             let construct = match &expr.kind {
+                ExprKind::Tuple(_) | ExprKind::Project { .. } => Some("flat products"),
                 ExprKind::While { .. } => Some("while"),
                 ExprKind::Assign { value, .. } => {
                     work.push(value);

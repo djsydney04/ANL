@@ -49,7 +49,7 @@ fn checked_program_remains_usable_through_public_source_and_json_apis() {
     let program = apl::compile("fn main()->i64{if true {42} else {0}}").unwrap();
     let entry = program.entry().unwrap();
     assert_eq!(eval::evaluate(&program, entry, 100), Ok(Value::Integer(42)));
-    let json = core::export(&program, entry).to_string();
+    let json = core::export(&program, entry).unwrap().to_string();
     let imported = core::import(&json).unwrap();
     assert_eq!(
         eval::evaluate(&imported.program, imported.entry, 100),

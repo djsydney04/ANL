@@ -1,0 +1,1276 @@
+{
+  "schema": "apl-flat-products-tests-v1",
+  "description": "Hand-derived finite outcomes, strict malformed artifacts, scalar embeddings and separate tool-resource boundaries. Source cases are exported afresh by the tested compiler.",
+  "cases": [
+    {
+      "name": "mixed-value",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64",
+            "bool",
+            "unit"
+          ]
+        },
+        "value": [
+          "42",
+          true,
+          null
+        ]
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}}}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "singleton-value",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64"
+          ]
+        },
+        "value": [
+          "-7"
+        ]
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-7\"}],\"ty\":{\"tuple\":[\"i64\"]}}}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "width-eight-value",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64",
+            "bool",
+            "unit",
+            "i64",
+            "bool",
+            "unit",
+            "i64",
+            "i64"
+          ]
+        },
+        "value": [
+          "1",
+          true,
+          null,
+          "4",
+          false,
+          null,
+          "7",
+          "8"
+        ]
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"4\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false},{\"tag\":\"unit\",\"ty\":\"unit\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"7\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"8\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\",\"i64\",\"bool\",\"unit\",\"i64\",\"i64\"]}}}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "project-unit",
+      "expected": {
+        "outcome": "value",
+        "type": "unit",
+        "value": null
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":2,\"ty\":\"unit\"}}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "scalar-explicit-v2",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}\n",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "tuple-equality",
+      "expected": {
+        "outcome": "value",
+        "type": "bool",
+        "value": true
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"eq\",\"left\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"right\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"ty\":\"bool\"}}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "eager-projection-trap",
+      "expected": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"7\"},{\"tag\":\"binary\",\"op\":\"div\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"ty\":\"i64\"}],\"ty\":{\"tuple\":[\"i64\",\"i64\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "program-argument-order",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "25"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"entry\":0,\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"call\",\"function\":1,\"arguments\":[{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"2\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true}],\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"5\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false}],\"ty\":{\"tuple\":[\"i64\",\"bool\"]}}],\"ty\":\"i64\"}},{\"id\":1,\"name\":\"f\",\"params\":[{\"tuple\":[\"i64\",\"bool\"]},{\"tuple\":[\"i64\",\"bool\"]}],\"result\":\"i64\",\"body\":{\"tag\":\"binary\",\"op\":\"add\",\"left\":{\"tag\":\"binary\",\"op\":\"mul\",\"left\":{\"tag\":\"project\",\"value\":{\"tag\":\"local\",\"index\":1,\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},\"index\":0,\"ty\":\"i64\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"10\"},\"ty\":\"i64\"},\"right\":{\"tag\":\"project\",\"value\":{\"tag\":\"local\",\"index\":0,\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},\"index\":0,\"ty\":\"i64\"},\"ty\":\"i64\"}}]}\n",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "bad-index-77",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":-0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-78",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":-1,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-79",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0.0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-80",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0e0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-81",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":\"0\",\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-82",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":true,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-83",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":null,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-84",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":8,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "bad-index-85",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":18446744073709551616,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "index-oob",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":3,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "forged-project-result",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"bool\"}}\n"
+    },
+    {
+      "name": "unknown-project-member",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\",\"extra\":0}}\n"
+    },
+    {
+      "name": "missing-project-member",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "scalar-base",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "empty-shape",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[],\"ty\":{\"tuple\":[]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "wide-shape",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"}],\"ty\":{\"tuple\":[\"i64\",\"i64\",\"i64\",\"i64\",\"i64\",\"i64\",\"i64\",\"i64\",\"i64\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "nested-shape",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"}],\"ty\":{\"tuple\":[\"i64\"]}}],\"ty\":{\"tuple\":[{\"tuple\":[\"i64\"]}]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "field-type-mismatch",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "tuple-type-extra-member",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"],\"extra\":true}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "unknown-scalar-type",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"nat\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "wrong-revision",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"local-state-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "v1-new-constructors",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v1\",\"semantic_revision\":\"local-state-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "v0-new-constructors",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v0\",\"semantic_revision\":\"m1-2026-11-16\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "duplicate-index",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "duplicate-type",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"],\"tuple\":[\"i64\",\"bool\",\"unit\"]}},\"index\":0,\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "expression-call",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"call\",\"function\":1,\"arguments\":[{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"2\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true}],\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"5\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false}],\"ty\":{\"tuple\":[\"i64\",\"bool\"]}}],\"ty\":\"i64\"}}\n"
+    },
+    {
+      "name": "unused-forged-signature",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"entry\":0,\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"}},{\"id\":1,\"name\":\"f\",\"params\":[{\"tuple\":[]},{\"tuple\":[\"i64\",\"bool\"]}],\"result\":\"i64\",\"body\":{\"tag\":\"binary\",\"op\":\"add\",\"left\":{\"tag\":\"binary\",\"op\":\"mul\",\"left\":{\"tag\":\"project\",\"value\":{\"tag\":\"local\",\"index\":1,\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},\"index\":0,\"ty\":\"i64\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"10\"},\"ty\":\"i64\"},\"right\":{\"tag\":\"project\",\"value\":{\"tag\":\"local\",\"index\":0,\"ty\":{\"tuple\":[\"i64\",\"bool\"]}},\"index\":0,\"ty\":\"i64\"},\"ty\":\"i64\"}}]}\n"
+    },
+    {
+      "name": "tuple-program-entry",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"entry\":0,\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]},\"body\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]}}}]}\n"
+    },
+    {
+      "name": "field-capture",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "122"
+      },
+      "source": "fn main()->i64 {let mut x=1; let p=(x,{x=2;x},()); p.0*100+p.1*10+x}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "field-state-order",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "133"
+      },
+      "source": "fn main()->i64 {let mut x=0; let p=({x=1;x},{x=x+2;x}); p.0*100+p.1*10+x}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "base-once",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "11"
+      },
+      "source": "fn main()->i64 {let mut x=0; let a=({x=x+1;(x,x+1)}).0; a*10+x}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "copy-replacement",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "28"
+      },
+      "source": "fn main()->i64 {let mut p=(2,true); let q=p; p=(8,false); q.0*10+p.0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "whole-replacement",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "6"
+      },
+      "source": "fn main()->i64 {let mut p=(2,true); p=({p=(5,false);p.0+1},p.1); if p.1 {0} else {p.0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "equality-operands",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "12"
+      },
+      "source": "fn main()->i64 {let mut x=0; let same=(0,{x=x+1;x})==(1,{x=x*10+2;x}); if same {0} else {x}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "equality-snapshot",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "3"
+      },
+      "source": "fn main()->i64 {let mut p=(2,true); let same=p=={p=(3,false);p}; if same {0} else {p.0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "equality-unit",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "41"
+      },
+      "source": "fn main()->i64 {if (1,(),true)==(1,(),true) {41} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "inequality",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "source": "fn main()->i64 {if (1,(),false)!=(1,(),true) {42} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "singleton",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "-7"
+      },
+      "source": "fn main()->i64 {let p=(7,); -p.0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "unit-singleton",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "37"
+      },
+      "source": "fn main()->i64 {let p=((),); if p.0==() {37} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "width-eight",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "20"
+      },
+      "source": "fn main()->i64 {let p=(1,true,(),4,false,(),7,8); p.0+p.3+p.6+p.7}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "branch-product",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9"
+      },
+      "source": "fn main()->i64 {let p=if false {(1,true)} else {(9,false)}; if p.1 {0} else {p.0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "final-false-guard",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "31"
+      },
+      "source": "fn main()->i64 {let mut p=(0,false); while ({p=(p.0+1,true);p.0<3}) {p=(p.0,false);} p.0*10+if p.1 {1} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "shadow-product",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "2"
+      },
+      "source": "fn main()->i64 {let mut p=(2,false); {let p=(9,true); p.0;}; p.0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "skip-trapping-branch",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "7"
+      },
+      "source": "fn main()->i64 {let p=if true {(7,false)} else {(1/0,true)}; p.0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "trailing-comma",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "3"
+      },
+      "source": "fn main()->i64 {let p=(3,true,); if p.1 {p.0} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "call-capture",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "525"
+      },
+      "source": "fn f(a:(i64,bool),b:(i64,bool))->i64 {a.0*10+b.0}\nfn main()->i64 {let mut p=(2,true);let n=f(p,{p=(5,false);p});n+p.0*100}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "recursive-product",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "7"
+      },
+      "source": "fn step(n:i64,p:(i64,bool))->(i64,bool) {if n==0 {p} else {step(n-1,(p.0+1,!p.1))}}\nfn main()->i64 {let p=step(3,(4,false));if p.1 {p.0} else {0}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "eager-project-trap",
+      "expected": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "source": "fn main()->i64 {(7,1/0).0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "first-field-trap",
+      "expected": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "source": "fn main()->i64 {(1/0,9223372036854775807+1).1}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "first-overflow-trap",
+      "expected": {
+        "outcome": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "source": "fn main()->i64 {(9223372036854775807+1,1/0).1}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "equality-right-trap",
+      "expected": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "source": "fn main()->i64 {if (0,0)==(1,1/0) {1} else {2}}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "scalar-parameter-after-tuple",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "4"
+      },
+      "source": "fn f(p:(i64,),n:i64)->i64 requires n==4; ensures (result) result==n; {n}\nfn main()->i64 {f((99,),4)}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "scalar-parameter-before-tuple",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "4"
+      },
+      "source": "fn f(n:i64,p:(i64,))->i64 requires n==4; ensures (result) result==n; {n}\nfn main()->i64 {f(4,(99,))}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "scalar-local-across-tuple",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "4"
+      },
+      "source": "fn main()->i64 {let n=4;let p=(99,);let mut i=0;while (i<n) invariant 0<=i; invariant i<=n; {i=i+1;}i}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "tuple-result-scalar-clause",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "4"
+      },
+      "source": "fn f(n:i64)->(i64,) requires n==4; ensures (result) n==4; {(n,)}\nfn main()->i64 {f(4).0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "constant-tuple-clause",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "4"
+      },
+      "source": "fn f(p:(i64,))->(i64,) requires true; ensures (result) true; {p}\nfn main()->i64 {f((4,)).0}\n",
+      "source_fuel": 100000
+    },
+    {
+      "name": "projection-lexical-0",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":-0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-1",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0.0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-2",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0e0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-3",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0E+0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-4",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":\"0\",\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-5",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":true,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-6",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":false,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-7",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":null,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-8",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":-1,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-9",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":+0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-10",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":01,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-11",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":8,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-12",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":4294967296,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "projection-lexical-13",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":999999999999999999999999999,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "duplicate-escaped-index",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0,\"\\u0069ndex\":0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "duplicate-schema",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "duplicate-escaped-schema",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"\\u0073chema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"index\":0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "duplicate-tuple-shape",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"project\",\"value\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}],\"ty\":{\"tuple\":[\"i64\"],\"tuple\":[\"i64\"]}},\"index\":0,\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "canonical-0",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "0"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "canonical--9223372036854775808",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "-9223372036854775808"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-9223372036854775808\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "canonical-9223372036854775807",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "9223372036854775807"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"9223372036854775807\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "noncanonical-integer-0",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-0\"}}"
+    },
+    {
+      "name": "noncanonical-integer-1",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"00\"}}"
+    },
+    {
+      "name": "noncanonical-integer-2",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"01\"}}"
+    },
+    {
+      "name": "noncanonical-integer-3",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-01\"}}"
+    },
+    {
+      "name": "noncanonical-integer-4",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"+1\"}}"
+    },
+    {
+      "name": "noncanonical-integer-5",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\" 1\"}}"
+    },
+    {
+      "name": "noncanonical-integer-6",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1 \"}}"
+    },
+    {
+      "name": "noncanonical-integer-7",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"9223372036854775808\"}}"
+    },
+    {
+      "name": "noncanonical-integer-8",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-9223372036854775809\"}}"
+    },
+    {
+      "name": "noncanonical-integer-9",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1_0\"}}"
+    },
+    {
+      "name": "noncanonical-integer-10",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"\\uff11\"}}"
+    },
+    {
+      "name": "noncanonical-integer-11",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1.0\"}}"
+    },
+    {
+      "name": "noncanonical-integer-12",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1e0\"}}"
+    },
+    {
+      "name": "nonstring-i64-0",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":0}}"
+    },
+    {
+      "name": "nonstring-i64-1",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":true}}"
+    },
+    {
+      "name": "nonstring-i64-2",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":null}}"
+    },
+    {
+      "name": "nonstring-i64-3",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":1.5}}"
+    },
+    {
+      "name": "nonsequential-id",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":1,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":0}"
+    },
+    {
+      "name": "duplicate-name",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}}],\"entry\":0}"
+    },
+    {
+      "name": "reserved-name",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"fn\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":0}"
+    },
+    {
+      "name": "unicode-name",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"m\\u00e9\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":0}"
+    },
+    {
+      "name": "unbound-unused-body",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"local\",\"index\":0,\"ty\":\"i64\"}}],\"entry\":0}"
+    },
+    {
+      "name": "forged-unused-body",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true}}],\"entry\":0}"
+    },
+    {
+      "name": "invalid-unused-call",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"call\",\"ty\":\"i64\",\"function\":2,\"arguments\":[]}}],\"entry\":0}"
+    },
+    {
+      "name": "entry-with-parameter",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[\"i64\"],\"result\":\"i64\",\"body\":{\"tag\":\"local\",\"index\":0,\"ty\":\"i64\"}}],\"entry\":0}"
+    },
+    {
+      "name": "entry-missing",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":1}"
+    },
+    {
+      "name": "wrong-arity",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"call\",\"ty\":\"i64\",\"function\":1,\"arguments\":[]}},{\"id\":1,\"name\":\"f\",\"params\":[\"i64\"],\"result\":\"i64\",\"body\":{\"tag\":\"local\",\"index\":0,\"ty\":\"i64\"}}],\"entry\":0}"
+    },
+    {
+      "name": "call-in-dead-expression-branch",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"if\",\"ty\":\"i64\",\"condition\":{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false},\"then\":{\"tag\":\"call\",\"ty\":\"i64\",\"function\":0,\"arguments\":[]},\"else\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}}"
+    },
+    {
+      "name": "immutable-assignment",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"let\",\"ty\":\"unit\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"body\":{\"tag\":\"assign\",\"ty\":\"unit\",\"index\":0,\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}}}}"
+    },
+    {
+      "name": "tuple-condition",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"if\",\"ty\":\"i64\",\"condition\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false}],\"ty\":{\"tuple\":[\"bool\"]}},\"then\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},\"else\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"2\"}}}"
+    },
+    {
+      "name": "tuple-arithmetic",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"add\",\"left\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"right\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"2\"}],\"ty\":{\"tuple\":[\"i64\"]}},\"ty\":{\"tuple\":[\"i64\"]}}}"
+    },
+    {
+      "name": "body-nonunit",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"while\",\"ty\":\"unit\",\"condition\":{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false},\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}}}"
+    },
+    {
+      "name": "unit-value",
+      "expected": {
+        "outcome": "value",
+        "type": "unit",
+        "value": null
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"unit\",\"ty\":\"unit\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "singleton-unit-value",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "unit"
+          ]
+        },
+        "value": [
+          null
+        ]
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"tuple\",\"fields\":[{\"tag\":\"unit\",\"ty\":\"unit\"}],\"ty\":{\"tuple\":[\"unit\"]}}}",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "nonzero-entry",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"unused\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"2\"}},{\"id\":1,\"name\":\"entry\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":1}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "unused-tuple-signature",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[{\"tuple\":[\"i64\"]}],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"3\"}}],\"entry\":0}",
+      "revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "scalar-state-explicit-v2",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"let_mut\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},\"body\":{\"tag\":\"local\",\"index\":0,\"ty\":\"i64\"}}}",
+      "revision": "local-state-2026-11-17"
+    },
+    {
+      "name": "unused-state-explicit-v2",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"let_mut\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},\"body\":{\"tag\":\"local\",\"index\":0,\"ty\":\"i64\"}}}],\"entry\":0}",
+      "revision": "local-state-2026-11-17"
+    },
+    {
+      "name": "scalar-embedding-division",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "-2"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"div\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-7\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"3\"},\"ty\":\"i64\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "scalar-embedding-remainder",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "-1"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"rem\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-7\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"3\"},\"ty\":\"i64\"}}",
+      "revision": "m1-2026-11-16"
+    },
+    {
+      "name": "scalar-embedding-trap-zero",
+      "expected": {
+        "outcome": "trap",
+        "trap": "division_by_zero"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"div\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "scalar-embedding-trap-overflow",
+      "expected": {
+        "outcome": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"div\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-9223372036854775808\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"-1\"},\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "scalar-embedding-trap-add",
+      "expected": {
+        "outcome": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"op\":\"add\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"9223372036854775807\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"},\"ty\":\"i64\"}}"
+    },
+    {
+      "name": "byte-limit",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "generator": "spaces",
+      "bytes": 1048577
+    },
+    {
+      "name": "json-depth-limit",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "generator": "json_depth",
+      "depth": 257
+    },
+    {
+      "name": "expression-depth-limit",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "generator": "expression_depth",
+      "operators": 128
+    },
+    {
+      "name": "invalid-utf8",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "generator": "invalid_utf8"
+    },
+    {
+      "name": "zero-transition-budget",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}",
+      "fuel": 0
+    },
+    {
+      "name": "old-core-expression-embedded",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"binary\",\"ty\":\"i64\",\"op\":\"mul\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"6\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"7\"}}}",
+      "revision": "m1-2026-11-16",
+      "old_document": "{\"schema\":\"apl-expr-v0\",\"semantic_revision\":\"m1-2026-11-16\",\"expression\":{\"tag\":\"binary\",\"ty\":\"i64\",\"op\":\"mul\",\"left\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"6\"},\"right\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"7\"}}}\n"
+    },
+    {
+      "name": "old-core-program-embedded",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},\"body\":{\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"body\":{\"tag\":\"local\",\"ty\":\"i64\",\"index\":1}}}}],\"entry\":0}",
+      "revision": "m1-2026-11-16",
+      "old_document": "{\n  \"schema\": \"apl-core-v0\",\n  \"semantic_revision\": \"m1-2026-11-16\",\n  \"functions\": [{\n    \"id\": 0, \"name\": \"main\", \"params\": [], \"result\": \"i64\",\n    \"body\": {\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},\"body\":{\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"body\":{\"tag\":\"local\",\"ty\":\"i64\",\"index\":1}}}\n  }],\n  \"entry\": 0\n}\n"
+    },
+    {
+      "name": "old-state-embedded",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "1"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"let_mut\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"body\":{\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"assign\",\"ty\":\"unit\",\"index\":0,\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}},\"body\":{\"tag\":\"local\",\"index\":1,\"ty\":\"i64\"}}}}",
+      "revision": "local-state-2026-11-17",
+      "old_document": "{\"schema\":\"apl-expr-v1\",\"semantic_revision\":\"local-state-2026-11-17\",\"expression\":{\"tag\":\"let_mut\",\"ty\":\"i64\",\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"},\"body\":{\"tag\":\"let\",\"ty\":\"i64\",\"value\":{\"tag\":\"assign\",\"ty\":\"unit\",\"index\":0,\"value\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}},\"body\":{\"tag\":\"local\",\"index\":1,\"ty\":\"i64\"}}}}"
+    },
+    {
+      "name": "boundary-exact-byte-bound",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "generator": "padded_scalar",
+      "bytes": 1048576
+    },
+    {
+      "name": "boundary-valid-document-over-byte-bound",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "generator": "padded_scalar",
+      "bytes": 1048577
+    },
+    {
+      "name": "boundary-exact-expression-depth",
+      "expected": {
+        "outcome": "value",
+        "type": "bool",
+        "value": false
+      },
+      "generator": "expression_depth",
+      "operators": 127,
+      "rust_expected": {
+        "outcome": "resource_limit"
+      }
+    },
+    {
+      "name": "boundary-common-expression-depth",
+      "expected": {
+        "outcome": "value",
+        "type": "bool",
+        "value": true
+      },
+      "generator": "expression_depth",
+      "operators": 120
+    },
+    {
+      "name": "boundary-contextual-name",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"while\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":0}"
+    },
+    {
+      "name": "boundary-mixed-outcome",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64",
+            "bool",
+            "unit"
+          ]
+        },
+        "value": [
+          "42",
+          true,
+          null
+        ]
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"tuple\",\"ty\":{\"tuple\":[\"i64\",\"bool\",\"unit\"]},\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"},{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":true},{\"tag\":\"unit\",\"ty\":\"unit\"}]}}"
+    },
+    {
+      "name": "boundary-forged-literal-type",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"integer\",\"ty\":\"bool\",\"value\":\"42\"}}"
+    },
+    {
+      "name": "boundary-forged-type-dead-branch",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"if\",\"ty\":\"i64\",\"condition\":{\"tag\":\"boolean\",\"ty\":\"bool\",\"value\":false},\"then\":{\"tag\":\"integer\",\"value\":\"7\",\"ty\":\"bool\"},\"else\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}}"
+    },
+    {
+      "name": "boundary-immutable-tuple-shadow",
+      "expected": {
+        "outcome": "invalid_ir"
+      },
+      "document": "{\"schema\":\"apl-expr-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"expression\":{\"tag\":\"let_mut\",\"ty\":\"unit\",\"value\":{\"tag\":\"tuple\",\"ty\":{\"tuple\":[\"i64\"]},\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}]},\"body\":{\"tag\":\"let\",\"ty\":\"unit\",\"value\":{\"tag\":\"tuple\",\"ty\":{\"tuple\":[\"i64\"]},\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}]},\"body\":{\"tag\":\"assign\",\"index\":0,\"value\":{\"tag\":\"tuple\",\"ty\":{\"tuple\":[\"i64\"]},\"fields\":[{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"1\"}]},\"ty\":\"unit\"}}}}"
+    },
+    {
+      "name": "boundary-signature-only-product",
+      "expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "revision": "flat-products-2026-11-17",
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}},{\"id\":1,\"name\":\"unused\",\"params\":[{\"tuple\":[\"unit\"]}],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"0\"}}],\"entry\":0}"
+    },
+    {
+      "name": "boundary-scalar-program-budget",
+      "expected": {
+        "outcome": "resource_limit"
+      },
+      "rust_expected": {
+        "outcome": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "fuel": 1,
+      "lean_followup": {
+        "fuel": 3,
+        "expected": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "42"
+        }
+      },
+      "revision": "m1-2026-11-16",
+      "document": "{\"schema\":\"apl-core-v2\",\"semantic_revision\":\"flat-products-2026-11-17\",\"functions\":[{\"id\":0,\"name\":\"main\",\"params\":[],\"result\":\"i64\",\"body\":{\"tag\":\"integer\",\"ty\":\"i64\",\"value\":\"42\"}}],\"entry\":0}"
+    }
+  ]
+}

@@ -80,8 +80,8 @@ fn contracts_are_checked_then_erased_from_execution_and_core() {
     let program = apl::compile(annotated).unwrap();
     let entry = program.entry().unwrap();
     assert_eq!(eval::evaluate(&program, entry, 100), Ok(Value::Integer(42)));
-    let json = core::export(&program, entry);
-    assert_eq!(json, core::export(&plain, plain.entry().unwrap()));
+    let json = core::export(&program, entry).unwrap();
+    assert_eq!(json, core::export(&plain, plain.entry().unwrap()).unwrap());
     let imported = core::import(&json.to_string()).unwrap();
     assert_eq!(
         eval::evaluate(&imported.program, imported.entry, 100),

@@ -9,7 +9,9 @@ schema `apl-verify-v1`, and verification revision `apl-state-verify-v1` without
 loops or `apl-loop-verify-v1` with loops. The
 [loop-free state contract](loop-verification.md#loop-free-report-contract)
 and [invariant-loop contract](loop-verification.md#invariant-loop-report-contract)
-define the exact v1 fields.
+define the exact v1 fields. Programs containing tuples instead return the
+[pre-tool v2 unsupported report](flat-products.md#verification-boundary), with no
+established safety or partial-correctness claim.
 
 ## Source contracts
 
@@ -45,6 +47,9 @@ names are unavailable. Multiple clauses denote conjunction.
 Specification expressions contain decimal integer literals, Boolean literals,
 unit, parameter names, the result binder where allowed, parentheses, and the
 existing scalar unary and binary operators with their existing precedence.
+Tuple references, construction and projection are excluded. Constant clauses and
+clauses naming only scalars remain valid on functions that also contain tuples;
+ordinary checking erases them, but tuple verification is unsupported.
 Calls, blocks, local declarations, and conditional expressions are excluded in
 this first specification-expression grammar. Boolean combinations can express
 guarded properties. For example, `x == 0 || answer / x == 1` guards division.
@@ -69,7 +74,7 @@ Every ordinary source command parses, resolves, and type-checks the contracts.
 `check` does not establish them. `eval`, `build`, and `run` erase contract
 metadata and preserve existing runtime behavior, including arithmetic traps.
 They do not insert dynamic precondition or postcondition checks and do not invoke
-a solver. `dump-core` exports the erased executable body in the existing scalar
+a solver. `dump-core` exports the erased executable body in the core
 format for the executable revision selected by the complete checked program.
 Importing that core does not recover contracts or verification evidence.
 

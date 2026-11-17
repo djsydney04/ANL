@@ -6,6 +6,7 @@ import APL.LoopVCGSupport
 import APL.LoopAnnotations
 import APL.LoopVCGExamples
 import APL.LoopGenerationExamples
+import APL.FlatProductsExamples
 import Lean
 
 open Lean Elab Command in
@@ -288,7 +289,62 @@ run_elab do
     ``APL.LoopGeneration.exists_uniform_height,
     ``APL.LoopGeneration.function_generation,
     ``APL.LoopGeneration.rank_bounded,
-    ``APL.LoopGeneration.table_uniform_height]
+    ``APL.LoopGeneration.table_uniform_height,
+    ``APL.FlatProducts.Flat.ext,
+    ``APL.FlatProducts.Flat.make_fields,
+    ``APL.FlatProducts.scalar_canonical,
+    ``APL.FlatProducts.tuple_canonical,
+    ``APL.FlatProducts.embedResult_typed,
+    ``APL.FlatProducts.unary_typed,
+    ``APL.FlatProducts.binary_typed,
+    ``APL.FlatProducts.shortCircuit_typed,
+    ``APL.FlatProducts.construct_typed,
+    ``APL.FlatProducts.project_typed,
+    ``APL.FlatProducts.scalarList_complete,
+    ``APL.FlatProducts.scalarList_sound,
+    ``APL.FlatProducts.make_fields,
+    ``APL.FlatProducts.infer_complete,
+    ``APL.FlatProducts.infer_sound,
+    ``APL.FlatProducts.type_unique,
+    ``APL.FlatProducts.signatures_lookup,
+    ``APL.FlatProducts.signatures_lookup_inv,
+    ``APL.FlatProducts.checked_functions,
+    ``APL.FlatProducts.env_cons,
+    ``APL.FlatProducts.env_tail,
+    ``APL.FlatProducts.env_lookup,
+    ``APL.FlatProducts.update_typed,
+    ``APL.FlatProducts.update_other,
+    ``APL.FlatProducts.immutable_unchanged,
+    ``APL.FlatProducts.step_complete,
+    ``APL.FlatProducts.step_sound,
+    ``APL.FlatProducts.step_iff,
+    ``APL.FlatProducts.deterministic,
+    ``APL.FlatProducts.stopped_iff,
+    ``APL.FlatProducts.run_sound,
+    ``APL.FlatProducts.run_complete,
+    ``APL.FlatProducts.run_iff,
+    ``APL.FlatProducts.args_scalar_cons,
+    ``APL.FlatProducts.args_scalar_nil,
+    ``APL.FlatProducts.resume_typed,
+    ``APL.FlatProducts.preservation,
+    ``APL.FlatProducts.progress,
+    ``APL.FlatProducts.steps_preserve,
+    ``APL.FlatProducts.safety,
+    ``APL.FlatProducts.no_invalid,
+    ``APL.FlatProducts.finite_run_safe,
+    ``APL.FlatProducts.entry_typed,
+    ``APL.FlatProducts.entry_safety,
+    ``APL.FlatProducts.embed_typed,
+    ``APL.FlatProducts.embed_signatures,
+    ``APL.FlatProducts.embed_wellTyped,
+    ``APL.FlatProducts.embed_update,
+    ``APL.FlatProducts.embed_resume,
+    ``APL.FlatProducts.embed_step,
+    ``APL.FlatProducts.embed_steps,
+    ``APL.FlatProducts.embed_stopped,
+    ``APL.FlatProducts.embed_finite_run,
+    ``APL.FlatProducts.embed_finite_value,
+    ``APL.FlatProducts.embed_finite_trap]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

@@ -11,6 +11,10 @@ The extension is `local-state-2026-11-17`, represented by
 `apl-core-v1` and `apl-expr-v1`. Its types remain `i64`, `bool`, and `unit`.
 There are no references, shared cells, escaping locals, or language heap objects.
 
+The [flat-tuple v2 extension](flat-products.md) separately permits tuple-valued
+locals, arguments and results with whole-value assignment. The v1 scalar rules
+and model claims below retain their original scope.
+
 ## Source forms
 
 ```text

@@ -1,36 +1,100 @@
-//! Validated scalar MIR to portable C11 and a host-native executable.
+//! Validated MIR to portable C11 and a host-native executable.
 use crate::{
+    bounded::{Buffer, OutputError},
     mir::{self, Block, Operation},
-    types::{BinaryOp, Program, Type, UnaryOp},
+    types::{BinaryOp, Program, TupleShape, Type, UnaryOp},
 };
 use std::{
+    borrow::Cow,
+    collections::BTreeSet,
     env,
     ffi::OsString,
+    fmt::{self, Write},
     fs, io,
     path::{Path, PathBuf},
     process::Command,
     sync::atomic::{AtomicU64, Ordering},
 };
 
+pub const MAX_PRODUCT_C_BYTES: usize = 67_108_864;
 /// Lower and validate a checked program, then emit a complete C11 translation unit.
-/// `entry` must name a nullary function returning `i64`.
-pub fn emit_c(program: &Program, entry: usize) -> Result<String, String> {
-    let program = mir::lower(program, entry).map_err(|error| error.to_string())?;
-    let mut text = String::from(RUNTIME);
-    for (id, function) in program.functions.iter().enumerate() {
-        text.push_str(&signature(id, function));
-        text.push_str(";\n");
+/// Product output is bounded before publication or invocation of the host compiler.
+pub fn emit_c(program: &Program, entry: usize) -> Result<String, OutputError> {
+    emit_c_with_limit(program, entry, MAX_PRODUCT_C_BYTES)
+}
+fn emit_c_with_limit(source: &Program, entry: usize, limit: usize) -> Result<String, OutputError> {
+    let products = source.has_flat_products();
+    let program = mir::lower(source, entry).map_err(|error| error.to_string())?;
+    let mut text = Buffer::new(
+        products.then_some(limit),
+        "emitted v2 C exceeds 67108864 bytes",
+    );
+    // Each typed expression lowers once, without callee expansion. Tuple width bounds
+    // each added construction/projection/comparison to at most eight field operations.
+    let result = emit_translation_unit(&program, &mut text);
+    if result.is_err() && !text.exhausted() {
+        return Err(OutputError::Infrastructure("C formatting failed".into()));
+    }
+    text.finish()
+}
+fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Result {
+    text.write_str(RUNTIME)?;
+    let mut shapes = BTreeSet::new();
+    fn add(ty: Type, shapes: &mut BTreeSet<TupleShape>) {
+        if let Type::Tuple(shape) = ty {
+            shapes.insert(shape);
+        }
+    }
+    fn scan(block: &Block, shapes: &mut BTreeSet<TupleShape>) {
+        for instruction in &block.instructions {
+            add(instruction.destination.ty, shapes);
+            match &instruction.kind {
+                Operation::Branch {
+                    then_block,
+                    else_block,
+                    ..
+                } => {
+                    scan(then_block, shapes);
+                    scan(else_block, shapes);
+                }
+                Operation::MutableScope { slot, body, .. } => {
+                    add(slot.ty, shapes);
+                    scan(body, shapes);
+                }
+                Operation::While { condition, body } => {
+                    scan(condition, shapes);
+                    scan(body, shapes);
+                }
+                _ => {}
+            }
+        }
+    }
+    for function in &program.functions {
+        add(function.result, &mut shapes);
+        for param in &function.params {
+            add(param.ty, &mut shapes);
+        }
+        scan(&function.body, &mut shapes);
+    }
+    for shape in shapes {
+        text.write_str("typedef struct {")?;
+        for (i, field) in shape.fields().iter().enumerate() {
+            write!(text, " {} f{i};", c_type(field.as_type()))?;
+        }
+        writeln!(text, " }} {};", c_type(Type::Tuple(shape)))?;
     }
     for (id, function) in program.functions.iter().enumerate() {
-        text.push_str(&signature(id, function));
-        text.push_str(" {\n");
-        emit_block(&function.body, &mut text, 1);
-        text.push_str(&format!(
-            "    return t{};\n}}\n",
-            function.body.yield_value.id
-        ));
+        signature(id, function, text)?;
+        text.write_str(";\n")?;
     }
-    text.push_str(&format!(
+    for (id, function) in program.functions.iter().enumerate() {
+        signature(id, function, text)?;
+        text.write_str(" {\n")?;
+        emit_block(&function.body, text, 1)?;
+        writeln!(text, "    return t{};\n}}", function.body.yield_value.id)?;
+    }
+    write!(
+        text,
         r#"
 int main(void) {{
 #ifdef SIGPIPE
@@ -45,31 +109,40 @@ int main(void) {{
 }}
 "#,
         program.entry
-    ));
-    Ok(text)
+    )
 }
-
-fn c_type(ty: Type) -> &'static str {
+fn c_type(ty: Type) -> Cow<'static, str> {
     match ty {
-        Type::I64 => "int64_t",
-        Type::Bool => "bool",
-        Type::Unit => "unsigned char",
+        Type::I64 => "int64_t".into(),
+        Type::Bool => "bool".into(),
+        Type::Unit => "unsigned char".into(),
+        Type::Tuple(shape) => {
+            let mut name = String::from("apl_tuple_");
+            for field in shape.fields() {
+                name.push(match field {
+                    crate::types::ScalarType::I64 => 'i',
+                    crate::types::ScalarType::Bool => 'b',
+                    crate::types::ScalarType::Unit => 'u',
+                });
+            }
+            name.into()
+        }
     }
 }
-fn signature(id: usize, function: &mir::Function) -> String {
-    let params = if function.params.is_empty() {
-        "void".into()
-    } else {
-        function
-            .params
-            .iter()
-            .map(|p| format!("{} t{}", c_type(p.ty), p.id))
-            .collect::<Vec<_>>()
-            .join(", ")
-    };
-    format!("static {} apl_f{id}({params})", c_type(function.result))
+fn signature(id: usize, function: &mir::Function, text: &mut Buffer) -> fmt::Result {
+    write!(text, "static {} apl_f{id}(", c_type(function.result))?;
+    if function.params.is_empty() {
+        text.write_str("void")?;
+    }
+    for (i, param) in function.params.iter().enumerate() {
+        if i > 0 {
+            text.write_str(", ")?;
+        }
+        write!(text, "{} t{}", c_type(param.ty), param.id)?;
+    }
+    text.write_str(")")
 }
-fn emit_block(block: &Block, text: &mut String, indent: usize) {
+fn emit_block(block: &Block, text: &mut Buffer, indent: usize) -> fmt::Result {
     let padding = "    ".repeat(indent);
     for instruction in &block.instructions {
         let target = instruction.destination;
@@ -79,22 +152,25 @@ fn emit_block(block: &Block, text: &mut String, indent: usize) {
                 then_block,
                 else_block,
             } => {
-                text.push_str(&format!(
+                write!(
+                    text,
                     "{padding}{} t{};\n{padding}if (t{}) {{\n",
                     c_type(target.ty),
                     target.id,
                     condition.id
-                ));
-                emit_block(then_block, text, indent + 1);
-                text.push_str(&format!(
+                )?;
+                emit_block(then_block, text, indent + 1)?;
+                write!(
+                    text,
                     "{padding}    t{} = t{};\n{padding}}} else {{\n",
                     target.id, then_block.yield_value.id
-                ));
-                emit_block(else_block, text, indent + 1);
-                text.push_str(&format!(
+                )?;
+                emit_block(else_block, text, indent + 1)?;
+                write!(
+                    text,
                     "{padding}    t{} = t{};\n{padding}}}\n",
                     target.id, else_block.yield_value.id
-                ));
+                )?;
                 continue;
             }
             Operation::MutableScope {
@@ -102,86 +178,131 @@ fn emit_block(block: &Block, text: &mut String, indent: usize) {
                 initial,
                 body,
             } => {
-                text.push_str(&format!(
+                write!(
+                    text,
                     "{padding}{} t{};\n{padding}{{\n{padding}    {} s{} = t{};\n",
                     c_type(target.ty),
                     target.id,
                     c_type(slot.ty),
                     slot.id,
                     initial.id
-                ));
-                emit_block(body, text, indent + 1);
-                text.push_str(&format!(
+                )?;
+                emit_block(body, text, indent + 1)?;
+                write!(
+                    text,
                     "{padding}    t{} = t{};\n{padding}}}\n",
                     target.id, body.yield_value.id
-                ));
+                )?;
                 continue;
             }
             Operation::While { condition, body } => {
-                text.push_str(&format!("{padding}for (;;) {{\n"));
-                emit_block(condition, text, indent + 1);
-                text.push_str(&format!(
+                writeln!(text, "{padding}for (;;) {{")?;
+                emit_block(condition, text, indent + 1)?;
+                write!(
+                    text,
                     "{padding}    if (!t{}) break;\n{padding}    {{\n",
                     condition.yield_value.id
-                ));
-                emit_block(body, text, indent + 2);
-                text.push_str(&format!("{padding}    }}\n{padding}}}\n"));
+                )?;
+                emit_block(body, text, indent + 2)?;
+                write!(text, "{padding}    }}\n{padding}}}\n")?;
             }
             Operation::Store(slot, value) => {
-                text.push_str(&format!("{padding}s{} = t{};\n", slot.id, value.id));
+                writeln!(text, "{padding}s{} = t{};", slot.id, value.id)?;
             }
             _ => {}
         }
-        let value = match &instruction.kind {
-            Operation::Integer(n) if *n == i64::MIN => "INT64_MIN".into(),
-            Operation::Integer(n) if *n < 0 => format!("(-INT64_C({}))", -n),
-            Operation::Integer(n) => format!("INT64_C({n})"),
-            Operation::Boolean(b) => b.to_string(),
-            Operation::Unit => "0".into(),
-            Operation::Unary(UnaryOp::Neg, input) => format!("apl_neg(t{})", input.id),
-            Operation::Unary(UnaryOp::Not, input) => format!("!t{}", input.id),
+        write!(text, "{padding}{} t{} = ", c_type(target.ty), target.id)?;
+        match &instruction.kind {
+            Operation::Tuple(fields) => {
+                text.write_str("{")?;
+                for (i, field) in fields.iter().enumerate() {
+                    if i > 0 {
+                        text.write_str(", ")?;
+                    }
+                    write!(text, ".f{i} = t{}", field.id)?;
+                }
+                text.write_str("}")?;
+            }
+            Operation::Project(value, index) => {
+                write!(text, "t{}.f{index}", value.id)?;
+            }
+            Operation::Integer(n) if *n == i64::MIN => text.write_str("INT64_MIN")?,
+            Operation::Integer(n) if *n < 0 => write!(text, "(-INT64_C({}))", -n)?,
+            Operation::Integer(n) => write!(text, "INT64_C({n})")?,
+            Operation::Boolean(b) => write!(text, "{b}")?,
+            Operation::Unit => text.write_str("0")?,
+            Operation::Unary(UnaryOp::Neg, input) => write!(text, "apl_neg(t{})", input.id)?,
+            Operation::Unary(UnaryOp::Not, input) => write!(text, "!t{}", input.id)?,
             Operation::Binary(op, left, right) => {
-                let symbol = match op {
-                    BinaryOp::Lt => Some("<"),
-                    BinaryOp::Le => Some("<="),
-                    BinaryOp::Gt => Some(">"),
-                    BinaryOp::Ge => Some(">="),
-                    BinaryOp::Eq => Some("=="),
-                    BinaryOp::Ne => Some("!="),
-                    _ => None,
-                };
-                if let Some(symbol) = symbol {
-                    format!("t{} {symbol} t{}", left.id, right.id)
+                if let Type::Tuple(shape) = left.ty {
+                    if *op == BinaryOp::Ne {
+                        text.write_str("!")?;
+                    }
+                    text.write_str("(")?;
+                    for i in 0..shape.fields().len() {
+                        if i > 0 {
+                            text.write_str(" && ")?;
+                        }
+                        write!(text, "t{}.f{i} == t{}.f{i}", left.id, right.id)?;
+                    }
+                    text.write_str(")")?;
                 } else {
-                    format!("apl_{}(t{}, t{})", op.as_str(), left.id, right.id)
+                    let symbol = match op {
+                        BinaryOp::Lt => Some("<"),
+                        BinaryOp::Le => Some("<="),
+                        BinaryOp::Gt => Some(">"),
+                        BinaryOp::Ge => Some(">="),
+                        BinaryOp::Eq => Some("=="),
+                        BinaryOp::Ne => Some("!="),
+                        _ => None,
+                    };
+                    if let Some(symbol) = symbol {
+                        write!(text, "t{} {symbol} t{}", left.id, right.id)?;
+                    } else {
+                        write!(text, "apl_{}(t{}, t{})", op.as_str(), left.id, right.id)?;
+                    }
                 }
             }
-            Operation::Call(id, args) => format!(
-                "apl_f{id}({})",
-                args.iter()
-                    .map(|arg| format!("t{}", arg.id))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-            Operation::Load(slot) => format!("s{}", slot.id),
-            Operation::Store(..) | Operation::While { .. } => "0".into(),
+            Operation::Call(id, args) => {
+                write!(text, "apl_f{id}(")?;
+                for (i, arg) in args.iter().enumerate() {
+                    if i > 0 {
+                        text.write_str(", ")?;
+                    }
+                    write!(text, "t{}", arg.id)?;
+                }
+                text.write_str(")")?;
+            }
+            Operation::Load(slot) => write!(text, "s{}", slot.id)?,
+            Operation::Store(..) | Operation::While { .. } => text.write_str("0")?,
             Operation::Branch { .. } | Operation::MutableScope { .. } => {
                 unreachable!("structured result emitted above")
             }
-        };
-        text.push_str(&format!(
-            "{padding}{} t{} = {value};\n",
-            c_type(target.ty),
-            target.id
-        ));
+        }
+        text.write_str(";\n")?;
     }
+    Ok(())
 }
 
 /// Compile with the host C toolchain and publish only a successfully linked binary.
 /// `CC`, when present, is one executable path, never a shell command or flag list.
-pub fn build(program: &Program, entry: usize, source: &Path, output: &Path) -> Result<(), String> {
+pub fn build(
+    program: &Program,
+    entry: usize,
+    source: &Path,
+    output: &Path,
+) -> Result<(), OutputError> {
+    build_with_limit(program, entry, source, output, MAX_PRODUCT_C_BYTES)
+}
+fn build_with_limit(
+    program: &Program,
+    entry: usize,
+    source: &Path,
+    output: &Path,
+    limit: usize,
+) -> Result<(), OutputError> {
     protect_sources(program, source, output)?;
-    let c = emit_c(program, entry)?;
+    let c = emit_c_with_limit(program, entry, limit)?;
     let parent = output
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
@@ -210,7 +331,8 @@ pub fn build(program: &Program, entry: usize, source: &Path, output: &Path) -> R
             result.status,
             String::from_utf8_lossy(&result.stdout),
             String::from_utf8_lossy(&result.stderr)
-        ));
+        )
+        .into());
     }
     if !binary.is_file() {
         return Err("C compiler reported success without producing an executable".into());
@@ -227,7 +349,7 @@ pub fn build(program: &Program, entry: usize, source: &Path, output: &Path) -> R
 }
 
 /// Build in an isolated temporary directory, run with inherited I/O, and clean up.
-pub fn run(program: &Program, entry: usize, source: &Path) -> Result<u8, String> {
+pub fn run(program: &Program, entry: usize, source: &Path) -> Result<u8, OutputError> {
     let directory = TempDir::new(&env::temp_dir())?;
     let binary = directory.0.join("program");
     build(program, entry, source, &binary)?;
@@ -235,7 +357,7 @@ pub fn run(program: &Program, entry: usize, source: &Path) -> Result<u8, String>
         .status()
         .map_err(|error| format!("cannot run native executable: {error}"))?;
     status.code().and_then(|code| u8::try_from(code).ok())
-        .ok_or_else(|| format!("native executable terminated by the host ({status}); native execution has no interpreter fuel or stack limit"))
+        .ok_or_else(|| format!("native executable terminated by the host ({status}); native execution has no interpreter fuel or stack limit").into())
 }
 
 fn protect_sources(program: &Program, source: &Path, output: &Path) -> Result<(), String> {
@@ -364,3 +486,37 @@ static int64_t apl_rem(int64_t a, int64_t b) {
     return a % b;
 }
 "#;
+
+#[cfg(test)]
+mod product_output_tests {
+    use super::*;
+    #[test]
+    fn resource_failure_preserves_destination_before_native_staging() {
+        let directory = TempDir::new(&std::env::temp_dir()).unwrap();
+        let source = directory.0.join("input.apl");
+        let output = directory.0.join("existing");
+        fs::write(&source, "fn main()->i64{(42,).0}").unwrap();
+        fs::write(&output, b"retain existing destination").unwrap();
+        let program = crate::compile_file(&source).unwrap();
+        let error =
+            build_with_limit(&program, program.entry().unwrap(), &source, &output, 1).unwrap_err();
+        assert!(matches!(error, OutputError::ResourceLimit(_)));
+        assert_eq!(fs::read(&output).unwrap(), b"retain existing destination");
+        assert_eq!(fs::read_dir(&directory.0).unwrap().count(), 2);
+    }
+    #[test]
+    fn exact_complete_translation_unit_bounds_precede_publication() {
+        let program =
+            crate::compile("fn tuple()->(i64,bool,unit){(42,true,())} fn main()->i64{tuple().0}")
+                .unwrap();
+        let expected = emit_c(&program, program.entry().unwrap()).unwrap();
+        for limit in [expected.len() - 1, expected.len(), expected.len() + 1] {
+            let emitted = emit_c_with_limit(&program, program.entry().unwrap(), limit);
+            if limit < expected.len() {
+                assert!(matches!(emitted, Err(OutputError::ResourceLimit(_))));
+            } else {
+                assert_eq!(emitted.unwrap(), expected);
+            }
+        }
+    }
+}

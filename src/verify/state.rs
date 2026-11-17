@@ -79,6 +79,11 @@ impl Generator<'_> {
         self.visit(depth)?;
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+                return Err(Failure::Unsupported(
+                    "flat products are outside scalar verification".into(),
+                ));
+            }
             ExprKind::Integer(n) => Symbolic {
                 value: self.arena.int(&if *n < 0 {
                     format!("(- {})", n.unsigned_abs())

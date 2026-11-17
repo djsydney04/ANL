@@ -22,3 +22,10 @@ import APL.LoopGenerationRank
 import APL.LoopGenerationComplete
 import APL.LoopGenerationCorollaries
 import APL.LoopGenerationExamples
+import APL.FlatProductsValues
+import APL.FlatProductsMachine
+import APL.FlatProductsTyping
+import APL.FlatProductsRun
+import APL.FlatProductsSafety
+import APL.FlatProductsEmbedding
+import APL.FlatProductsExamples

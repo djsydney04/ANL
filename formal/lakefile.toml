@@ -1,6 +1,6 @@
 name = "apl_formal"
 version = "0.1.0"
-defaultTargets = ["APL", "apl_formal"]
+defaultTargets = ["APL", "apl_formal", "apl_formal_v2"]
 moreLeanArgs = ["-DwarningAsError=true"]
 
 [[lean_lib]]
@@ -9,3 +9,7 @@ name = "APL"
 [[lean_exe]]
 name = "apl_formal"
 root = "Main"
+
+[[lean_exe]]
+name = "apl_formal_v2"
+root = "MainV2"

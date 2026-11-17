@@ -7,8 +7,11 @@ The [local-state v1 extension](control-flow.md#typed-core-and-interchange) adds
 mutable scalar locals, assignment, and while loops with semantic revision
 `local-state-2026-11-17`. V0 retains exactly the fields, constructors, semantics,
 and resource protocol below. A v0 document rejects the new constructors. Source
-export uses v0 for programs containing only these original constructors and v1
-when any checked function contains a local-state constructor.
+export uses v0 for scalar programs containing only these original constructors
+and v1 when any checked scalar function contains a local-state constructor.
+The [flat-tuple v2 extension](flat-products.md#version-selection-and-core-json)
+takes precedence when any part of the checked program contains a tuple. It adds
+tuple types, construction and projection without changing the v0 rules below.
 
 ## Documents
 

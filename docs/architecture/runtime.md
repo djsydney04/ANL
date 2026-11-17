@@ -1,6 +1,8 @@
 # Runtime and systems architecture
 
-Status: design proposal. These facilities are planned unless the requirements link to implementation and validation evidence. M1 covers only the scalar core defined in the [type-system specification](type-system.md).
+Status: broader runtime facilities below remain design proposals unless linked to
+implementation evidence. Current execution supports scalars, flat tuples and local
+state as defined by the [type-system specification](type-system.md).
 
 ## Runtime components follow language capabilities
 
@@ -27,7 +29,15 @@ M1's reference evaluator represents `i64`, `bool`, and `unit` directly and retur
 
 For the first native executable, a host wrapper invokes `main() -> i64`, prints the full signed decimal result followed by a newline, and exits successfully. A defined arithmetic trap reports failure and exits unsuccessfully. The wrapper never converts the language result to an eight-bit process status. The wrapper's output is a tool convention; it does not give M1 source code an I/O operation.
 
-The proposed C11 bootstrap backend must lower checked arithmetic without first executing an overflowing C signed operation. Left-to-right evaluation requires explicit temporaries because the backend language's argument evaluation order is not APL's contract. Division and remainder guard zero and `INT64_MIN / -1` before evaluation. Native and reference results must match for both successful and trapping programs.
+The C11 backend lowers checked arithmetic without first executing an overflowing C signed operation. Left-to-right evaluation requires explicit temporaries because the backend language's argument evaluation order is not APL's contract. Division and remainder guard zero and `INT64_MIN / -1` before evaluation. Native and reference results must match for both successful and trapping programs.
+
+The flat-tuple extension uses immutable validated values in the reference
+evaluator and ordinary struct values in generated C. Whole-value replacement
+preserves earlier snapshots. Tuple-bearing interpretation has checked cumulative
+allocation-work and logical-slot budgets; these are not heap-byte caps. Native
+tuple operations need no generated heap allocation and do not inherit those
+interpreter budgets. See the [resource contract](../../spec/flat-products.md#checked-resource-limits).
+This does not implement source-level ownership, references or an allocation API.
 
 ## Storage and cleanup
 

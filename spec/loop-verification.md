@@ -4,7 +4,9 @@ Status: loop-free local-state and invariant-loop verification are implemented
 over the existing `local-state-2026-11-17` runtime. The
 [loop-free report contract](#loop-free-report-contract) describes current behavior.
 The [invariant-loop report contract](#invariant-loop-report-contract) applies when
-any loaded function contains a while loop. Every loop must have at least one
+a scalar program contains a while loop. Structural tuple use instead selects the
+[pre-tool unsupported v2 report](flat-products.md#verification-boundary), even
+when that program also contains loops. Every loop must have at least one
 invariant, and the complete call graph must be acyclic. Results remain
 `smt-trusted`. The [proof inventory](../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness)
 records a concrete Lean invariant generator connected to actual `LocalState.run`

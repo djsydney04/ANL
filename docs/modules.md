@@ -119,7 +119,9 @@ Rust callers use `apl::compile_file(path)` to load a file and its imports.
 `apl::compile(source)` remains a pure in-memory operation and reports an error
 when the source declares a file import.
 
-`dump-core` exports the checked graph as the existing scalar function table.
+`dump-core` exports the checked graph as one function table. Tuple use in any
+loaded signature or body selects the [v2 format](../spec/flat-products.md#version-selection-and-core-json);
+scalar graphs retain v0/v1 selection.
 Calls use numeric identities; generated names keep functions from different
 files distinct. `emit-c` and native builds lower that resolved program to one
 C11 translation unit. File boundaries and visibility are checked before these

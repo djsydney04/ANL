@@ -1,7 +1,7 @@
-# Native scalar compilation
+# Native compilation
 
-APL can build the checked scalar language into a host machine-code executable
-through a C11 compiler. Initialized mutable scalar locals, assignment, and
+APL can build scalar values and flat tuples into a host machine-code executable
+through a C11 compiler. Initialized mutable locals, whole-value assignment, and
 structured `while` statements are supported. Programs may use the
 [file module system](modules.md); the checked graph lowers to one C11 translation unit. Separate-object compilation
 and the remaining full-language requirements are pending. The backend and its
@@ -28,7 +28,9 @@ replaces an existing output file. The root and every transitive source input,
 including Unix hard-link and symbolic-link aliases, are rejected as outputs.
 Compilation takes place in a private staging directory beside the output; a
 successful link is published by rename.
-Missing tools, compiler/linker failures, and publication failures exit 4. Failed
+V2 C output is limited to 67,108,864 UTF-8 bytes. Checked output exhaustion
+exits 3 before invoking the compiler or publishing an artifact. Missing tools,
+compiler/linker failures, and publication failures exit 4. Failed
 builds preserve existing output files and remove their staging directory.
 
 `run FILE` builds in a temporary directory, executes the binary with inherited
@@ -46,7 +48,8 @@ exits 0. Arithmetic overflow and division by zero print `arithmetic_overflow` or
 wrapper's printing convention does not add a source-level I/O facility.
 
 `emit-c FILE` writes a standalone C11 translation unit to stdout. This uses the
-same checked lowering as `build`; it does not invoke a compiler. It permits
+same checked lowering and output bound as `build`; it does not invoke a compiler
+and publishes no stdout prefix on output-limit failure. It permits
 inspection and compilation at other optimization levels or with sanitizers.
 `check`, `eval`, `dump-core`, and `eval-core` retain their existing contracts.
 
@@ -86,9 +89,9 @@ multiplication, negation, division, or remainder. Both `MIN / -1` and `MIN % -1`
 trap, as do zero divisors. Helpers use no compiler-specific overflow builtins.
 
 Instruction order becomes C statement order. Calls and binary operations receive
-previously computed scalar temporaries, so C's argument evaluation order cannot
-change APL's first trap. Mutable reads are scalar snapshots, so later argument
-mutations cannot change earlier argument values. A callee receives scalar copies
+previously computed value temporaries, so C's argument evaluation order cannot
+change APL's first trap. Mutable reads are value snapshots, so later argument
+mutations cannot change earlier argument values. A callee receives value copies
 and cannot mutate caller slots. Mutable scopes emit lexical C blocks; loops emit
 actual C loops with the condition computation inside the loop. Loads and stores
 are separate sequenced statements. Branch bodies remain conditional. Discarded
@@ -96,6 +99,16 @@ expressions still produce instructions and execute their traps. Internal symbols
 IDs; source identifiers and source text are never inserted into C identifiers or
 shell commands. The internal scalar ABI uses `int64_t`, `bool`, and an
 `unsigned char` zero value for unit. It is not a stable foreign-function ABI.
+
+Flat tuples lower to one ordinary C struct typedef per used shape, emitted in
+deterministic order before function prototypes. Construction evaluates all fields
+into initialized temporaries, with unit fields set to zero; projection uses a named member of its completed
+base. Equality evaluates both operands before comparing fields, including unit.
+Copies use ordinary struct assignment, with no `memcmp`, packed layout or
+uninitialized-padding dependency. Tuple operations add no generated heap
+allocation and establish no stable foreign ABI. The interpreter's tuple-allocation
+and slot budgets do not become native runtime limits. See the
+[tuple rules](../spec/flat-products.md).
 
 ## Evidence and limits
 

@@ -18,6 +18,7 @@ const HELP: &str = "APL 0.1 scalar checker, evaluator, and native compiler\n\nUs
 enum CliError {
     Message(String),
     StderrUnavailable,
+    ResourceLimit(&'static str),
 }
 impl From<String> for CliError {
     fn from(message: String) -> Self {
@@ -30,6 +31,14 @@ impl From<&str> for CliError {
     }
 }
 
+impl From<apl::bounded::OutputError> for CliError {
+    fn from(error: apl::bounded::OutputError) -> Self {
+        match error {
+            apl::bounded::OutputError::ResourceLimit(reason) => Self::ResourceLimit(reason),
+            apl::bounded::OutputError::Infrastructure(reason) => Self::Message(reason),
+        }
+    }
+}
 fn main() -> ExitCode {
     match run(env::args_os().skip(1).collect()) {
         Ok(code) => ExitCode::from(code),
@@ -38,6 +47,13 @@ fn main() -> ExitCode {
             ExitCode::from(4)
         }
         Err(CliError::StderrUnavailable) => ExitCode::from(4),
+        Err(CliError::ResourceLimit(reason)) => ExitCode::from(
+            if diagnostic(format_args!("apl: resource_limit: {reason}")).is_ok() {
+                3
+            } else {
+                4
+            },
+        ),
     }
 }
 fn output(text: impl std::fmt::Display) -> Result<(), CliError> {
@@ -164,11 +180,19 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         }
     };
     if command == "dump-core" {
-        output(core::export(&program, entry))?;
+        output(core::export(&program, entry)?)?;
         return Ok(0);
     }
     if command == "emit-c" {
-        output(codegen::emit_c(&program, entry)?)?;
+        let c = codegen::emit_c(&program, entry)?;
+        if program.has_flat_products() {
+            io::stdout()
+                .lock()
+                .write_all(c.as_bytes())
+                .map_err(|error| CliError::Message(format!("cannot write stdout: {error}")))?;
+        } else {
+            output(c)?;
+        }
         return Ok(0);
     }
     if command == "build" {

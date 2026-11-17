@@ -2,7 +2,7 @@
 
 APL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
-arithmetic, booleans, unit, immutable and initialized mutable bindings, assignment,
+arithmetic, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, and file modules.
 An optional verifier checks arithmetic safety and contracts for scalar functions
 with mutable locals, annotated while loops and acyclic calls. Collections,
@@ -63,7 +63,7 @@ the interpreter's artificial fuel and nesting budgets.
 
 ## Update locals in a loop
 
-Use `let mut` for an initialized scalar whose value may change. Parameters and
+Use `let mut` for an initialized value whose type stays fixed. Parameters and
 ordinary `let` bindings remain immutable. A loop has a parenthesized Boolean
 condition and a unit-valued body:
 
@@ -90,7 +90,7 @@ The final expression `sum` returns `5050`. The checked-in examples run as follow
 
 The first two commands print `5050`; the last prints `21`. Inner scopes preserve
 updates to outer locals, and each loop iteration creates fresh body locals.
-Calls copy scalar arguments into a fresh frame, so callee-local updates cannot
+Calls capture argument values into a fresh frame, so callee-local updates cannot
 change caller variables. This introduces no references or shared cells. See the
 [local-state specification](../spec/control-flow.md) for exact evaluation order,
 typing, and limits. `break`, `continue`, early `return`, and `for` are not supported.
@@ -129,6 +129,28 @@ for scope and syntax. The [bounded counter](../examples/contracts/count.apl) als
 checks that its returned value equals its original input. Loop verification
 proves partial correctness and arithmetic safety, not termination.
 
+## Return several values
+
+Flat tuples contain 1–8 scalar fields and use fixed, ordered types. A function
+can return `(i64, i64)`; callers select fields with `.0` and `.1`:
+
+```sh
+./target/release/apl eval examples/tuples/count-sum.apl
+./target/release/apl run examples/tuples/snapshots.apl
+```
+
+These print `55` and `42`. The first example updates a whole `(count, sum)` tuple
+inside a loop. The second shows that a saved tuple and an earlier argument keep
+their values when a later argument replaces the original binding. Construction
+and arguments evaluate left to right; projection evaluates the whole base.
+`(7, 1 / 0).0` therefore traps.
+
+`(value,)` is a singleton tuple, `(value)` is grouping, and `()` is unit. Tuple
+types also require a comma: `(i64,)` is distinct from `i64`. Tuple equality
+requires identical shapes. Nested tuples, destructuring and field assignment
+are unavailable. See the [tuple specification](../spec/flat-products.md) for
+syntax, value semantics, limits and the v2 interchange format.
+
 ## Use several source files
 
 ```sh
@@ -158,9 +180,10 @@ after source checking; its default is 30000 milliseconds. The verifier checks ev
 loaded function, including unused functions, for defined and satisfiable
 preconditions, checked-arithmetic safety, and each postcondition. Calls must form
 an acyclic graph, and every loop must have at least one invariant. Recursion or
-a missing loop invariant anywhere in the loaded graph reports `unsupported`,
+a missing loop invariant anywhere in a scalar graph reports `unsupported`,
 even in imported or unused functions, skipped branches, conditions and arguments.
-This rejection happens before solver discovery and creates no obligations.
+Tuple use anywhere in the graph also reports `unsupported`, before the scalar
+route is selected. These rejections happen before solver discovery and create no obligations.
 `let mut`, assignment and annotated while loops are supported, including changes made while
 evaluating operands, conditions, and call arguments. Ordinary interpretation and
 native compilation also support loops and recursion.
@@ -184,17 +207,19 @@ Save it as `mutable-increment.apl` and run
 
 `requires` and `ensures` clauses use mathematical integers. Runtime expressions
 still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
-erase clauses without proving or dynamically enforcing them; scalar core export
+erase clauses without proving or dynamically enforcing them; core export
 also erases them. Verification reports bind source, tools, and queries to their
 exact hashes. Refuting models are candidate inputs labeled `replayed: false`,
 not confirmed executions. Pure programs retain `apl-verify-v0` reports. Programs
-containing local-state constructs use `apl-verify-v1` with verification revision
-`apl-state-verify-v1`, including unsupported stateful programs. The guide explains
+containing scalar local-state constructs use `apl-verify-v1` with verification
+revision `apl-state-verify-v1` or `apl-loop-verify-v1`. Tuple-bearing programs
+return `apl-verify-v2`, `trust: "not_established"`, and no obligations. The guide explains
 failed, unknown, and error outcomes.
 
 ## Examples
 
-The conformance suite executes each of these files and checks its full result.
+These examples have explicit expected results. The conformance suite covers
+the scalar examples; the tuple commands above exercise the new examples.
 
 | File | Demonstrates | Result |
 | --- | --- | ---: |
@@ -206,6 +231,8 @@ The conformance suite executes each of these files and checks its full result.
 | [contracts/increment.apl](../examples/contracts/increment.apl) | Preconditions and a result postcondition | 42 |
 | [control-flow/sum.apl](../examples/control-flow/sum.apl) | Mutable accumulation in a while loop | 5050 |
 | [control-flow/gcd.apl](../examples/control-flow/gcd.apl) | Iterative Euclid's algorithm | 21 |
+| [tuples/count-sum.apl](../examples/tuples/count-sum.apl) | Multiple results and whole-tuple loop updates | 55 |
+| [tuples/snapshots.apl](../examples/tuples/snapshots.apl) | Saved values and ordered argument capture | 42 |
 
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.
@@ -239,9 +266,18 @@ is charged once; each repeated condition and body uses its normal expression
 fuel. Iterations do not accumulate interpreter nesting depth. Native loops have
 no interpreter fuel budget.
 
-The Lean v1 model instead counts machine transitions. Finite values and trap kinds
-can be compared across tools, but exhausted budgets are inconclusive; equal fuel
-numbers do not mean equal available work.
+Programs containing tuples also bound cumulative tuple allocation work at
+1,048,576 scalar fields and active environment/argument slots at 65,536.
+V2 JSON output is capped at 1 MiB and C output at 64 MiB, while producing it;
+output-limit failure exits 3 before publication or compiler launch. These are
+checked tool limits, not heap-byte guarantees. Native execution does not inherit
+the interpreter's tuple counters. See the [exact accounting](../spec/flat-products.md#checked-resource-limits).
+
+The Lean v1 and v2 models instead count machine transitions. Finite values and
+trap kinds can be compared across tools, but exhausted budgets are inconclusive;
+equal fuel numbers do not mean equal available work. The separate
+[v2 adapter and comparison instructions](../formal/README.md#v2-interchange-adapter)
+cover tuples; its decoder and compiled execution remain tested boundaries.
 
 Each source file and JSON input is limited to 1 MiB, source tokens per file to
 100000, and core expression depth to 128. Parsing has a separate 128-level
@@ -276,10 +312,12 @@ checks are development evidence, not installation or release qualification.
 `apl dump-core FILE` exports checked source into the versioned JSON format, and
 `apl eval-core FILE [--fuel N]` independently validates a core artifact and emits
 a JSON outcome. Programs using only immutable constructors still export the
-unchanged `apl-core-v0` revision `m1-2026-11-16`. Any local-state constructor,
+unchanged `apl-core-v0` revision `m1-2026-11-16`. In scalar programs, any local-state constructor,
 including one in an unused function, selects `apl-core-v1` revision
-`local-state-2026-11-17`. Each importer checks its own schema and revision.
-A modular program exports as one resolved scalar function table;
+`local-state-2026-11-17`. Tuple use anywhere instead selects `apl-core-v2`,
+revision `flat-products-2026-11-17`. Scalar-only v2 inputs normalize to v0/v1
+behavior. Each importer checks its own schema and revision.
+A modular program exports as one resolved function table;
 file boundaries and visibility are checked before export. Rust library users
 choose `apl::compile_file(path)` for imports or pure `apl::compile(source)` for
 in-memory source without imports. These tools expose the model boundary for

@@ -1,9 +1,10 @@
 # Formal semantics and verification architecture
 
 Status: Lean 4.36.0 has separate models for immutable scalar functions
-(`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
-[proof inventory](../../formal/PROOFS.md) records 321 audited theorem names and
-38 separately replayed modules, including the concrete invariant-loop generator,
+(`m1-2026-11-16`), local scalar state (`local-state-2026-11-17`) and flat tuples
+(`flat-products-2026-11-17`). The [proof inventory](../../formal/PROOFS.md) records
+376 audited theorem names and 45 separately replayed modules, including the
+separate tuple runtime model and concrete invariant-loop generator,
 its connection to the actual local-state machine, and a sufficient generation
 height under a supplied call rank. Coverage follows the stated theorem premises
 and conclusions, not the number of supporting lemmas. FM-01 through FM-05 apply to the documented
@@ -26,6 +27,11 @@ and Rust/SMT/solver bridges remain open. Production verification supports mutabl
 scalar code with annotated loops and acyclic calls, and stays `smt-trusted`.
 The model's finite expansion result does not establish production termination,
 fixed-production-budget completeness, or Rust/JSON/native correctness.
+
+Flat-tuple execution and v2 interchange have a separate
+[language contract](../../spec/flat-products.md) and the runtime-model guarantees
+below. The scalar and invariant-loop generators do not establish tuple
+verification; none of these models certifies Rust/native correctness.
 
 ## Two distinct guarantees
 
@@ -106,6 +112,34 @@ correspondence. The v1 CLI counts machine transitions; Rust counts expression
 entries and separately limits nesting to 256. Equal fuel values do not imply equal
 work, and any resource-limited comparison is inconclusive. The strict v1 JSON
 adapter, source lowering, and native backend remain tested correspondence boundaries.
+
+## Flat-tuple runtime model and adapter
+
+The separate `APL.FlatProducts` model covers 1–8 scalar fields together with
+mutable locals, scope restoration, effectful loops and recursive calls. Its
+independent declarative typing and executable inference agree and yield unique
+result types. Typed environments and continuations retain completed tuple fields,
+argument snapshots and caller state. Under a well-typed function table and typed
+starting state, preservation and progress exclude invalid behavior along finite
+traces; defined arithmetic traps and continued execution remain permitted.
+
+Independent `Step` and executable `step` coincide on raw states. Completed `run`
+outcomes correspond to finite stopped traces in both directions, with sufficient
+transition budgets. Forward embedding preserves finite old LocalState values,
+final environments and traps. These results neither promise termination nor
+extend scalar verification-condition generation to tuples. The
+[55-statement inventory](../../formal/PROOFS.md#flat-scalar-products-with-local-state)
+records the exact premises; the earlier scalar definitions and proofs are unchanged.
+
+The separate `apl_formal_v2` adapter validates v2 artifacts and runs this machine.
+[Executable comparisons](../../formal/README.md#v2-interchange-adapter) cover
+hand-authored valid/malformed artifacts, source exports and scalar embeddings.
+Resource probes remain inconclusive about language behavior: Lean counts machine
+transitions, while Rust also has expression, depth, allocation and slot limits.
+JSON decoding, source lowering, Rust checking/evaluation, shared-storage
+reclamation and native code remain tested or trusted boundaries, not consequences
+of the runtime theorems. Neither adapter correctness nor compilation of the Lean
+executable is proved by the inventory.
 
 ## Mechanization boundaries and proof obligations
 

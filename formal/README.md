@@ -1,7 +1,7 @@
 # APL formal core
 
 This directory implements the `m1-2026-11-16` scalar function model and the
-separate `local-state-2026-11-17` extension in Lean 4.36.0. It includes untyped syntax, declarative typing, independently checked
+separate `local-state-2026-11-17` and `flat-products-2026-11-17` extensions in Lean 4.36.0. It includes untyped syntax, declarative typing, independently checked
 inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
 functions. Finite evaluator correspondence is proved in both directions for
@@ -14,7 +14,7 @@ finite body expansion over the local-state machine. A separate invariant generat
 proves finite-prefix trap freedom and partial correctness for possibly divergent
 local-state loops under interpreted logical obligations.
 
-The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
+The original model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
 recursive function calls. It is the first mechanized slice of APL. It does not
 replace the complete-language roadmap.
@@ -33,11 +33,12 @@ python3 formal/test.py
 cargo build --locked
 python3 formal/test.py --rust target/debug/apl
 python3 formal/test_local_state.py --rust target/debug/apl
+python3 formal/test_flat_products.py --rust target/debug/apl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, audits the transitive axiom dependencies of 321 theorem names, and replays
-38 semantic modules through separate `leanchecker` processes. Build warnings are errors.
+syntax, audits the transitive axiom dependencies of 376 theorem names, and replays
+45 semantic modules through separate `leanchecker` processes. Build warnings are errors.
 The axiom audit fails on anything outside `propext`, `Classical.choice`, and
 `Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
 uniqueness and disjointness lemmas use `Classical.choice`.
@@ -301,6 +302,80 @@ provides no production work/memory bound, runtime termination result or
 completeness at fixed Rust limits. The existing soundness theorem still requires
 its separate support, representation and logical-validity premises. See the
 [exact inventory](PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank).
+
+## Flat scalar products
+
+The separate `APL.FlatProducts` model adds tuples of one through eight scalar
+fields to the complete local-state machine, including mutable cells, scopes,
+branches, effectful loops and recursive calls. It wraps the existing scalar types
+and values and reuses their checked arithmetic. Unit is distinct from a singleton
+tuple. Construction captures fields left to right while threading their effects;
+projection evaluates its base once and consumes the completed tuple. Equality
+and inequality compare same-shaped values after both operands have run. Assignment
+replaces a whole value, and calls preserve argument snapshots and caller isolation.
+
+Raw syntax still admits ill-typed terms. Independent declarative typing and
+executable inference are proved equivalent and give unique result types. Typed
+environment and continuation rules cover construction prefixes, projections,
+scope exit and saved caller state. Under a well-typed function table and typed
+starting state, preservation and progress exclude invalid behavior along every
+finite trace. Defined arithmetic traps remain permitted. A completed actual run
+returns the declared type or a defined trap; no theorem promises completion.
+
+The independent `Step` relation and executable `step` coincide on all raw states.
+Finite `run` outcomes have matching stopped traces, and every finite stopped trace
+has some sufficient transition budget. The forward embedding maps every old
+`LocalState` transition and preserves its finite values, final environments and
+traps with sufficient new budgets. All preceding scalar definitions and theorem
+statements remain unchanged. See the [55-statement product inventory](PROOFS.md#flat-scalar-products-with-local-state)
+for exact premises.
+
+These are runtime-model guarantees. They do not extend the scalar verification
+condition generators to tuples or establish source lowering, JSON decoding,
+Rust evaluation, shared-storage reclamation, native correctness, ownership,
+termination or completeness at fixed production limits. Mathematical transition
+budgets differ from production expression, depth, allocation and slot limits.
+The nineteen private boundary examples are kernel checked but do not inflate
+the public theorem inventory.
+
+### V2 interchange adapter
+
+The separate `apl_formal_v2` executable accepts `apl-expr-v2` and `apl-core-v2`
+with revision `flat-products-2026-11-17`. The existing `apl_formal` executable
+and its v0/v1 readers are unchanged. To export and compare a tuple program:
+
+```sh
+target/debug/apl dump-core examples/tuples/snapshots.apl > /tmp/apl-tuples.json
+formal/.lake/build/bin/apl_formal_v2 /tmp/apl-tuples.json --fuel 100000
+formal/.lake/build/bin/apl_formal_v2 /tmp/apl-tuples.json --revision
+python3 formal/test_flat_products.py --rust target/debug/apl
+```
+
+`APL/FlatProductsWire.lean` checks exact members, duplicate keys, canonical i64
+strings, tuple widths and field types, all function signatures and bodies,
+permissions, entry rules and serialized type labels before execution. Expression
+artifacts reject calls, including calls in dead branches. A lexical check rejects
+negative, fractional and exponent index tokens before JSON normalization;
+projection also checks the inferred base shape. Tuple outcomes contain an ordered
+array of canonical i64 strings, JSON Booleans and nulls, with the same ordered
+shape and length as the type array.
+
+Scalar-only explicit v2 documents are accepted. `--revision` reports their lowest
+applicable semantic class, checking unused signatures and bodies as well. V2
+execution always uses `FlatProducts.run`: fuel counts machine transitions, not
+Rust expression entries. Input bytes, JSON nesting and expression depth have the
+adapter bounds described above. Exit and error outcome forms match the original
+CLI. Resource exhaustion is inconclusive about language behavior.
+
+`test_flat_products.py` exercises both actual CLIs with hand-derived finite
+values/traps, malformed hand-authored artifacts, fresh source exports and old
+scalar embeddings. It distinguishes JSON Booleans from numbers and unit from a
+singleton unit tuple. Generated byte/depth probes avoid large committed fixtures.
+Separate cases expose differing Rust/Lean fuel and depth limits; resource outcomes
+are reported separately from finite agreements. Use `--formal`, `--old-formal`
+and `--report` to select built executables or save command evidence. This tests
+the decoder, serializer and compiled executable as trust boundaries; no kernel
+theorem establishes wire or executable-compilation correctness.
 
 ## Model and evidence
 

@@ -26,7 +26,7 @@ fn result(source: &str, expected: i64) {
         Ok(Value::Integer(expected)),
         "{source}"
     );
-    let exported = core::export(&program, entry);
+    let exported = core::export(&program, entry).unwrap();
     assert_eq!(exported["schema"], "apl-core-v1", "{source}");
     assert_eq!(exported["semantic_revision"], "local-state-2026-11-17");
     let imported = core::import(&exported.to_string()).unwrap();
@@ -168,7 +168,7 @@ fn loops_and_assignments_preserve_defined_traps_and_trap_order() {
             matches!(eval::evaluate(&program, entry, 1000), Err(EvalError::Trap {kind, ..}) if kind==expected),
             "{source}"
         );
-        let imported = core::import(&core::export(&program, entry).to_string()).unwrap();
+        let imported = core::import(&core::export(&program, entry).unwrap().to_string()).unwrap();
         assert!(
             matches!(eval::evaluate(&imported.program, imported.entry, 1000), Err(EvalError::Trap {kind, ..}) if kind==expected),
             "{source}"
@@ -267,7 +267,7 @@ fn contextual_words_preserve_old_programs_and_v0_export() {
         eval::evaluate(&program, program.entry().unwrap(), 100),
         Ok(Value::Integer(42))
     );
-    let json = core::export(&program, program.entry().unwrap());
+    let json = core::export(&program, program.entry().unwrap()).unwrap();
     assert_eq!(json["schema"], "apl-core-v0");
     let imported = core::import(&json.to_string()).unwrap();
     assert_eq!(
@@ -276,7 +276,7 @@ fn contextual_words_preserve_old_programs_and_v0_export() {
     );
     let plain = apl::compile("fn main()->i64 {42}").unwrap();
     assert_eq!(
-        core::export(&plain, 0).to_string(),
+        core::export(&plain, 0).unwrap().to_string(),
         r#"{"entry":0,"functions":[{"body":{"tag":"integer","ty":"i64","value":"42"},"id":0,"name":"main","params":[],"result":"i64"}],"schema":"apl-core-v0","semantic_revision":"m1-2026-11-16"}"#
     );
     body(
@@ -300,7 +300,7 @@ fn revision_selection_inspects_unused_functions_and_unselected_branches() {
         assert!(program.has_local_state());
         assert_eq!(program.semantic_revision(), "local-state-2026-11-17");
         assert_eq!(
-            core::export(&program, program.entry().unwrap())["schema"],
+            core::export(&program, program.entry().unwrap()).unwrap()["schema"],
             "apl-core-v1"
         );
     }
@@ -428,7 +428,10 @@ fn erased_contracts_do_not_add_dynamic_checks_to_stateful_execution() {
     let annotated = "fn main()->i64 requires false; ensures(answer) answer==9; {let mut x=0; while(x<3) {x=x+1;} x}";
     let bare = apl::compile(bare).unwrap();
     let annotated = apl::compile(annotated).unwrap();
-    assert_eq!(core::export(&bare, 0), core::export(&annotated, 0));
+    assert_eq!(
+        core::export(&bare, 0).unwrap(),
+        core::export(&annotated, 0).unwrap()
+    );
     assert_eq!(eval::evaluate(&annotated, 0, 100), Ok(Value::Integer(3)));
 }
 
@@ -498,7 +501,7 @@ fn cli_checks_evaluates_and_round_trips_v1() {
     let program = apl::compile_file(&source).unwrap();
     assert!(program.has_local_state());
     assert_eq!(
-        core::export(&program, program.entry().unwrap())["schema"],
+        core::export(&program, program.entry().unwrap()).unwrap()["schema"],
         "apl-core-v1"
     );
 }

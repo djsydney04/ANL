@@ -15,6 +15,7 @@ enum TokenKind {
     True,
     False,
     Ty(Type),
+    Dot,
     LParen,
     RParen,
     LBrace,
@@ -126,6 +127,7 @@ fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
             } else {
                 i += 1;
                 match bytes[start] {
+                    b'.' => TokenKind::Dot,
                     b'(' => TokenKind::LParen,
                     b')' => TokenKind::RParen,
                     b'{' => TokenKind::LBrace,
@@ -234,6 +236,11 @@ pub struct Expr {
 }
 #[derive(Debug)]
 pub enum ExprKind {
+    Tuple(Vec<Expr>),
+    Project {
+        value: Box<Expr>,
+        index: usize,
+    },
     Integer(String),
     Boolean(bool),
     Unit,
@@ -341,13 +348,44 @@ impl Parser {
     fn ty(&mut self) -> Result<(Type, Span), Diagnostic> {
         let token = self.bump();
         if let TokenKind::Ty(ty) = token.kind {
-            Ok((ty, token.span))
-        } else {
-            Err(Diagnostic::new(
-                token.span,
-                "expected type i64, bool, or unit",
-            ))
+            return Ok((ty, token.span));
         }
+        if token.kind != TokenKind::LParen {
+            return Err(Diagnostic::new(
+                token.span,
+                "expected scalar or flat tuple type",
+            ));
+        }
+        let mut fields = Vec::new();
+        loop {
+            if fields.len() == crate::types::MAX_TUPLE_FIELDS {
+                return Err(Diagnostic::new(
+                    self.current().span,
+                    "tuple type exceeds 8 fields",
+                ));
+            }
+            let field = self.bump();
+            let TokenKind::Ty(ty) = field.kind else {
+                return Err(Diagnostic::new(
+                    field.span,
+                    "tuple fields must be scalar types",
+                ));
+            };
+            fields.push(ty.scalar().expect("scalar type token"));
+            if fields.len() == 1 {
+                self.expect(TokenKind::Comma, ", in tuple type")?;
+            } else if !self.eat(&TokenKind::Comma) {
+                break;
+            }
+            if self.at(&TokenKind::RParen) {
+                break;
+            }
+        }
+        let end = self.expect(TokenKind::RParen, ")")?.span;
+        Ok((
+            Type::Tuple(crate::types::TupleShape::new(&fields).expect("bounded tuple type")),
+            token.span.join(end),
+        ))
     }
     fn enter(&mut self) -> Result<(), Diagnostic> {
         if self.recursion >= MAX_DEPTH {
@@ -663,10 +701,39 @@ impl Parser {
                 depth,
             )
         } else {
-            self.primary()
+            self.postfix()
         };
         self.recursion -= 1;
         result
+    }
+    fn postfix(&mut self) -> Result<Expr, Diagnostic> {
+        let mut value = self.primary()?;
+        while self.eat(&TokenKind::Dot) {
+            let token = self.bump();
+            let TokenKind::Integer(index) = token.kind else {
+                return Err(Diagnostic::new(
+                    token.span,
+                    "projection requires a single digit 0..7",
+                ));
+            };
+            if index.len() != 1 || index.as_bytes()[0] > b'7' {
+                return Err(Diagnostic::new(
+                    token.span,
+                    "projection requires a single digit 0..7",
+                ));
+            }
+            let span = value.span.join(token.span);
+            let depth = value.depth + 1;
+            value = self.node(
+                ExprKind::Project {
+                    value: Box::new(value),
+                    index: usize::from(index.as_bytes()[0] - b'0'),
+                },
+                span,
+                depth,
+            )?;
+        }
+        Ok(value)
     }
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
         if self.at(&TokenKind::LBrace) {
@@ -686,13 +753,33 @@ impl Parser {
                     )
                 } else {
                     let inner = self.expression()?;
-                    let end = self.expect(TokenKind::RParen, ")")?.span;
-                    let depth = inner.depth + 1;
-                    (
-                        ExprKind::Group(Box::new(inner)),
-                        token.span.join(end),
-                        depth,
-                    )
+                    let mut depth = inner.depth + 1;
+                    if self.eat(&TokenKind::Comma) {
+                        let mut fields = vec![inner];
+                        while !self.at(&TokenKind::RParen) {
+                            if fields.len() == crate::types::MAX_TUPLE_FIELDS {
+                                return Err(Diagnostic::new(
+                                    self.current().span,
+                                    "tuple exceeds 8 fields",
+                                ));
+                            }
+                            let field = self.expression()?;
+                            depth = depth.max(field.depth + 1);
+                            fields.push(field);
+                            if !self.eat(&TokenKind::Comma) {
+                                break;
+                            }
+                        }
+                        let end = self.expect(TokenKind::RParen, ")")?.span;
+                        (ExprKind::Tuple(fields), token.span.join(end), depth)
+                    } else {
+                        let end = self.expect(TokenKind::RParen, ")")?.span;
+                        (
+                            ExprKind::Group(Box::new(inner)),
+                            token.span.join(end),
+                            depth,
+                        )
+                    }
                 }
             }
             TokenKind::Ident(mut name) => {

@@ -1,4 +1,5 @@
 //! Strict JSON adapter. Imported type labels are independently checked.
+mod wire;
 use crate::{
     MAX_DEPTH, MAX_SOURCE_BYTES,
     diagnostic::Span,
@@ -10,6 +11,7 @@ use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value, json};
 use std::{collections::HashSet, fmt};
 
+pub const FLAT_PRODUCTS_SEMANTIC_REVISION: &str = "flat-products-2026-11-17";
 pub const SEMANTIC_REVISION: &str = "m1-2026-11-16";
 pub const LOCAL_STATE_SEMANTIC_REVISION: &str = "local-state-2026-11-17";
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,8 +113,28 @@ fn natural(value: &Value) -> Result<usize, ImportError> {
         .and_then(|n| usize::try_from(n).ok())
         .ok_or_else(|| invalid("expected natural-number index"))
 }
-fn ty(value: &Value) -> Result<Type, ImportError> {
-    Type::from_name(string(value)?).ok_or_else(|| invalid("unknown scalar type"))
+fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
+    if let Some(name) = value.as_str() {
+        return Type::from_name(name).ok_or_else(|| invalid("unknown scalar type"));
+    }
+    if !products {
+        return Err(invalid("tuple types require v2"));
+    }
+    let fields = array(&object(value, &["tuple"])?["tuple"])?;
+    if !(1..=crate::types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
+        return Err(invalid("tuple requires 1..8 scalar fields"));
+    }
+    let fields = fields
+        .iter()
+        .map(|v| {
+            Type::from_name(string(v)?)
+                .and_then(Type::scalar)
+                .ok_or_else(|| invalid("tuple field must be a scalar type"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(Type::Tuple(
+        crate::types::TupleShape::new(&fields).map_err(|e| invalid(e.to_string()))?,
+    ))
 }
 fn array(value: &Value) -> Result<&Vec<Value>, ImportError> {
     value.as_array().ok_or_else(|| invalid("expected array"))
@@ -137,13 +159,20 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("missing schema"))?;
     let fields: &[&str] = match schema {
-        "apl-core-v0" | "apl-core-v1" => &["schema", "semantic_revision", "functions", "entry"],
-        "apl-expr-v0" | "apl-expr-v1" => &["schema", "semantic_revision", "expression"],
+        "apl-core-v0" | "apl-core-v1" | "apl-core-v2" => {
+            &["schema", "semantic_revision", "functions", "entry"]
+        }
+        "apl-expr-v0" | "apl-expr-v1" | "apl-expr-v2" => {
+            &["schema", "semantic_revision", "expression"]
+        }
         _ => return Err(invalid("unsupported schema")),
     };
     let root = object(&value, fields)?;
-    let allow_local_state = matches!(schema, "apl-core-v1" | "apl-expr-v1");
-    let revision = if allow_local_state {
+    let allow_products = matches!(schema, "apl-core-v2" | "apl-expr-v2");
+    let allow_local_state = allow_products || matches!(schema, "apl-core-v1" | "apl-expr-v1");
+    let revision = if allow_products {
+        FLAT_PRODUCTS_SEMANTIC_REVISION
+    } else if allow_local_state {
         LOCAL_STATE_SEMANTIC_REVISION
     } else {
         SEMANTIC_REVISION
@@ -154,8 +183,9 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     let mut importer = Importer {
         signatures: Vec::new(),
         next_id: 0,
-        allow_calls: matches!(schema, "apl-core-v0" | "apl-core-v1"),
+        allow_calls: matches!(schema, "apl-core-v0" | "apl-core-v1" | "apl-core-v2"),
         allow_local_state,
+        allow_products,
     };
     if !importer.allow_calls {
         let body = importer.expr(&root["expression"], &mut Vec::new(), 0)?;
@@ -187,9 +217,11 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         }
         let params = array(&function["params"])?
             .iter()
-            .map(ty)
+            .map(|v| ty(v, allow_products))
             .collect::<Result<Vec<_>, _>>()?;
-        importer.signatures.push((params, ty(&function["result"])?));
+        importer
+            .signatures
+            .push((params, ty(&function["result"], allow_products)?));
     }
     let entry = natural(&root["entry"])?;
     let entry_signature = importer
@@ -235,6 +267,7 @@ struct Importer {
     next_id: usize,
     allow_calls: bool,
     allow_local_state: bool,
+    allow_products: bool,
 }
 struct Binding {
     ty: Type,
@@ -266,6 +299,8 @@ impl Importer {
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("missing expression tag"))?;
         let fields: &[&str] = match tag {
+            "tuple" if self.allow_products => &["tag", "fields", "ty"],
+            "project" if self.allow_products => &["tag", "value", "index", "ty"],
             "integer" | "boolean" => &["tag", "ty", "value"],
             "unit" => &["tag", "ty"],
             "local" => &["tag", "ty", "index"],
@@ -280,9 +315,61 @@ impl Importer {
             _ => return Err(invalid("unknown expression constructor")),
         };
         let obj = object(value, fields)?;
-        let annotation = ty(&obj["ty"])?;
+        let annotation = ty(&obj["ty"], self.allow_products)?;
         let next = nesting + 1;
         let (inferred, kind, depth) = match tag {
+            "tuple" => {
+                let fields = array(&obj["fields"])?;
+                if !(1..=crate::types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
+                    return Err(invalid("tuple requires 1..8 scalar fields"));
+                }
+                let mut checked = Vec::new();
+                let mut shape = Vec::new();
+                let mut depth = 1;
+                for field in fields {
+                    let field = self.expr(field, env, next)?;
+                    shape.push(
+                        field
+                            .ty
+                            .scalar()
+                            .ok_or_else(|| invalid("nested tuples are unsupported"))?,
+                    );
+                    depth = depth.max(field.depth + 1);
+                    checked.push(field);
+                }
+                (
+                    Type::Tuple(
+                        crate::types::TupleShape::new(&shape)
+                            .map_err(|e| invalid(e.to_string()))?,
+                    ),
+                    ExprKind::Tuple(checked),
+                    depth,
+                )
+            }
+            "project" => {
+                let index = natural(&obj["index"])?;
+                if index >= crate::types::MAX_TUPLE_FIELDS {
+                    return Err(invalid("projection index outside 0..7"));
+                }
+                let value = self.expr(&obj["value"], env, next)?;
+                let Type::Tuple(shape) = value.ty else {
+                    return Err(invalid("projection requires tuple"));
+                };
+                let ty = shape
+                    .fields()
+                    .get(index)
+                    .ok_or_else(|| invalid("projection index out of bounds"))?
+                    .as_type();
+                let depth = value.depth + 1;
+                (
+                    ty,
+                    ExprKind::Project {
+                        value: Box::new(value),
+                        index,
+                    },
+                    depth,
+                )
+            }
             "integer" => {
                 let text = string(&obj["value"])?;
                 let value = text
@@ -478,7 +565,12 @@ impl Importer {
     }
 }
 
-pub fn export(program: &Program, entry: usize) -> Value {
+/// Export the lowest applicable schema. This host API is fallible: v2 emission
+/// is bounded before materializing the JSON value; scalar wire bytes are unchanged.
+pub fn export(program: &Program, entry: usize) -> Result<Value, crate::bounded::OutputError> {
+    if program.has_flat_products() {
+        return wire::export(program, entry, MAX_SOURCE_BYTES);
+    }
     let functions: Vec<Value> = program.functions.iter().enumerate().map(|(id, function)| json!({
         "id": id, "name": function.name, "params": function.params.iter().map(|t| t.as_str()).collect::<Vec<_>>(),
         "result": function.result.as_str(), "body": export_expr(&function.body)
@@ -488,10 +580,15 @@ pub fn export(program: &Program, entry: usize) -> Value {
     } else {
         "apl-core-v0"
     };
-    json!({"schema":schema, "semantic_revision":program.semantic_revision(), "functions":functions, "entry":entry})
+    Ok(
+        json!({"schema":schema, "semantic_revision":program.semantic_revision(), "functions":functions, "entry":entry}),
+    )
 }
 fn export_expr(expr: &Expr) -> Value {
     let mut value = match &expr.kind {
+        ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+            unreachable!("aggregate export uses bounded serializer")
+        }
         ExprKind::Integer(n) => json!({"tag":"integer", "value":n.to_string()}),
         ExprKind::Boolean(b) => json!({"tag":"boolean", "value":b}),
         ExprKind::Unit => json!({"tag":"unit"}),
@@ -538,8 +635,19 @@ pub fn outcome(result: &Result<Scalar, EvalError>) -> Value {
                 Scalar::Integer(n) => json!(n.to_string()),
                 Scalar::Boolean(b) => json!(b),
                 Scalar::Unit => Value::Null,
+                Scalar::Tuple(tuple) => Value::Array(
+                    tuple
+                        .fields()
+                        .iter()
+                        .map(|field| match field {
+                            crate::eval::ScalarValue::Integer(n) => json!(n.to_string()),
+                            crate::eval::ScalarValue::Boolean(b) => json!(b),
+                            crate::eval::ScalarValue::Unit => Value::Null,
+                        })
+                        .collect(),
+                ),
             };
-            json!({"outcome":"value", "type":value.ty().as_str(), "value":repr})
+            json!({"outcome":"value", "type":value.ty(), "value":repr})
         }
         Err(EvalError::Trap { kind, .. }) => json!({"outcome":"trap", "trap":kind.as_str()}),
         Err(EvalError::ResourceLimit { .. }) => json!({"outcome":"resource_limit"}),
