@@ -6,10 +6,16 @@ use std::{
     fs,
     path::PathBuf,
     process::{Command, Output, Stdio},
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
 };
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
+// A concurrently spawned child can retain another test's pipe reader until
+// exec, making a supposedly broken output pipe temporarily writable.
+static PROCESS_LOCK: Mutex<()> = Mutex::new(());
 struct Input {
     directory: PathBuf,
     path: PathBuf,
@@ -53,6 +59,7 @@ fn checked_program_remains_usable_through_public_source_and_json_apis() {
 
 #[test]
 fn duplicate_keys_cannot_impersonate_a_json_recursion_failure() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
     for text in [
         r#"{"recursion limit exceeded":0,"recursion limit exceeded":1}"#,
         r#"{"recursion limit exceeded":0,"\u0072ecursion limit exceeded":1}"#,
@@ -80,6 +87,7 @@ fn duplicate_keys_cannot_impersonate_a_json_recursion_failure() {
 
 #[test]
 fn actual_json_recursion_exhaustion_still_reports_resource_limit() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
     let text = format!("{}0{}", "[".repeat(1000), "]".repeat(1000));
     assert!(matches!(
         core::import(&text),
@@ -102,6 +110,7 @@ fn closed_stderr(command: &mut Command) -> Output {
 
 #[test]
 fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
     for (bytes, command, extra, normal_code) in [
         (
             b"fn main()->i64{missing}".as_slice(),
@@ -148,6 +157,7 @@ fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
 
 #[test]
 fn successful_execution_does_not_require_stderr() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
     let input = Input::new("fn main()->i64{42}");
     let output = closed_stderr(&mut input.command("eval"));
     assert_eq!(output.status.code(), Some(0));
@@ -156,6 +166,7 @@ fn successful_execution_does_not_require_stderr() {
 
 #[test]
 fn closed_stdout_and_stderr_do_not_trigger_a_secondary_panic() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
     let input = Input::new("fn main()->i64{42}");
     let (reader, writer) = std::io::pipe().unwrap();
     drop(reader);
