@@ -1,4 +1,4 @@
-import APL.ProgramEvalCompleteness
+import APL.VCGContracts
 import Lean
 
 open Lean Elab Command in
@@ -16,7 +16,12 @@ run_elab do
     ``APL.Program.closed_safety, ``APL.Program.entry_typed, ``APL.Program.entry_safety,
     ``APL.Program.eval_value_sound, ``APL.Program.eval_trap_sound, ``APL.Program.eval_invalid_sound,
     ``APL.Program.eval_value_typed, ``APL.Program.eval_ne_invalid,
-    ``APL.Program.eval_value_complete, ``APL.Program.eval_trap_complete, ``APL.Program.eval_invalid_complete]
+    ``APL.Program.eval_value_complete, ``APL.Program.eval_trap_complete, ``APL.Program.eval_invalid_complete,
+    ``APL.VCG.EnvRep.lookup, ``APL.VCG.wp_eval_sound, ``APL.VCG.wp_value, ``APL.VCG.wp_no_trap,
+    ``APL.VCG.wp_no_invalid, ``APL.VCG.wp_steps_value, ``APL.VCG.wp_steps_no_trap, ``APL.VCG.wp_steps_no_invalid,
+    ``APL.VCG.instantiate_sound, ``APL.VCG.spec_post_sound, ``APL.VCG.requires_vc_sound,
+    ``APL.VCG.contract_eval_sound, ``APL.VCG.contract_preconditions_defined, ``APL.VCG.contract_nonvacuous,
+    ``APL.VCG.contract_steps_value, ``APL.VCG.contract_steps_no_trap, ``APL.VCG.contract_steps_no_invalid]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

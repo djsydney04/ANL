@@ -6,7 +6,9 @@ inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
 functions. Finite evaluator correspondence is proved in both directions for
 scalar expressions and recursive programs. Program completeness establishes the
-existence of sufficient depth and fuel for a given finite reduction.
+existence of sufficient depth and fuel for a given finite reduction. A separate
+call-free verification-condition generator proves contract postconditions and
+trap freedom from interpreted logical obligations.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
@@ -126,6 +128,18 @@ language behavior; they do not establish divergence or type safety.
   reduction from an evaluation state with an empty continuation can be reproduced
   by `Program.eval` with sufficient depth and fuel. The proof uses deterministic
   transitions and counted trace prefixes; it does not assume that programs end.
+- `APL/VCG.lean` defines mathematical values, symbolic terms and formulas with
+  independent interpretation, then a structural continuation-based generator for
+  call-free program terms. Its soundness proofs connect valid generated formulas
+  to the actual program evaluator and finite reductions, including arithmetic
+  trap freedom, intermediate bounds, lexical substitution and short circuit.
+- `APL/VCGContracts.lean` models the `apl-verify-v0` specification expressions,
+  explicit parameter/result substitution, ordered precondition definedness and
+  nonvacuous acceptance. It proves each accepted postcondition independently;
+  mathematical specification integers are unbounded. Kernel-checked examples
+  include increment and heterogeneous-parameter contracts, rejected
+  contradictory/undefined preconditions, discarded overflow, the remainder
+  overflow pair, and guarded division.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
   and strict interchange. The total program inference function is proved against
   declarative typing; the JSON adapter and executable compilation remain trusted
@@ -135,6 +149,14 @@ language behavior; they do not establish divergence or type safety.
   specified expected outcomes and a separate Python integer oracle, including
   deterministic generated terms and source-to-core recursive cases when Rust
   comparison is enabled.
+
+The FM-07 foundation covers call-free bodies and one postcondition at a time;
+absence of a requested postcondition can use `true`. Calls are rejected, including
+in unselected branches. Acyclic call expansion, callee precondition insertion,
+named-condition decomposition, Rust generation, SMT encoding and solver evidence
+are not certified by these proofs. The model's `Accepted` predicate means the
+logical obligations hold and a typed satisfying input exists; it is not a theorem
+that a solver response establishes those facts. Runtime contracts remain erased.
 
 The exact theorem statements, assumptions, and coverage are recorded in the
 [proof inventory](PROOFS.md). These proofs concern the Lean model. They do not

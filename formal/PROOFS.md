@@ -149,18 +149,89 @@ finite program outcomes. The fixed CLI depth bound of 256 can still reject a
 terminating computation that needs a larger model depth. Increasing fuel alone
 does not establish completeness at that fixed depth.
 
+## Call-free verification-condition foundation
+
+The FM-07 foundation uses the existing untyped `Program.Term` and unchanged
+`Program.eval`. `VCG.MVal` holds unbounded mathematical integers, booleans and
+unit. `SymTerm` is a concrete symbolic expression syntax; its independently
+defined interpreter has partial division/remainder and left-to-right Boolean
+short circuit. `Formula` is a concrete syntax for truth, expression truth,
+definedness, Boolean type, integer range, conjunction, negation and implication.
+Its interpretation does not refer to program execution or the desired safety
+conclusion.
+
+`VCG.wp e syms post` recursively constructs an optional formula. It substitutes
+locals through a symbolic environment and passes symbolic results to a syntactic
+continuation. It preserves obligations for discarded expressions and adds each
+checked intermediate range. Runtime division and remainder both reject zero and
+the machine minimum divided by `-1`; specification arithmetic is unbounded and
+permits the latter mathematical pair. Branch and Boolean operand obligations are
+guarded. Calls return `none`, including calls in an unselected branch. The
+primitive encoding lemmas prove that valid generated guards produce an actual
+runtime value with the represented mathematical result.
+
+`EnvRep model syms env` relates symbolic terms to concrete bounded runtime values.
+`PostHolds model post v` witnesses a symbolic term denoting `v` whose exact
+continuation formula was generated and holds. `Safe post outcome` requires the
+postcondition for a returned value, permits a resource limit, and excludes both
+arithmetic traps and invalid outcomes. The generator is a syntax transformation;
+none of these soundness theorems defines it as the semantic property to be proved.
+
+`Spec` has distinct parameter and result references with an independent
+mathematical interpreter. `instantiate_sound` proves their symbolic substitution.
+`requiresVC` generates a Boolean-definedness condition for each clause before
+using that clause's truth to guard later clauses; a clause cannot use its own or
+a later clause's truth. It also generates the full precondition conjunction.
+`generateContract` builds those formulas and the body's postcondition VC with
+canonical parameter symbols, reversing only the runtime parameter environment.
+A postcondition is checked independently, without assuming another postcondition.
+
+`Accepted types vc` requires three separate mathematical facts: precondition
+definedness for all typed parameter values, existence of a typed satisfying
+input, and validity of the body formula whenever the preconditions hold. These
+are logical-obligation assumptions, not assumed execution safety. They do not
+assert that Rust generation or a solver result establishes their truth. A
+constant-true postcondition expresses the arithmetic-safety-only case.
+
+| Theorem | Quantified statement and assumptions |
+| --- | --- |
+| `APL.VCG.EnvRep.lookup` | A symbolic lookup in related environments identifies a corresponding concrete runtime value denoted by that symbol. |
+| `APL.VCG.wp_eval_sound` | `wp e syms post = some formula`, `EnvRep model syms env`, and `formula.Holds model` imply `Safe (PostHolds model post)` for the actual `Program.eval fs depth env e fuel`, for any functions, depth and fuel. No execution-safety or termination premise. |
+| `APL.VCG.wp_value` | Under those generator, environment and validity assumptions, any returned value has a `PostHolds` witness. |
+| `APL.VCG.wp_no_trap` | Under those assumptions, actual evaluation cannot return either defined arithmetic trap. |
+| `APL.VCG.wp_no_invalid` | Under those assumptions, actual evaluation cannot return invalid. |
+| `APL.VCG.wp_steps_value` | Under those assumptions, any finite `Program.Steps` reduction from `eval e env []` to `ret v []` satisfies `PostHolds`. Uses the checked evaluator-completeness theorem. |
+| `APL.VCG.wp_steps_no_trap` | Under those assumptions, no finite reduction from `eval e env []` reaches an arithmetic trap. |
+| `APL.VCG.wp_steps_no_invalid` | Under those assumptions, no finite reduction from `eval e env []` reaches invalid. |
+| `APL.VCG.instantiate_sound` | Successful specification substitution, related parameter environments and a related optional result imply equality of symbolic evaluation and independent specification evaluation, including undefined outcomes. |
+| `APL.VCG.spec_post_sound` | A `PostHolds` witness for the generated specification continuation implies that the concrete returned value makes that specification defined and true under the represented parameters. |
+| `APL.VCG.requires_vc_sound` | Successfully generated precondition formulas under related parameters are equivalent to independent ordered definedness and conjunction-of-truth judgments. |
+| `APL.VCG.contract_eval_sound` | Successful `generateContract`, `Accepted` logical obligations, typed parameter values and true source preconditions imply that actual evaluation in the reversed parameter environment returns a value satisfying the independent specification, or reaches a resource limit. Trap and invalid outcomes are excluded. |
+| `APL.VCG.contract_preconditions_defined` | Successful generation and `Accepted` imply ordered precondition definedness for every typed parameter environment. |
+| `APL.VCG.contract_nonvacuous` | Successful generation and `Accepted` imply a typed parameter environment satisfying the source preconditions. Contradictory preconditions cannot yield accepted verification. |
+| `APL.VCG.contract_steps_value` | Under the contract theorem's generation, acceptance, typing and precondition assumptions, any finite returned value satisfies the independent specification. |
+| `APL.VCG.contract_steps_no_trap` | Under those contract assumptions, no finite relation reduction reaches an arithmetic trap. |
+| `APL.VCG.contract_steps_no_invalid` | Under those contract assumptions, no finite relation reduction reaches invalid. |
+
+These theorems cover all call-free scalar term constructors and the specified
+mathematical contract grammar. They do not certify acyclic inlining, callee
+precondition obligations, decomposition into named conditions, the Rust VCG,
+source-contract erasure, SMT translation or the solver. Full FM-07 remains
+partial. The runtime semantic revision and all prior 44 theorems are unchanged.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
 theorems use exactly `propext` and `Quot.sound`; the other expression theorems
 use exactly `propext`. Every inventoried program theorem uses exactly `propext`
 and `Quot.sound`, except `Program.resume_typed`, which uses only `propext`.
-None currently uses `Classical.choice`, although the project policy permits it. No project axiom, incomplete proof, native-evaluation trust
+The VCG theorems use `propext` and `Quot.sound`, except `VCG.EnvRep.lookup`,
+which uses only `propext`. None currently uses `Classical.choice`, although the project policy permits it. No project axiom, incomplete proof, native-evaluation trust
 axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 44 inventoried names are included.
+Its allowable set is explicit, and all 61 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -179,6 +250,11 @@ checker's soundness theorem does not prove the Rust frontend, checker, serialize
 or either JSON adapter correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
-FM-07 and FM-08 are not implemented here. There is no VCG soundness theorem,
-optimization/lowering theorem, native backend proof, ownership proof, or
-whole-language verification claim in this inventory.
+FM-07 is partial: the concrete call-free generator and contract-logic soundness
+foundation above are checked. Acyclic inlining preservation, callee precondition
+insertion, named-condition decomposition and the production/SMT/solver bridges
+remain open. Runtime verification reports therefore remain solver-trusted.
+
+FM-08 is not implemented here. There is no optimization/lowering theorem, native
+backend proof, ownership proof, or whole-language verification claim in this
+inventory.
