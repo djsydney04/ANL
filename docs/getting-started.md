@@ -209,11 +209,11 @@ The black-box suite runs the actual CLI and generated executables against
 independent expected values and trap kinds. It
 covers source and interchange rejection, whole-program checking, arithmetic,
 sequencing, scopes, recursion, short-circuiting, module visibility, source
-protection, local-state sequencing, and bounded resource failures. The earlier
-immutable/call-verification revision `1b70f10258cec050ce9d4961a6496a8fef8c6894`
-passed [Linux/macOS Rust and Lean CI](https://github.com/djsydney04/ANL/actions/runs/44056277127).
-That run predates local state; its hosted checks remain pending. These checks are
-development evidence, not installation or release qualification.
+protection, local-state sequencing, and bounded resource failures. Revision
+`f8ffb5f128aab5eaed4db3770ae500cd923cc61c` passed
+[Linux/macOS Rust and Lean CI](https://github.com/djsydney04/ANL/actions/runs/44059286145),
+including local-state execution, proof checks, and evaluator comparisons. These
+checks are development evidence, not installation or release qualification.
 
 `apl dump-core FILE` exports checked source into the versioned JSON format, and
 `apl eval-core FILE [--fuel N]` independently validates a core artifact and emits
@@ -231,6 +231,7 @@ for the distinction between checked theorems, tested behavior, and remaining pro
 obligations.
 
 The [baseline instructions](../benchmarks/README.md) describe reproducible release
-CLI and native measurements. The [native macOS arm64 report](../benchmarks/results/native-macos-arm64.md)
-records measured build/execution results and their limits; it makes no
-cross-language performance claim.
+CLI and native measurements. The original [native macOS arm64 report](../benchmarks/results/native-macos-arm64.md)
+and the separate [local-state report](../benchmarks/results/local-state-macos-arm64.md)
+record measured build/execution results and their limits. They do not establish
+a cross-run speedup or cross-language performance claim.

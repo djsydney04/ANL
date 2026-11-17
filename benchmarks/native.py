@@ -74,6 +74,8 @@ def run(args: argparse.Namespace, report: dict) -> None:
         raise SemanticFailure("cargo, rustc, and a C11 compiler (CC or cc) must be on PATH")
     manifest = ROOT / "benchmarks/cases/native-manifest.json"
     cases = json.loads(manifest.read_text())
+    inspect_names = {case["name"] for case in cases
+                     if case.get("inspect") or case["name"].startswith("fibonacci-")}
     inputs = {manifest, Path(__file__), ROOT / "benchmarks/run.py"}
     for case in cases:
         inputs.update((manifest.parent / name).resolve() for name in case["inputs"])
@@ -158,7 +160,7 @@ def run(args: argparse.Namespace, report: dict) -> None:
         if disassembler:
             option = "-tvV" if Path(disassembler).name == "otool" else "-d"
             for item in report["cases"]:
-                if item["name"].startswith("fibonacci-"):
+                if item["name"] in inspect_names:
                     report["binary_disassembly"].append(record(
                         report, [disassembler, option, str(scratch / item["name"])], {"exit": 0},
                         item["name"] + "/binary-disassembly", args.timeout))
@@ -166,7 +168,7 @@ def run(args: argparse.Namespace, report: dict) -> None:
         require_same(artifacts, {path: binary_info(Path(path)) for path in artifacts}, "warmed native artifacts")
         report["assembly_evidence"] = []
         for case in cases:
-            if not case["name"].startswith("fibonacci-"):
+            if case["name"] not in inspect_names:
                 continue
             source = str((manifest.parent / case["file"]).resolve().relative_to(ROOT))
             emitted = record(report, [str(binary), "emit-c", source], {"exit": 0}, case["name"] + "/emit-c", args.timeout)

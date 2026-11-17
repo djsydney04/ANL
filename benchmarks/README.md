@@ -48,9 +48,9 @@ thresholds.
 
 ## Native build and execution baseline
 
-The native harness measures `apl build`, warmed generated executables, and the
-release interpreter against the same explicit output oracles. It covers a
-constant control, the three-file module example, and two branching Fibonacci
+The original native baseline measures `apl build`, warmed generated executables,
+and the release interpreter against the same explicit output oracles. It covers
+a constant control, the three-file module example, and two branching Fibonacci
 inputs. Read the [macOS arm64 result](results/native-macos-arm64.md) for actual
 medians/ranges, linked-binary evidence that recursion remains, separate profiles,
 first-launch observations, and limitations.
@@ -61,8 +61,10 @@ python3 benchmarks/native.py --revision 19d726c --warmup 2 --samples 7 \
   --output benchmarks/results/native-local.json
 ```
 
-The compiler inputs must match the selected Git revision. The harness builds a
-fresh isolated release compiler with cached Cargo dependencies, checks source,
+These commands describe the original compiler and manifest snapshot. Use the
+[local-state command below](#local-state-build-and-execution-baseline) for the
+current manifest. The compiler inputs must match the selected Git revision.
+The harness builds a fresh isolated release compiler with cached Cargo dependencies, checks source,
 fixture, tool and artifact hashes, and validates every observed outcome. Native
 build samples use separate outputs from the stable executables used for run
 samples. First launches and validation runs remain in the raw evidence but are
@@ -72,3 +74,26 @@ rejected partial report. The default revision pins this baseline; use
 
 Measurements are observational results from a shared host. They do not establish
 cross-language performance, memory efficiency, or a qualified release.
+
+## Local-state build and execution baseline
+
+The [local-state macOS arm64 report](results/local-state-macos-arm64.md) records
+mutable-local and while-loop measurements at exact compiler revision
+`f8ffb5f128aab5eaed4db3770ae500cd923cc61c`. It adds a million-step arithmetic
+recurrence with an independent expected result, retaining the original four
+programs as controls. The separate run records 220 validated invocations and
+105 measured samples, with linked-binary evidence that the loop executes.
+
+With compiler inputs matching that revision and Cargo dependencies already
+cached, reproduce the current manifest using:
+
+```sh
+python3 benchmarks/native.py \
+  --revision f8ffb5f128aab5eaed4db3770ae500cd923cc61c \
+  --warmup 2 --samples 7 --output benchmarks/results/local-state-local.json
+```
+
+The earlier native baseline and its raw evidence remain unchanged. The new
+workload, compiler revision, and shared-host conditions do not establish a
+before-and-after speedup or a cross-language comparison. Read the report for
+workload-specific results, profile evidence, first-launch exclusions, and limits.

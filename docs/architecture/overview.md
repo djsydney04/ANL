@@ -231,5 +231,7 @@ capability, checks affected proofs and regressions, measures relevant outcomes a
 integrates only accepted changes. The [baseline harnesses](../../benchmarks/README.md)
 measure local release-CLI checking, interpretation, native builds, and native
 execution with explicit outcome checks. The
-[native macOS arm64 report](../../benchmarks/results/native-macos-arm64.md) records
-actual observations and limits, without a cross-language performance claim.
+[native macOS arm64 report](../../benchmarks/results/native-macos-arm64.md) and
+[local-state report](../../benchmarks/results/local-state-macos-arm64.md) record
+separate observations and limits, without a cross-run speedup or cross-language
+performance claim.

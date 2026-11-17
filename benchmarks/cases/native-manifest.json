@@ -2,5 +2,6 @@
   {"name":"constant-control","file":"native-control.apl","inputs":["native-control.apl"],"expected":{"exit":0,"stdout":"42\n"}},
   {"name":"three-modules","file":"../../examples/modules/main.apl","inputs":["../../examples/modules/main.apl","../../examples/modules/math.apl","../../examples/modules/constants.apl"],"expected":{"exit":0,"stdout":"42\n"}},
   {"name":"fibonacci-28","file":"native-fibonacci-28.apl","inputs":["native-fibonacci-28.apl"],"fuel":1000000000,"expected":{"exit":0,"stdout":"317811\n"}},
-  {"name":"fibonacci-32","file":"native-fibonacci-32.apl","inputs":["native-fibonacci-32.apl"],"fuel":1000000000,"expected":{"exit":0,"stdout":"2178309\n"}}
+  {"name":"fibonacci-32","file":"native-fibonacci-32.apl","inputs":["native-fibonacci-32.apl"],"fuel":1000000000,"expected":{"exit":0,"stdout":"2178309\n"}},
+  {"name":"local-state-park-miller-1m","file":"local-state-park-miller-1m.apl","inputs":["local-state-park-miller-1m.apl"],"fuel":1000000000,"inspect":true,"expected":{"exit":0,"stdout":"1263606197\n"}}
 ]

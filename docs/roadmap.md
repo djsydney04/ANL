@@ -122,7 +122,8 @@ validated MIR slots, and native C11 loops. The separate Lean model proves typing
 progress/preservation, finite machine correspondence, and forward preservation of
 finite v0 evaluator outcomes. It does not establish termination, reverse divergence
 correspondence, stateful verification, or Rust/JSON/native correctness. Local
-runtime/proof checks pass; hosted checks for this increment remain pending.
+runtime/proof checks and [hosted Linux/macOS Rust and Lean checks](https://github.com/djsydney04/ANL/actions/runs/44059286145)
+passed at `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`.
 
 Implement the remainder of the type system, ownership/borrowing, data types,
 generics, closures, pattern matching, errors, effects, concurrency/async, I/O,

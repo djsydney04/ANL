@@ -218,11 +218,10 @@ The implemented verifier has tests for valid and false properties, intermediate
 overflow, division faults, unsatisfiable or undefined preconditions, guarded
 paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
 malformed protocol output, limits, and report identities. The Linux/macOS Rust
-jobs and the 81-statement Lean proof/comparison job passed for
-`1b70f10258cec050ce9d4961a6496a8fef8c6894`
-([CI run](https://github.com/djsydney04/ANL/actions/runs/44056277127)). That run
-predates local state, whose hosted checks remain pending. Passing CI does not
-discharge the remaining FM-07 or implementation-correspondence obligations.
+jobs and the Lean proof/comparison job, including local state and all 118 audited
+statements, passed for `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44059286145)). Passing CI
+does not discharge the remaining FM-07 or implementation-correspondence obligations.
 
 The Lean generators construct concrete formulas and prove soundness under
 independently interpreted logical obligations. Finite body expansion threads
