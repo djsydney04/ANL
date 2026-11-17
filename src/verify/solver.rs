@@ -1,4 +1,4 @@
-use super::{Failure, hash_file};
+use super::{Failure, formula::StateBudget, hash_file};
 use crate::types::Type;
 use serde_json::{Value, json};
 use std::{
@@ -19,6 +19,17 @@ pub(super) struct Answer {
 pub(super) struct Attempt {
     pub outcome: Result<Answer, Failure>,
     pub transcript: String,
+}
+pub(super) struct ModelSymbol {
+    pub name: String,
+    pub ty: Type,
+    pub origin: Value,
+    pub head: Option<usize>,
+}
+#[derive(Clone, Copy)]
+enum ModelRequest<'a> {
+    Parameters(&'a [Type]),
+    Symbols(&'a [ModelSymbol]),
 }
 impl Solver {
     pub fn discover(requested: &Path, deadline: Instant) -> Result<Self, Failure> {
@@ -70,10 +81,34 @@ impl Solver {
         let outcome = process::query(
             &self.path,
             script,
-            params,
+            ModelRequest::Parameters(params),
             deadline,
             &mut transcript,
             max_bytes,
+            None,
+        );
+        Attempt {
+            outcome,
+            transcript,
+        }
+    }
+    pub fn query_symbols(
+        &self,
+        script: &str,
+        symbols: &[ModelSymbol],
+        deadline: Instant,
+        max_bytes: usize,
+        budget: &mut StateBudget,
+    ) -> Attempt {
+        let mut transcript = script.to_owned();
+        let outcome = process::query(
+            &self.path,
+            script,
+            ModelRequest::Symbols(symbols),
+            deadline,
+            &mut transcript,
+            max_bytes,
+            Some(budget),
         );
         Attempt {
             outcome,
@@ -87,8 +122,16 @@ enum Sexp {
     Atom(String),
     List(Vec<Sexp>),
 }
-fn parse_sexp(text: &str) -> Result<Sexp, Failure> {
-    fn parse(bytes: &[u8], pos: &mut usize, depth: usize) -> Result<Sexp, Failure> {
+fn parse_sexp(text: &str, mut budget: Option<&mut StateBudget>) -> Result<Sexp, Failure> {
+    fn parse(
+        bytes: &[u8],
+        pos: &mut usize,
+        depth: usize,
+        budget: &mut Option<&mut StateBudget>,
+    ) -> Result<Sexp, Failure> {
+        if let Some(budget) = budget {
+            budget.charge(1)?;
+        }
         if depth > 32 {
             return Err(Failure::Error("solver response nesting exceeds 32".into()));
         }
@@ -109,7 +152,10 @@ fn parse_sexp(text: &str) -> Result<Sexp, Failure> {
                 if *pos == bytes.len() {
                     return Err(Failure::Error("unterminated solver model".into()));
                 }
-                items.push(parse(bytes, pos, depth + 1)?);
+                if let Some(budget) = budget {
+                    budget.reserve(&mut items, 1)?;
+                }
+                items.push(parse(bytes, pos, depth + 1, budget)?);
             }
         }
         let start = *pos;
@@ -130,10 +176,13 @@ fn parse_sexp(text: &str) -> Result<Sexp, Failure> {
         {
             return Err(Failure::Error("invalid solver response atom".into()));
         }
+        if let Some(budget) = budget {
+            budget.charge(atom.len())?;
+        }
         Ok(Sexp::Atom(atom.into()))
     }
     let mut pos = 0;
-    let value = parse(text.as_bytes(), &mut pos, 0)?;
+    let value = parse(text.as_bytes(), &mut pos, 0, &mut budget)?;
     if !text[pos..].trim().is_empty() {
         return Err(Failure::Error("extra solver output after model".into()));
     }
@@ -168,7 +217,7 @@ fn model(text: &str, params: &[Type]) -> Result<Value, Failure> {
         }
         return Ok(json!({"replayed":false,"assignments":[]}));
     }
-    let Sexp::List(entries) = parse_sexp(text)? else {
+    let Sexp::List(entries) = parse_sexp(text, None)? else {
         return Err(Failure::Error("solver model is not a list".into()));
     };
     if entries.len() != expected {
@@ -214,6 +263,229 @@ fn model(text: &str, params: &[Type]) -> Result<Value, Failure> {
         );
     }
     Ok(json!({"replayed":false,"assignments":assignments}))
+}
+
+fn mathematical_integer(value: &Sexp, budget: &mut StateBudget) -> Result<String, Failure> {
+    let (negative, atom) = match value {
+        Sexp::Atom(atom) => (false, atom),
+        Sexp::List(items) => match items.as_slice() {
+            [Sexp::Atom(op), Sexp::Atom(atom)] if op == "-" => (true, atom),
+            _ => {
+                return Err(Failure::Error(
+                    "malformed mathematical integer model".into(),
+                ));
+            }
+        },
+    };
+    budget.charge(atom.len())?;
+    if atom.is_empty()
+        || !atom.bytes().all(|b| b.is_ascii_digit())
+        || (atom.len() > 1 && atom.starts_with('0'))
+    {
+        return Err(Failure::Error(
+            "malformed mathematical integer model".into(),
+        ));
+    }
+    budget.charge(atom.len() + 1)?;
+    Ok(if negative && atom != "0" {
+        format!("-{atom}")
+    } else {
+        atom.clone()
+    })
+}
+
+fn within_i64(decimal: &str) -> bool {
+    let (digits, limit) = match decimal.strip_prefix('-') {
+        Some(digits) => (digits, "9223372036854775808"),
+        None => (decimal, "9223372036854775807"),
+    };
+    digits.len() < limit.len() || (digits.len() == limit.len() && digits <= limit)
+}
+
+fn model_symbols(
+    text: &str,
+    symbols: &[ModelSymbol],
+    budget: &mut StateBudget,
+) -> Result<Value, Failure> {
+    if symbols.is_empty() {
+        if !text.trim().is_empty() {
+            return Err(Failure::Error(
+                "unexpected solver output for empty model".into(),
+            ));
+        }
+        return Ok(json!({"replayed":false,"assignments":[]}));
+    }
+    let Sexp::List(entries) = parse_sexp(text, Some(budget))? else {
+        return Err(Failure::Error("solver model is not a list".into()));
+    };
+    if entries.len() != symbols.len() {
+        return Err(Failure::Error("solver model has wrong symbol count".into()));
+    }
+    budget.charge(symbols.len())?;
+    let mut names = std::collections::HashMap::new();
+    names
+        .try_reserve(symbols.len())
+        .map_err(|_| Failure::Unknown("model allocation failed".into()))?;
+    for (index, symbol) in symbols.iter().enumerate() {
+        budget.charge(1)?;
+        if names.insert(symbol.name.as_str(), index).is_some() {
+            return Err(Failure::Error("duplicate model manifest symbol".into()));
+        }
+    }
+    let mut assignments = Vec::new();
+    budget.reserve(&mut assignments, symbols.len())?;
+    assignments.resize(symbols.len(), Value::Null);
+    for entry in entries {
+        budget.charge(1)?;
+        let Sexp::List(pair) = entry else {
+            return Err(Failure::Error("malformed solver model entry".into()));
+        };
+        let [Sexp::Atom(name), value] = pair.as_slice() else {
+            return Err(Failure::Error("malformed solver model pair".into()));
+        };
+        let index = *names
+            .get(name.as_str())
+            .ok_or_else(|| Failure::Error("unknown solver model symbol".into()))?;
+        if !assignments[index].is_null() {
+            return Err(Failure::Error("duplicate solver model symbol".into()));
+        }
+        let symbol = &symbols[index];
+        let value_json = match symbol.ty {
+            Type::I64 if symbol.head.is_some() => {
+                Value::String(mathematical_integer(value, budget)?)
+            }
+            Type::I64 => json!(
+                integer(value)
+                    .ok_or_else(|| Failure::Error(
+                        "solver integer model is malformed or outside i64".into()
+                    ))?
+                    .to_string()
+            ),
+            Type::Bool => match value {
+                Sexp::Atom(v) if v == "true" => json!(true),
+                Sexp::Atom(v) if v == "false" => json!(false),
+                _ => return Err(Failure::Error("invalid solver Boolean model".into())),
+            },
+            Type::Unit => return Err(Failure::Error("unexpected unit solver variable".into())),
+        };
+        budget.charge(12)?;
+        let head_range = if symbol.head.is_some() && symbol.ty == Type::I64 {
+            Some(within_i64(
+                value_json.as_str().expect("mathematical integer"),
+            ))
+        } else {
+            None
+        };
+        let mut assignment =
+            json!({"symbol":name,"type":symbol.ty.as_str(),"origin":symbol.origin});
+        assignment["value"] = value_json;
+        if symbol.head.is_some() && symbol.ty == Type::I64 {
+            assignment["within_machine_range"] = json!(head_range.expect("head range"));
+        }
+        assignments[index] = assignment;
+    }
+    let mut model = json!({"replayed":false});
+    model["assignments"] = Value::Array(assignments);
+    Ok(model)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+    fn budget() -> StateBudget {
+        StateBudget::new(Instant::now() + Duration::from_secs(5))
+    }
+    fn symbols() -> Vec<ModelSymbol> {
+        vec![
+            ModelSymbol {
+                name: "p0".into(),
+                ty: Type::I64,
+                origin: json!({"kind":"parameter","index":0}),
+                head: None,
+            },
+            ModelSymbol {
+                name: "h3".into(),
+                ty: Type::I64,
+                origin: json!({"kind":"loop_head"}),
+                head: Some(3),
+            },
+            ModelSymbol {
+                name: "h4".into(),
+                ty: Type::Bool,
+                origin: json!({"kind":"loop_head"}),
+                head: Some(4),
+            },
+        ]
+    }
+    #[test]
+    fn mathematical_head_models_preserve_large_values_and_validate_machine_fit() {
+        for (value, expected, fit) in [
+            (
+                "9223372036854775807".into(),
+                "9223372036854775807".into(),
+                true,
+            ),
+            (
+                "9223372036854775808".into(),
+                "9223372036854775808".into(),
+                false,
+            ),
+            (
+                "(- 9223372036854775808)".into(),
+                "-9223372036854775808".into(),
+                true,
+            ),
+            (
+                "(- 9223372036854775809)".into(),
+                "-9223372036854775809".into(),
+                false,
+            ),
+            (
+                format!("(- {})", "9".repeat(200)),
+                format!("-{}", "9".repeat(200)),
+                false,
+            ),
+            ("(- 0)".into(), "0".into(), true),
+        ] {
+            let model = model_symbols(
+                &format!("((h4 true)(h3 {value})(p0 0))"),
+                &symbols(),
+                &mut budget(),
+            )
+            .unwrap();
+            assert_eq!(model["assignments"][1]["value"], expected);
+            assert_eq!(model["assignments"][1]["within_machine_range"], fit);
+            assert_eq!(model["assignments"][0]["symbol"], "p0");
+            assert_eq!(model["replayed"], false);
+        }
+    }
+    #[test]
+    fn manifest_models_reject_missing_unknown_duplicate_wrong_sort_and_parameter_overflow() {
+        for text in [
+            "((p0 0)(h3 0))",
+            "((p0 0)(h3 0)(h9 true))",
+            "((p0 0)(h3 0)(h3 1))",
+            "((p0 0)(h3 0)(h4 1))",
+            "((p0 0)(h3 true)(h4 true))",
+            "((p0 9223372036854775808)(h3 0)(h4 true))",
+            "((p0 0)(h3 01)(h4 true))",
+            "((p0 0)(h3 (- -1))(h4 true))",
+        ] {
+            assert!(
+                matches!(
+                    model_symbols(text, &symbols(), &mut budget()),
+                    Err(Failure::Error(_))
+                ),
+                "{text}"
+            );
+        }
+        assert_eq!(
+            model_symbols("", &[], &mut budget()).unwrap(),
+            json!({"replayed":false,"assignments":[]})
+        );
+        assert!(model_symbols("()", &[], &mut budget()).is_err());
+    }
 }
 
 #[cfg(unix)]
@@ -409,10 +681,11 @@ mod process {
     pub fn query(
         path: &Path,
         script: &str,
-        params: &[Type],
+        request: ModelRequest<'_>,
         deadline: Instant,
         transcript: &mut String,
         max_bytes: usize,
+        mut budget: Option<&mut StateBudget>,
     ) -> Result<Answer, Failure> {
         let mut process = Process::spawn(path, &["-in", "-smt2"])?;
         process.send(script.as_bytes(), deadline)?;
@@ -439,12 +712,21 @@ mod process {
             }
             thread::sleep(Duration::from_millis(1));
         };
-        let symbols: Vec<_> = params
-            .iter()
-            .enumerate()
-            .filter(|(_, ty)| **ty != Type::Unit)
-            .map(|(i, _)| format!("p{i}"))
-            .collect();
+        let symbols: Vec<_> = match request {
+            ModelRequest::Parameters(params) => params
+                .iter()
+                .enumerate()
+                .filter(|(_, ty)| **ty != Type::Unit)
+                .map(|(i, _)| format!("p{i}"))
+                .collect(),
+            ModelRequest::Symbols(symbols) => {
+                budget
+                    .as_deref_mut()
+                    .expect("manifest budget")
+                    .charge(symbols.len() * 2)?;
+                symbols.iter().map(|s| s.name.clone()).collect()
+            }
+        };
         let mut suffix = String::new();
         if status == "sat" && !symbols.is_empty() {
             suffix.push_str(&format!("(get-value ({}))\n", symbols.join(" ")));
@@ -461,7 +743,12 @@ mod process {
         let remainder = std::str::from_utf8(&process.stdout[consumed..])
             .map_err(|_| Failure::Error("solver output is not UTF-8".into()))?;
         let model = if status == "sat" {
-            model(remainder, params)?
+            match request {
+                ModelRequest::Parameters(params) => model(remainder, params)?,
+                ModelRequest::Symbols(symbols) => {
+                    model_symbols(remainder, symbols, budget.expect("manifest budget"))?
+                }
+            }
         } else {
             if !remainder.trim().is_empty() {
                 return Err(Failure::Error("unexpected trailing solver output".into()));
@@ -482,10 +769,11 @@ mod process {
     pub fn query(
         _: &Path,
         _: &str,
-        _: &[Type],
+        _: ModelRequest<'_>,
         _: Instant,
         _: &mut String,
         _: usize,
+        _: Option<&mut StateBudget>,
     ) -> Result<Answer, Failure> {
         Err(Failure::Unsupported(
             "solver process control is supported on Unix hosts".into(),

@@ -22,15 +22,16 @@ contracts are stable. A phase number expresses dependencies, not a claim that al
 work in prior phases is finished.
 
 Current status: the scalar checker/interpreter, native C11 backend, file modules,
-initialized mutable locals, while loops, versioned core JSON interchange, loop-free
-scalar contract verification with acyclic calls, and scoped Lean proofs are
+initialized mutable locals, while loops, versioned core JSON interchange, scalar
+contract verification with invariants and acyclic calls, and scoped Lean proofs are
 available. Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
 v0 model, with sufficient depth and fuel. Local state has a separate typed machine
 and finite transition/run correspondence. The concrete invariant-loop model now
-proves conditional safety and partial correctness over that machine; production
-loop verification remains future work. The [52 technical release requirements](requirements.md)
+proves conditional safety and partial correctness over that machine. Production
+invariant-loop verification is separately implemented with solver-trusted results.
+The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
 
@@ -95,8 +96,8 @@ remain pending. Module resolution and backend correctness are tested boundaries.
 
 The current [verifier](verification.md) supports typed mathematical-integer
 `requires`/`ensures` clauses, guarded arithmetic-safety conditions, and acyclic
-call expansion across the complete loaded graph, including loop-free mutable
-scalar locals and assignment. It checks ordered precondition
+call expansion across the complete loaded graph, including mutable scalar locals,
+assignment and annotated while loops. It checks ordered precondition
 definedness and satisfiability, calls the pinned Z3 5.3.3, and emits exact source,
 tool, and query bindings. Results are `smt-trusted`; refuting models are unreplayed.
 Ordinary compilation erases contracts without dynamic checks.
@@ -122,11 +123,11 @@ production named-condition correspondence, and Rust/SMT/solver bridges remain
 open, including correspondence between the formal continuation/path-split
 generators and production merged flows. Source annotation attachment, global
 allocation-event history, production limits and countermodel decoding also need
-their own evidence. The production verifier rejects
-loops and recursion before tool discovery. Source `invariant` clauses are accepted
-and type-checked at the loop head, then erased; their truth and definedness are
-not established. Production loop-invariant verification, assertions, recursive
-verification, ghost code, and heap properties remain future work.
+their own evidence. The production verifier rejects missing loop invariants and
+recursion before tool discovery. Ordinary compilation type-checks and erases
+source invariants; verification separately checks initialization, preservation,
+condition/body safety and normal exits. Assertions, recursive verification, ghost
+code, and heap properties remain future work.
 
 Complete M3 acceptance includes true and false properties, counterexamples where
 supported,

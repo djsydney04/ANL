@@ -1,10 +1,10 @@
 # Verify scalar function contracts
 
 `apl verify` checks arithmetic safety and function contracts for pure scalar
-code and loop-free mutable scalar locals. It uses Z3 5.3.3 and reports
-solver-trusted results. It supports acyclic calls across source modules.
-Programs with loops or recursive calls still compile and run, but verification
-reports them as unsupported.
+code, mutable scalar locals, and while loops with invariants. It uses Z3 5.3.3
+and reports solver-trusted results. It supports acyclic calls across source
+modules. Verification requires an invariant on every loaded loop and rejects
+recursive call graphs. Ordinary compilation supports unannotated loops and recursion.
 
 ## Run a verification
 
@@ -76,21 +76,71 @@ Division truncates toward zero in both executable and specification expressions.
 The specification quotient of `-9223372036854775808 / -1` is mathematically valid;
 that division and remainder are overflow traps in executable code.
 
+## Verify a loop
+
+An invariant describes the state immediately before each condition evaluation.
+The [counter example](../examples/contracts/count.apl) uses two independent clauses:
+
+```text
+fn count_to(n: i64) -> i64
+    requires 0 <= n && n <= 1000;
+    ensures (answer) answer == n;
+{
+    let mut i = 0;
+    while (i < n)
+        invariant 0 <= i;
+        invariant i <= n;
+    {
+        i = i + 1;
+    }
+    i
+}
+```
+
+Its `main` calls `count_to(42)`. With the pinned solver installed, run:
+
+```sh
+./target/release/apl verify examples/contracts/count.apl --solver /path/to/z3 --json
+./target/release/apl eval examples/contracts/count.apl
+./target/release/apl run examples/contracts/count.apl
+```
+
+Verification returns `verified`, exit 0, with `verification_revision:
+"apl-loop-verify-v1"`. Interpretation and native execution both print `42`.
+The verifier checks each invariant's definedness and truth on entry and after
+each normal body return. A clause cannot assume its own or another clause's
+conclusion at either point. Inside the loop, the established invariant and the
+condition guard support arithmetic safety and the eventual postcondition.
+
+Every visible mutable non-unit local gets a fresh arbitrary head value, even if
+the loop never writes it. Retain a needed relation in an invariant, or use an
+immutable binding for a value that should stay fixed. Conditions may change
+locals; the final false condition's changes remain visible after the loop, and
+the invariant need not hold after that condition.
+
+Verification proves partial correctness: if the function returns normally, its
+postconditions hold, and no finite execution prefix traps under the assumptions.
+It does not prove a return will occur. A safe `while (true) invariant true; {}`
+can verify even with a false postcondition. A trap before that loop still fails
+verification; unreachable operations after it need not execute safely. Entry
+preconditions must remain defined and satisfiable, independent of divergence.
+No global satisfiability check is imposed on loop invariants.
+
 ## Understand the result
 
 The verifier checks every loaded function, including private and unused functions.
 A function with no explicit contracts still gets an arithmetic-safety check.
-Any `while` or recursive call graph makes the complete attempt `unsupported`,
-including unused functions and unselected branches. This preflight runs before
+Any loop without an invariant or any recursive call graph makes the complete
+attempt `unsupported`, including imported or unused functions, unselected
+branches, loop conditions/bodies, and call arguments. This preflight runs before
 compiler hashing, solver discovery, or query creation. The diagnostic identifies
 the unsupported construct. A library does not need `main`. An empty program reports that nothing was requested.
 
-Loops may carry typed `invariant` clauses, but annotations do not enable loop
-verification. Ordinary checking validates their names and Boolean types, then
-erases them; it proves neither truth nor definedness. Every annotated or
-unannotated loop keeps the same unsupported result and report revision. The
+Ordinary checking validates invariant names and Boolean types, then erases the
+clauses; it proves neither truth nor definedness. `verify` separately checks their
+initialization and preservation. The
 [annotation specification](../spec/loop-verification.md#source-annotations-and-erasure)
-describes the source syntax and its separation from the proposed invariant rule.
+describes the source syntax and invariant rule.
 
 Calls check argument evaluation and callee preconditions, then analyze the actual
 callee body. The verifier does not assume a callee's postconditions as axioms.
@@ -107,17 +157,23 @@ mutable locals with the same names.
 | 1 | Invalid source or contract |
 | 3 | Source loading or parsing resource limit |
 | 4 | Invocation, solver protocol, tool, or I/O failure |
-| 5 | Refuted property or unsatisfiable preconditions |
+| 5 | Refuted verification obligation or unsatisfiable preconditions |
 | 6 | Solver uncertainty, timeout, or verification analysis limit |
-| 7 | Unsupported recursion, loops, or an empty function graph |
+| 7 | Unsupported recursion, missing loop invariants, or an empty function graph |
 
 A refuting solver model is labeled `replayed: false`. It is a candidate
 counterexample, not an execution trace. A later error does not erase already
 completed obligation results. Only the aggregate `verified` result returns zero.
 
-Pure programs retain schema `apl-verify-v0`. Programs containing local-state
-constructors use `apl-verify-v1` with `verification_revision: "apl-state-verify-v1"`,
-including programs rejected for loops or recursion. Reports include retained
+The complete checked program selects one route:
+
+| Program | Schema | Verification revision |
+| --- | --- | --- |
+| Pure scalar code | `apl-verify-v0` | No separate field |
+| Local state without loops | `apl-verify-v1` | `apl-state-verify-v1` |
+| Any while loop | `apl-verify-v1` | `apl-loop-verify-v1` |
+
+The route is selected even when preflight rejects the program. Reports include retained
 source hashes,
 function identities, exact tool hashes and versions, limits, obligation locations,
 SMT commands and hashes, outcomes, and candidate input assignments. Completed
@@ -132,13 +188,30 @@ on stderr.
 
 Each v1 obligation records `model_symbols`, listing every non-unit entry parameter
 in declaration order, including unused parameters. Counterexamples retain that
-complete assignment; unit values require no solver symbol. No loop-head symbols
-or loop obligations are included.
+complete assignment; unit values require no solver symbol. Loop queries also
+request exactly the head symbols on which their assertion depends. Reports map
+these symbols to source bindings, loop occurrences and call expansions, and retain
+the constituent guarded checks in each query.
+
+Loop-head assignments are abstract states used to check the invariant. They can
+be unreachable in a concrete execution; a failure may mean the invariant is too
+weak. Integer head values are mathematical decimal strings with a
+`within_machine_range` flag. An inactive guarded head may have an out-of-range
+value without making the solver response malformed. Entry parameters still
+require in-range `i64` values. Every model remains `replayed: false`.
+
+`source_loop_metadata_complete` says the source loop/binding scan completed. It
+does not say expansion or query generation completed. `expansions` and
+`loop_occurrences` can be partial on a later failure; per-function source metadata
+can be null when preflight stops early. The [loop report contract](../spec/loop-verification.md#invariant-loop-report-contract)
+defines these fields and their provenance.
 
 State analysis has attempt-wide ceilings of 1000000 symbolic work units and
 100000 arena nodes, in addition to the existing expression, query, byte, and time
 limits. Environment copies, state merges, formula operands, and arena insertions
-consume this budget. A limit returns `unknown`. These added limits do not change
+consume this budget. Loop verification also limits fresh head allocations to
+4096 per attempt, counting repeated call expansions separately. A limit returns
+`unknown` and retains completed query evidence. These added limits do not change
 the pure v0 path.
 
 Preflight rejection or an empty function graph can also leave tool identities
@@ -155,11 +228,11 @@ or option requires another verification attempt.
 Ordinary `check`, `eval`, `build`, and `run` type-check contracts and erase them.
 They neither run a solver nor insert dynamic contract checks. `dump-core` exports
 only the executable scalar program; importing it does not recover contracts.
-`assert`, ghost code, loop verification, heap properties, and recursive
+`assert`, ghost code, heap properties, and recursive
 verification remain later work. Ordinary evaluation and native
 compilation support the [local-state extension](../spec/control-flow.md).
-Loop verification will require invariant obligations over mutable state;
-finite unrolling cannot establish verification success.
+Loop verification uses invariant obligations over arbitrary mutable head states;
+it does not establish success by finite unrolling.
 
 The status `verified` establishes the requested arithmetic-safety and
 partial-correctness obligations under the recorded SMT encoding and solver
@@ -167,12 +240,13 @@ assumptions. It does not establish native compiler correctness, a checked
 termination proof, or a kernel-checked solver certificate. The
 [formal proof inventory](../formal/PROOFS.md) separately records model theorems;
 those do not prove this Rust generator or its SMT serialization correct. The
-state model's continuation-based generator and production's forward environment
-updates are separate implementations with an unproved correspondence.
+formal continuation/path-split generators and production's merged-flow analysis
+are separate implementations with an unproved correspondence. Exact mathematical
+query-partition theorems do not certify production query metadata or SMT encoding.
 The [verification specification](../spec/verification.md) defines exact rules,
 resource bounds, protocol behavior, and the remaining FM-07 obligations. The
 [state verification specification](../spec/loop-verification.md) defines the
-implemented loop-free report contract and the separate proposed invariant rule.
+implemented loop-free and invariant-loop report contracts.
 
 For development checks, install the pinned solver before running the complete
 suite. `APL_TEST_SOLVER` can select it for integration tests:

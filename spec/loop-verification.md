@@ -1,13 +1,12 @@
 # Verification of local state and loop invariants
 
-Status: loop-free local-state verification and typed, erased loop annotations are
-implemented. Production invariant verification remains a proposal. This specifies
-two verification increments over the existing `local-state-2026-11-17` runtime. The
+Status: loop-free local-state and invariant-loop verification are implemented
+over the existing `local-state-2026-11-17` runtime. The
 [loop-free report contract](#loop-free-report-contract) describes current behavior.
-The [source annotation rules](#source-annotations-and-erasure) also describe
-current behavior; every annotated or unannotated loop remains unsupported by
-`verify`, before tool discovery. The proposed production loop rules below are not
-implemented. The [proof inventory](../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness)
+The [invariant-loop report contract](#invariant-loop-report-contract) applies when
+any loaded function contains a while loop. Every loop must have at least one
+invariant, and the complete call graph must be acyclic. Results remain
+`smt-trusted`. The [proof inventory](../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness)
 records a concrete Lean invariant generator connected to actual `LocalState.run`
 and `Steps`: successful generation with the stated typing, support, representation
 and universally valid-check premises establishes safety at every budget and
@@ -23,7 +22,7 @@ native correctness remain outside these proofs. Runtime semantics and semantic
 revisions are unchanged.
 
 The first increment verifies loop-free mutable scalar code with acyclic calls.
-The proposed second verification increment uses annotated while loops, including
+The second verification increment uses annotated while loops, including
 conditions that change local state. Both rules target arithmetic safety and partial
 correctness under the stated contracts. Production reports claim neither
 termination nor native compiler correctness.
@@ -80,11 +79,10 @@ diagnostic positions can change when annotation text changes. The runtime core
 schemas and semantic revision do not change. Core import does not recover
 annotations.
 
-The current verifier reports every loop as `unsupported`, before tool discovery,
-with the existing `apl-verify-v1` / `apl-state-verify-v1` report and no obligations.
-It does not report invariant truth or definedness. Unannotated loops remain valid
-source. The proposed loop verification increment requires at least one invariant clause on every loop in every loaded function,
-including unused functions and unselected branches. A missing clause produces
+Unannotated loops remain valid executable source. Verification requires at least
+one invariant clause on every loop in every loaded function, including imported
+or unused functions, unselected branches, condition/body expressions and call
+arguments. The same scan checks all call edges for recursion. A missing clause produces
 `unsupported`, exit 7, before solver discovery or query generation. An explicit
 `invariant true;` is permitted, but may be too weak to prove safety or a result.
 
@@ -137,8 +135,9 @@ For a loop entered in symbolic environment `S`, generate these obligations:
 
 1. Under `P`, prove every clause's definedness and truth in `S`.
 2. Construct an arbitrary head environment `H`. Retain every immutable entry
-   from `S`. Replace every mutable entry with a distinct fresh symbol of the same
-   scalar type. Bound integer head values to the i64 range.
+   from `S`. Replace every mutable integer or Boolean entry with a distinct fresh
+   symbol of the same scalar type; mutable unit entries use unit. Bound integer
+   head values to the i64 range under the applicable path.
 3. Under `P`, the head type bounds, and established `Inv(H)`, analyze the actual
    condition. Prove every executed arithmetic safety and call-precondition
    obligation. On a normal return it produces Boolean `b` and state `G`.
@@ -296,7 +295,11 @@ They retain `trust: "smt-trusted"`, `termination_proved: false`,
 
 Counterexample requests use a per-query manifest containing every non-unit
 entry parameter and, in the loop increment, relevant head symbols. The parser
-checks exact names, uniqueness, scalar types, and applicable machine bounds.
+checks exact names, uniqueness, scalar types, and machine bounds for entry
+parameters. Integer head assignments are mathematical decimal strings with an
+explicit `within_machine_range` flag. Their range domains occur inside applicable
+guards; an inactive head may be outside the machine range without making the
+model response malformed. Boolean heads remain JSON booleans.
 Unit requires no symbol. Unrelated head symbols are not requested as if they
 belonged to that obligation. Models distinguish source
 inputs from abstract loop-head values. An abstract head may be unreachable and
@@ -312,10 +315,11 @@ concurrency, and foreign calls remain outside this verification increment.
 
 ## Loop-free report contract
 
-After successful source checking, a program containing any local-state
-constructor selects `apl-verify-v1` and `apl-state-verify-v1`. This includes
-programs rejected for loops or recursion: the revision identifies the attempted
-rules, not an accepted fragment. Programs containing only v0 constructors keep
+After successful source checking, a program containing local-state constructors
+but no loops selects `apl-verify-v1` and `apl-state-verify-v1`. This includes
+programs rejected for recursion: the revision identifies the attempted rules,
+not an accepted fragment. Any loop selects the separate invariant-loop route.
+Programs containing only v0 constructors keep
 the v0 path, including empty programs and unsupported pure recursion.
 
 Malformed CLI options retain the existing invocation error on stderr, exit 4,
@@ -326,7 +330,7 @@ source checking, retain the existing v0 `source_error` envelope with
 spelling does not determine a checked semantic revision. Existing source,
 resource, and infrastructure error exit codes remain unchanged.
 
-Every checked-source Stage A report has these required top-level fields:
+Every checked-source loop-free state report has these required top-level fields:
 
 ```text
 schema, verification_revision, semantic_revision, status, trust, scope,
@@ -363,7 +367,7 @@ Their contract is:
   failure; state-work and arena charges do not inflate that counter.
 
 Loop metadata, invariant counts, head-symbol limits, and loop subcheck metadata
-are absent in Stage A, not empty placeholders. `source_error` and
+are absent in the loop-free state route, not empty placeholders. `source_error` and
 `resource_limit` are also absent from this checked-source envelope; those flags
 belong to the existing pre-check error envelope.
 
@@ -376,7 +380,7 @@ model_symbols
 ```
 
 The allowed kinds remain `precondition_defined`, `precondition_satisfiable`,
-`body_safe`, and `postcondition`. There are no loop obligation kinds in Stage A. `model_symbols`
+`body_safe`, and `postcondition`. There are no loop obligation kinds in this route. `model_symbols`
 lists every non-unit entry parameter in declaration order, even when unused in
 that query. Each entry uses the actual parameter index and scalar type:
 
@@ -387,8 +391,8 @@ that query. Each entry uses the actual parameter index and scalar type:
 The solver request and returned model preserve the complete entry assignment.
 Unit values are recovered from `parameter_types` and need no solver symbol.
 Existing `params: &[Type]` rendering, `pN` model parsing, and returned parameter
-model entries can remain unchanged in Stage A. Generalized head-symbol parsing
-and selective inclusion are reserved for the loop increment.
+model entries retain their existing shape in this route. Generalized head-symbol
+parsing and selective inclusion belong to the invariant-loop route.
 
 Unsupported preflight retains checked source/function metadata but has null
 tool identities, no obligations, and `expanded_nodes: 0`. A later discovery or
@@ -406,6 +410,101 @@ Compatibility tests normalize actual compiler identities, remaining-time SMT
 timeouts, and this descriptive proof-scope text; all remaining report structure
 and query semantics must agree. Literal report-byte identity across separately
 built executables or elapsed-time schedules is not required.
+
+## Invariant-loop report contract
+
+Any while in the checked graph selects the loop route for every loaded function,
+including functions whose own bodies are pure or loop-free. It retains the v1
+top-level and obligation fields above, with these changes and additions:
+
+| Field | Value or meaning |
+| --- | --- |
+| `verification_revision` | `apl-loop-verify-v1` |
+| `scope.fragment` | `invariant_local_state_acyclic` |
+| `limits.head_symbols` | 4096 allocations across the complete attempt |
+| `loop_policy.fresh_head` | `all_visible_mutable_non_unit` |
+| `loop_policy.query_grouping` | `exact_guarded_conjunction` |
+| `loop_policy.head_models` | `abstract_mathematical_assignments` |
+| `source_loop_metadata_complete` | Whether the complete source binding/loop scan finished |
+| `expansions` | Root and inlined function-expansion records accumulated so far |
+| `loop_occurrences` | Symbolic loop occurrences and head allocations accumulated so far |
+
+Runtime revision, erased annotations, solver trust, and the absence of termination
+or native-correctness guarantees are unchanged. `source_loop_metadata_complete`
+starts false. Each function starts with null `bindings`, `loops`, and
+`invariant_clauses`; a completed function scan fills those fields. A later scan
+failure can leave a mixture of complete and null function metadata. The flag
+becomes true after all source metadata is collected, before the acyclicity result,
+so it may be true in a report rejecting recursion. It does not certify complete
+symbolic expansion, generated queries, or verification success.
+
+A completed function's `invariant_clauses` is its source clause count. `bindings`
+contains records with `id`, `parent`, `name`, `type`, `mutable`, and `location`.
+Binding IDs are local to the source function; `parent` identifies the previous
+visible binding or is null. `loops` is ordered by source `node_id`. Each loop
+record contains `node_id`, `location`, `head_binding`, and `clauses`; each clause
+contains its zero-based `index` and `location`. This source inventory is distinct
+from repeated expansions of the same function or loop.
+
+Every expansion record contains `id`, `verification_function_id`,
+`source_function_id`, `parent_expansion_id`, `call_node_id`, and `location`.
+A root expansion has null parent and call node; an inlined expansion identifies
+its parent and source call. Every occurrence contains `id`, `expansion_id`,
+`source_function_id`, `loop_node_id`, `location`, and `head_symbols`. A head entry
+contains `symbol`, `type`, and the function-local `binding_id`. Mutable `unit`
+bindings need no fresh symbol. Occurrence and expansion IDs distinguish repeated
+calls and nested loops; source binding IDs alone do not. A generation failure may
+leave these arrays partial, including a partially allocated occurrence. Query
+records and `query_complete` identify submitted transcripts and whether the
+exchange completed; expansion metadata alone is not solver evidence.
+
+Loop-route obligation kinds are `precondition_defined`,
+`precondition_satisfiable`, `body_safe`, `loop_invariant_initialized`,
+`loop_invariant_preserved`, and `postcondition`. Within each verification function,
+queries are ordered as precondition definedness in declaration order,
+satisfiability, body safety, invariant groups by occurrence (initialization then
+preservation, each in clause order), and postconditions in declaration order.
+Each adds `query_assertion` and `checks`. Formula references such as `n42` identify
+definitions in the recorded SMT query, not executable values.
+
+Each check has an `id` local to the verification function, `source_function_id`, `expansion_id`,
+`location`, `guard`, `required`, `implication`, and `origin`. Its implication is
+exactly its guard implying its requirement. Every generated check belongs to one
+group. A validity query asserts the negation of the conjunction of that group's
+implications, including an empty body's safety conjunction. The separate
+precondition-satisfiability query has an empty `checks` array and asserts typed
+entry domains and ordered preconditions; it does not contain head invariants.
+
+Check origins distinguish entry preconditions and postconditions by
+`clause_index`; arithmetic by `node_id` and `operator`; callee preconditions by
+`call_node_id`, `callee_function_id`, and clause records (`index`, `location`,
+`defined`, `truth`); and invariant checks by `loop_node_id`, `occurrence_id`, and
+`clause_index`. Invariant origins use their initialization/preservation kind.
+The source function and expansion on each check disambiguate these local IDs.
+
+Every `model_symbols` list begins with all non-unit entry parameters in declaration
+order, including unused parameters. It then contains only heads reached through
+the query assertion's formula dependencies, in allocation order. A parameter
+origin is `{"kind":"parameter","index":0}`. A head origin has `kind:
+"loop_head"`, `source_function_id`, `loop_node_id`, `expansion_id`, `occurrence_id`,
+and `binding_id`. Definitions present elsewhere in the SMT script do not by
+themselves make a head relevant to this query.
+
+Loop-route model assignments contain `symbol`, `type`, `origin`, and `value`,
+following manifest order. Integer values are canonical signed decimal strings;
+Boolean values are JSON booleans. Only integer head assignments add
+`within_machine_range`, which is true exactly for `[-2^63, 2^63-1]`. Entry integer
+parameters outside that range are protocol errors. Missing, duplicate, unknown,
+wrong-type, or malformed assignments are protocol errors; mathematical head
+values outside that range are retained with the flag false. Models keep
+`replayed: false`, including a satisfiable entry-precondition witness.
+
+Preflight rejection occurs before compiler hashing, solver discovery and queries,
+with null tool identities, no obligations, and `expanded_nodes: 0`. Subsequent
+failures retain available identities, source metadata, partial expansion records,
+and completed or attempted query records. No ungenerated query is invented.
+`query_complete` and exact transcript hashes retain their existing meanings;
+final tool identity checks are still required for aggregate success.
 
 ## Formal acceptance
 

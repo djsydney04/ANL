@@ -248,26 +248,6 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
         ),
         ("fn main()->i64 {while (false) {} 42}", "while"),
         (
-            "fn main()->i64 {while(false) invariant true; {} 42}",
-            "while",
-        ),
-        (
-            "fn main()->i64 {while(false) invariant false; invariant 1/0==0; {} 42}",
-            "while",
-        ),
-        (
-            "fn main()->i64 {if true {42}else{while(true) invariant true; {} 0}}",
-            "while",
-        ),
-        (
-            "fn main()->i64 {42} fn unused()->unit {while(true) invariant true; {}}",
-            "while",
-        ),
-        (
-            "fn main()->i64 {while({while(false) invariant true; {} false}) invariant true; {} 42}",
-            "while",
-        ),
-        (
             "fn main()->i64 {if true {42}else{while (true) {} 0}}",
             "while",
         ),
@@ -286,7 +266,14 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
         assert_eq!(output.status.code(), Some(7), "{report}");
         assert_eq!(report["status"], "unsupported");
         assert_eq!(report["schema"], "apl-verify-v1");
-        assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+        assert_eq!(
+            report["verification_revision"],
+            if construct == "while" {
+                "apl-loop-verify-v1"
+            } else {
+                "apl-state-verify-v1"
+            }
+        );
         assert_eq!(report["expanded_nodes"], 0);
         assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
         assert!(
@@ -300,15 +287,12 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
         assert!(!marker.exists(), "unsupported program started a solver");
     }
     let path = fixture.file("main.apl", "mod helper; fn main()->i64 {42}");
-    fixture.file(
-        "helper.apl",
-        "fn unused()->unit {while (false) invariant false; invariant 1/0==0; {}}",
-    );
+    fixture.file("helper.apl", "fn unused()->unit {while (false) {}}");
     let (output, report) = verify(&path, &solver, 30_000);
     assert_eq!(output.status.code(), Some(7), "{report}");
     assert_eq!(report["status"], "unsupported");
     assert_eq!(report["schema"], "apl-verify-v1");
-    assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+    assert_eq!(report["verification_revision"], "apl-loop-verify-v1");
     assert_eq!(report["expanded_nodes"], 0);
     assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
     assert_eq!(report["sources"].as_array().unwrap().len(), 2);

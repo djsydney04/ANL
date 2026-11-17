@@ -195,21 +195,21 @@ entry preconditions. They establish the requested result type, postcondition,
 and absence of finite traps or invalid states. The raw generator describes the
 value-only machine and does not check static assignment permission.
 
-These are model proofs. The production verifier separately supports loop-free
-mutable scalar code with acyclic calls and reports `smt-trusted` results.
+These are model proofs. The production verifier separately supports mutable
+scalar code with annotated loops and acyclic calls and reports `smt-trusted` results.
 Source elaboration, graph validation, the production
 forward analysis and its correspondence to this CPS generator, named query
 grouping, SMT translation, and the solver remain outside the theorem boundary.
 Production reports retain `termination_proved: false`. The separate invariant
-generator described below is a model result; production loop verification remains
-unsupported.
+generator described below is a model result; it does not certify the production
+invariant-loop verifier.
 
 ## Foundations for invariant loops
 
 Three modules provide the frame, fresh-model and annotation foundations used by
 the invariant generator below. The production frontend separately accepts and
 erases typed source invariant clauses; these model proofs do not establish that
-frontend's correctness or enable production loop verification.
+frontend's correctness or certify production loop verification.
 
 `LocalStateFrame` proves that a finite typed evaluation preserves immutable entry
 cells and binding types through scopes, calls, and loops. It also isolates a
@@ -264,7 +264,8 @@ A safe infinite loop may satisfy a false postcondition; invariants have no globa
 satisfiability requirement. `LoopVCGQueries` proves that concrete tagging and
 grouping preserve all original guarded checks and their mathematical validity.
 
-These are model proofs. The production verifier still rejects loops. The formal
+These are model proofs. The production verifier supports annotated loops with
+solver trust. The formal
 path-split generator differs from production merged flows; source lowering,
 annotation attachment, named-query metadata, global allocation manifests,
 production limits, SMT encoding, solver correctness and countermodel decoding

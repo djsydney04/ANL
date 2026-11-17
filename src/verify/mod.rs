@@ -1,5 +1,6 @@
 //! Opt-in, solver-trusted verification of acyclic scalar source programs.
 mod formula;
+mod loops;
 mod solver;
 mod state;
 
@@ -21,6 +22,12 @@ const MAX_QUERY_BYTES: usize = 1_048_576;
 const MAX_TOTAL_QUERY_BYTES: usize = 16_777_216;
 const MAX_QUERIES: usize = 1024;
 const SCHEMA: &str = "apl-verify-v0";
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Route {
+    Pure,
+    State,
+    Loops,
+}
 
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
@@ -211,7 +218,16 @@ pub fn verify_file(
     }
     let program = crate::compile_file(path)?;
     let deadline = Instant::now() + Duration::from_millis(options.timeout_ms);
-    let stateful = program.has_local_state();
+    let route = if loops::contains(&program) {
+        Route::Loops
+    } else if program.has_local_state() {
+        Route::State
+    } else {
+        Route::Pure
+    };
+    let stateful = route != Route::Pure;
+    let loop_route = route == Route::Loops;
+    let mut state_budget = formula::StateBudget::new(deadline);
     let mut report = VerificationReport {
         data: json!({
             "schema":SCHEMA,"semantic_revision":program.semantic_revision(),"status":"verified","trust":"smt-trusted",
@@ -231,20 +247,52 @@ pub fn verify_file(
         report.data["limits"]["arena_nodes"] = json!(formula::MAX_ARENA_NODES);
         report.data["expanded_nodes"] = json!(0);
     }
+    if loop_route {
+        report.data["verification_revision"] = json!("apl-loop-verify-v1");
+        report.data["scope"]["fragment"] = json!("invariant_local_state_acyclic");
+        report.data["limits"]["head_symbols"] = json!(4096);
+        report.data["loop_policy"] = json!({"fresh_head":"all_visible_mutable_non_unit","query_grouping":"exact_guarded_conjunction","head_models":"abstract_mathematical_assignments"});
+        report.data["source_loop_metadata_complete"] = json!(false);
+        report.data["expansions"] = json!([]);
+        report.data["loop_occurrences"] = json!([]);
+    }
     let Some(contracts) = program.contracts.as_ref() else {
         fail(
             &mut report,
-            Failure::Error("source contracts are absent".into()),
+            if loop_route {
+                Failure::Unsupported("source contracts are absent".into())
+            } else {
+                Failure::Error("source contracts are absent".into())
+            },
         );
         return Ok(report);
     };
+    if contracts.len() != program.functions.len() {
+        fail(
+            &mut report,
+            Failure::Error("source contract table length mismatch".into()),
+        );
+        return Ok(report);
+    }
     report.data["functions"] = json!(program.functions.iter().enumerate().map(|(i,f)| json!({"id":i,"name":contracts[i].source_name,"lowered_name":f.name,"parameters":contracts[i].param_names,"parameter_types":f.params.iter().map(|p|p.as_str()).collect::<Vec<_>>(),"result":f.result.as_str(),"location":location(&program,f.span),"requires":contracts[i].requires.len(),"ensures":contracts[i].ensures.len()})).collect::<Vec<_>>());
+    if loop_route {
+        for function in report.data["functions"].as_array_mut().expect("functions") {
+            function["invariant_clauses"] = Value::Null;
+            function["loops"] = Value::Null;
+            function["bindings"] = Value::Null;
+        }
+    }
     if program.functions.is_empty() {
         combine(&mut report, "not_requested");
         report.data["message"] = json!("no functions were supplied; nothing was verified");
         return Ok(report);
     }
-    if let Err(error) = formula::supported(&program).and_then(|()| formula::acyclic(&program)) {
+    let supported = if loop_route {
+        loops::preflight(&program, &mut report, &mut state_budget)
+    } else {
+        formula::supported(&program).and_then(|()| formula::acyclic(&program))
+    };
+    if let Err(error) = supported {
         fail(&mut report, error);
         return Ok(report);
     }
@@ -268,7 +316,6 @@ pub fn verify_file(
     };
     report.data["solver"] = json!({"executable":solver.path.to_string_lossy(),"executable_path_bytes_hex":path_hex(&solver.path),"sha256":solver.hash,"version":solver.version,"arguments":["-in","-smt2"]});
     let mut expanded = 0;
-    let mut state_budget = formula::StateBudget::new(deadline);
     let mut queries = 0;
     let mut bytes = 0;
     let result: Result<(), Failure> = (|| {
@@ -281,12 +328,28 @@ pub fn verify_file(
             } else {
                 formula::Generator::new(&program, &mut expanded)
             };
-            let pending = if stateful {
-                state::obligations(&mut generator, id)?
+            let (pending, heads) = if loop_route {
+                let artifact = loops::obligations(&mut generator, id, &mut report)?;
+                (artifact.pending, artifact.heads)
             } else {
-                formula::obligations(&mut generator, id)?
+                let pending = if stateful {
+                    state::obligations(&mut generator, id)?
+                } else {
+                    formula::obligations(&mut generator, id)?
+                };
+                (
+                    pending
+                        .into_iter()
+                        .map(|pending| loops::LoopPending {
+                            pending,
+                            checks: Value::Null,
+                        })
+                        .collect(),
+                    Vec::new(),
+                )
             };
-            for obligation in pending {
+            for entry in pending {
+                let obligation = entry.pending;
                 queries += 1;
                 if queries > MAX_QUERIES {
                     return Err(Failure::Unknown("verification exceeds 1024 queries".into()));
@@ -305,7 +368,22 @@ pub fn verify_file(
                     ));
                 }
                 let mut item = json!({"id":queries-1,"function_id":id,"function":contracts[id].source_name,"kind":obligation.kind,"location":location(&program,obligation.span),"expected_solver_status":if obligation.expected_sat {"sat"}else{"unsat"},"trust":"smt-trusted","query":script,"query_sha256":sha(script.as_bytes()),"status":"unknown","query_complete":false,"solver_status":null,"model":null,"message":null});
-                if stateful {
+                let model_symbols = if loop_route {
+                    let symbols = loops::manifest(
+                        &mut generator,
+                        &function.params,
+                        &heads,
+                        obligation.assertion,
+                    )?;
+                    generator.arena.work(symbols.len() * 4)?;
+                    item["model_symbols"] = json!(symbols.iter().map(|symbol|json!({"symbol":symbol.name,"type":symbol.ty.as_str(),"origin":symbol.origin})).collect::<Vec<_>>());
+                    item["query_assertion"] = json!(format!("n{}", obligation.assertion));
+                    item["checks"] = entry.checks;
+                    symbols
+                } else {
+                    Vec::new()
+                };
+                if stateful && !loop_route {
                     generator.arena.work(function.params.len())?;
                     let mut symbols = Vec::new();
                     for (i, ty) in function.params.iter().enumerate() {
@@ -316,12 +394,22 @@ pub fn verify_file(
                     }
                     item["model_symbols"] = json!(symbols);
                 }
-                let attempt = solver.query(
-                    &script,
-                    &function.params,
-                    deadline,
-                    MAX_QUERY_BYTES.min(MAX_TOTAL_QUERY_BYTES - bytes),
-                );
+                let attempt = if loop_route {
+                    solver.query_symbols(
+                        &script,
+                        &model_symbols,
+                        deadline,
+                        MAX_QUERY_BYTES.min(MAX_TOTAL_QUERY_BYTES - bytes),
+                        generator.arena.budget()?,
+                    )
+                } else {
+                    solver.query(
+                        &script,
+                        &function.params,
+                        deadline,
+                        MAX_QUERY_BYTES.min(MAX_TOTAL_QUERY_BYTES - bytes),
+                    )
+                };
                 bytes += attempt.transcript.len();
                 item["query_sha256"] = json!(sha(attempt.transcript.as_bytes()));
                 item["query"] = json!(attempt.transcript);
@@ -341,6 +429,8 @@ pub fn verify_file(
                         if status == "failed" {
                             item["message"] = json!(if obligation.expected_sat {
                                 "preconditions are unsatisfiable"
+                            } else if model_symbols.iter().any(|symbol| symbol.head.is_some()) {
+                                "solver supplied an unreplayed abstract candidate counterexample"
                             } else {
                                 "solver supplied an unreplayed candidate counterexample"
                             });

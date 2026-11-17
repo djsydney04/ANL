@@ -59,8 +59,8 @@ Zero or more `invariant` clauses may appear between the condition and body.
 Each clause must be a Boolean scalar specification expression, with names
 resolved at the loop head before the condition runs. Ordinary source checking
 validates names and types, including unused code, then erases annotations.
-It does not establish their truth or definedness, and `verify` still rejects
-every loop. The [annotation rules](loop-verification.md#source-annotations-and-erasure)
+It does not establish their truth or definedness. `verify` requires a clause on
+every loaded loop and checks invariant initialization and preservation separately. The [annotation rules](loop-verification.md#source-annotations-and-erasure)
 define mathematical literals, scope, and exclusions.
 
 ## Types and scope
@@ -115,7 +115,7 @@ A while evaluates its condition before each iteration. False returns core unit
 without evaluating the body. True evaluates the unit body and then reevaluates
 the condition in the resulting state. The final false condition's mutations are
 retained. A condition or body trap stops execution. Conditions may contain blocks
-that mutate outer locals; future verification rules must account for those effects.
+that mutate outer locals; the invariant-verification rule retains those effects.
 
 The Rust evaluator mutates its current value vector in place. Scope exit pops
 or truncates only the appended cells. It must not restore a saved vector of old
@@ -253,18 +253,16 @@ Cross-evaluator tests compare finite values and trap kinds and treat resource
 exhaustion as inconclusive. These model proofs and conformance tests do not
 establish Rust or compiler correspondence, termination, or arithmetic trap freedom.
 
-`apl verify` supports loop-free `let_mut` and assignment with acyclic calls.
-It rejects the complete checked program as `unsupported` when any function
-contains `while`, with or without invariant clauses, or the call graph contains
-recursion. This preflight runs before solver discovery and query generation, including for unused functions
+`apl verify` supports `let_mut`, assignment and annotated while loops with
+acyclic calls. It rejects the complete checked program as `unsupported` when
+any loop lacks an invariant or the call graph contains recursion. This preflight runs before solver discovery and query generation, including for unused functions
 and unselected branches. It exits 7, identifies the source construct, and emits
 no invented proof obligations. The existing pure verifier continues to accept
 its previously supported fragment. Runtime contracts remain erased in both.
 
-The [state verifier](loop-verification.md) carries symbolic mutable state. A later
-verification increment must prove a loop-invariant rule. It needs initialization,
-preservation, condition/body trap freedom, and exit-postcondition obligations over
-arbitrary invariant states.
+The [state verifier](loop-verification.md) carries symbolic mutable state. Its
+loop rule checks initialization, preservation, condition/body trap freedom, and
+exit-postcondition obligations over arbitrary invariant states.
 Effects in the condition belong to that rule. Finite unrolling alone cannot
 justify success. A decreasing variant and termination theorem are separate work.
 

@@ -18,8 +18,8 @@ transition budget and partial correctness of normal returns, including possibly
 divergent loops and effectful conditions. Its mathematical check partition is
 exact. FM-07 remains partial: source call-graph checking, expansion completeness,
 separate syntax-inlining equivalence, production named-condition correspondence,
-and Rust/SMT/solver bridges remain open. Production verification supports loop-free
-mutable scalar code, rejects every loop, and stays `smt-trusted`.
+and Rust/SMT/solver bridges remain open. Production verification supports mutable
+scalar code with annotated loops and acyclic calls, and stays `smt-trusted`.
 The model's finite expansion result does not establish production termination,
 fixed-production-budget completeness, or Rust/JSON/native correctness.
 
@@ -168,12 +168,13 @@ and scalar core while preserving source locations, checked-operation conditions,
 branches, and named clauses. It checks every loaded function, including private
 and unused bodies. The call graph must be acyclic, including syntactically dead
 calls. Calls require the callee's preconditions and inline its actual body;
-postconditions are never assumed as summaries. Loop-free mutable locals and
+postconditions are never assumed as summaries. Mutable locals and
 assignment retain state through operands, scopes, branches, and call arguments.
-Any loop in any loaded function is rejected before solver discovery, including
-unused and skipped code. This produces `unsupported` with no invented obligations.
-Ownership/effect analysis, production loop-invariant verification, and
-solver-certificate checking remain planned. Source invariants are name/type-checked
+Every loaded loop needs an invariant. Missing annotations and recursion are
+rejected before solver discovery, including unused and skipped code, with no
+invented obligations. The loop route separately retains normal paths, checks
+invariant initialization/preservation and uses final false-guard state.
+Ownership/effect analysis and solver-certificate checking remain planned. Source invariants are name/type-checked
 and erased; ordinary compilation proves neither their truth nor their definedness.
 
 Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
@@ -302,4 +303,4 @@ call-graph validation, separate syntax-inlining equivalence, production
 named-condition correspondence, source-contract erasure, Rust generation, SMT
 translation, or solver answers. Correspondence between either state generator
 and production forward analysis remains unproved. The invariant-loop theorem
-does not enable production loop verification or prove native code correct.
+does not certify production loop verification or prove native code correct.

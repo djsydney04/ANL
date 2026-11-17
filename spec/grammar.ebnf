@@ -4,7 +4,7 @@
    Module declarations, public functions and qualified paths: spec/modules.md.
    Contract types, scope and verification: spec/verification.md.
    Mutable locals, assignment, and while: spec/control-flow.md.
-   Erased loop annotations and proposed verification: spec/loop-verification.md.
+   Erased loop annotations and invariant verification: spec/loop-verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
    The lexer uses maximal munch for operators and identifiers.
@@ -81,9 +81,9 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    literal. Contract expressions cannot call functions, use blocks, or use if.
    Each contract clause must have bool type; ordinary execution erases clauses.
    Invariant clauses use the same scalar specification expressions and literal
-   limit, resolve names at the loop head, and must have bool type. Their truth
-   and definedness are not checked; ordinary execution erases them. Verification
-   still rejects every loop, with or without annotations.
+   limit, resolve names at the loop head, and must have bool type. Ordinary source
+   checking does not prove their truth or definedness; execution erases them. Verification
+   requires an invariant on every loaded loop and rejects recursive call graphs.
    Repeated sum/product/boolean operators associate left.
    Unary operators associate right. Repeated comparisons at the comparison
    level and repeated equalities at the equality level require parentheses:

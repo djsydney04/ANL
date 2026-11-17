@@ -396,20 +396,21 @@ expansion exhaustion, and zero expansion height.
 Successful finite generation is not a theorem that every acyclic source graph
 has sufficient expansion height. The model generator visits the selected root
 and its syntactically expanded callees, not every unused function. Production
-whole-program loop/recursion rejection is a separate check. The production
+whole-program missing-annotation/recursion rejection is a separate check. The production
 forward analysis, its correspondence to this CPS generator, named-query grouping,
 source-contract correspondence, SMT translation, and solver evidence remain
 unproved. Production loop-free mutable-code verification reports `smt-trusted`
 results separately from these model theorems and retains
 `termination_proved: false`. The separate invariant generator below proves
-partial correctness of possibly divergent loops in the model. It does not change
-production loop-verification support.
+partial correctness of possibly divergent loops in the model. Production
+invariant-loop verification is separate and remains solver-trusted.
 
 ## Invariant-loop foundations
 
 These 32 additional theorems preserve all preceding 134 statements. They provide
 frame, fresh-symbol, and annotation infrastructure used by the separate concrete
-loop generator below. The production verifier continues to reject loops. Source invariant parsing,
+loop generator below. The production verifier separately supports annotated
+loops with solver trust. Source invariant parsing,
 resolution, checking, and erased metadata are implemented separately; these
 model results do not prove those frontend or adapter components correct.
 
@@ -487,7 +488,7 @@ The seven modules `LocalStateContinuation`, `LoopVCG`, `LoopVCGBounds`,
 `LoopVCGSoundness`, `LoopVCGContracts`, `LoopVCGQueries`, and `LoopVCGExamples`
 add 126 audited statements while preserving the preceding 166 statements.
 They prove conditional safety of the concrete Lean invariant generator, including
-possibly divergent loops. They do not enable production loop verification.
+possibly divergent loops. They do not certify production loop verification.
 
 `analyze` takes a verification annotation tree, static binding context, symbolic
 locals, incoming path, fresh counter, and expansion height. It returns normal
@@ -644,8 +645,8 @@ In particular, the formal validity premise includes mathematical models with an
 out-of-range head value behind an inactive guard. A production decoder must
 account for applicable domains or justify a different encoding; it cannot
 silently strengthen this theorem's premise. An abstract head countermodel is not
-a replayed concrete source execution. Production loop verification remains
-unsupported and no production termination claim follows.
+a replayed concrete source execution. Production loop verification uses solver
+trust, and no production termination claim follows.
 
 ## Axiom dependencies and trust
 
@@ -688,7 +689,7 @@ soundness and the invariant generator's exact mathematical query partition are
 checked. Source call-graph validation, acyclic expansion completeness, separate
 syntax-inlining preservation, production named-condition correspondence and the
 production/SMT/solver bridges remain open. Runtime verification reports therefore
-remain solver-trusted, and production loop verification remains unsupported.
+remain solver-trusted, including the production invariant-loop route.
 
 FM-08 is not implemented here. There is no optimization/lowering theorem, native
 backend proof, ownership proof, or whole-language verification claim in this

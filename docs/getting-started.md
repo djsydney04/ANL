@@ -4,9 +4,10 @@ APL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, and file modules.
-An optional verifier checks arithmetic safety and contracts for loop-free scalar
-functions with mutable locals and acyclic calls. Collections, ownership, source-level
-I/O, concurrency, and loop/recursive verification remain in the [roadmap](roadmap.md).
+An optional verifier checks arithmetic safety and contracts for scalar functions
+with mutable locals, annotated while loops and acyclic calls. Collections,
+ownership, source-level I/O, concurrency, and recursive verification remain in
+the [roadmap](roadmap.md).
 
 ## Build and run
 
@@ -108,7 +109,8 @@ fn main() -> i64 {
 }
 ```
 
-Save this as `annotated-loop.apl`, then run:
+Save this as `annotated-loop.apl`. With Z3 5.3.3 installed as described in the
+[verification guide](verification.md), run:
 
 ```sh
 ./target/release/apl check annotated-loop.apl
@@ -116,13 +118,16 @@ Save this as `annotated-loop.apl`, then run:
 ./target/release/apl verify annotated-loop.apl
 ```
 
-Checking succeeds and evaluation prints `3`. Verification returns `unsupported`
-with exit 7 before looking for a solver. The compiler checks each clause's names
+Checking succeeds, evaluation prints `3`, and verification returns `verified`
+with exit 0 and solver trust. Ordinary compilation checks each clause's names
 and Boolean type but does not prove or execute it. Even false or undefined
-well-typed clauses are erased. Names refer to locals visible before the condition
+well-typed clauses are erased; `verify` separately checks their definedness and
+truth. Names refer to locals visible before the condition
 runs; annotation arithmetic uses mathematical integers. See the
 [annotation specification](../spec/loop-verification.md#source-annotations-and-erasure)
-for scope and syntax. Loop-invariant verification remains planned.
+for scope and syntax. The [bounded counter](../examples/contracts/count.apl) also
+checks that its returned value equals its original input. Loop verification
+proves partial correctness and arithmetic safety, not termination.
 
 ## Use several source files
 
@@ -152,10 +157,11 @@ selects an executable explicitly. `--timeout-ms N` sets the whole attempt's budg
 after source checking; its default is 30000 milliseconds. The verifier checks every
 loaded function, including unused functions, for defined and satisfiable
 preconditions, checked-arithmetic safety, and each postcondition. Calls must form
-an acyclic graph. Recursion or `while` anywhere in the
-loaded graph report `unsupported`, even in unused functions or skipped branches.
+an acyclic graph, and every loop must have at least one invariant. Recursion or
+a missing loop invariant anywhere in the loaded graph reports `unsupported`,
+even in imported or unused functions, skipped branches, conditions and arguments.
 This rejection happens before solver discovery and creates no obligations.
-Loop-free `let mut` and assignment are supported, including changes made while
+`let mut`, assignment and annotated while loops are supported, including changes made while
 evaluating operands, conditions, and call arguments. Ordinary interpretation and
 native compilation also support loops and recursion.
 

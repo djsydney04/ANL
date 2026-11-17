@@ -1,8 +1,8 @@
 # APL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar core,
-native C11 compiler, file modules, initialized scalar state and loops, loop-free
-scalar contract verification with acyclic calls, and scoped immutable, local-state,
+native C11 compiler, file modules, initialized scalar state and loops, scalar
+contract verification with invariants and acyclic calls, and scoped immutable, local-state,
 and verification-condition proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
@@ -71,7 +71,7 @@ limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
 release feature set. Native compilation, modules, local scalar state, and opt-in
-loop-free contract verification with acyclic calls extend that core today; aggregates, heap
+contract verification with loop invariants and acyclic calls extend that core today; aggregates, heap
 ownership, and concurrency remain later increments.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
@@ -127,8 +127,8 @@ comparison and workload evaluation. Cranelift remains a credible alternative;
 MLIR is deferred until workloads justify multi-level transforms. Backend reputation
 does not establish APL performance or compiler correctness.
 
-The implemented [program verifier](../verification.md) covers loop-free scalar
-functions with mutable locals and acyclic calls across modules. It expands actual
+The implemented [program verifier](../verification.md) covers scalar functions
+with mutable locals, annotated loops and acyclic calls across modules. It expands actual
 bodies, checks callee preconditions, and generates named safety and contract obligations with
 checked intermediate ranges and truncating division. Preconditions must be
 defined and satisfiable. Z3 5.3.3 results are `smt-trusted`, and countermodels remain
@@ -137,12 +137,15 @@ unreplayed. Compilation erases the typed clauses without proving them.
 Lean proves soundness for call-free generation and finite symbolic body expansion
 with ordered arguments and callee preconditions when generation succeeds. The
 state-aware model also covers loop-free mutation and final local environments.
+The invariant-loop model adds actual-machine safety and partial correctness
+under its documented premises, plus exact mathematical query partition.
 FM-07 remains partial: source call-graph checking, expansion completeness for
-acyclic programs, separate syntax-inlining equivalence, named decomposition, and
+acyclic programs, separate syntax-inlining equivalence, production named-condition
+correspondence, and
 Rust/SMT/solver bridges remain open, including correspondence between the
-state model's continuation-based generator and production forward analysis. The
-production verifier rejects loops and recursion before tools run. Loop invariants,
-recursive verification, assertions, heap properties, concurrency, and ghost code
+formal continuation/path-split generators and production merged flows. The
+production verifier rejects missing loop invariants and recursion before tools
+run. Recursive verification, assertions, heap properties, concurrency, and ghost code
 need further verification support.
 
 [Compiler contracts](compiler.md), [formal architecture](formal-methods.md) and

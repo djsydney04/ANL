@@ -14,6 +14,34 @@ pub(super) struct Symbolic {
 struct Node {
     sort: &'static str,
     body: String,
+    links: Option<Links>,
+}
+#[derive(Clone, Copy)]
+enum SymbolRef {
+    Parameter,
+    Head(usize),
+}
+enum Operands {
+    None,
+    One(Id),
+    Two([Id; 2]),
+    Three([Id; 3]),
+    Many(Box<[Id]>),
+}
+impl Operands {
+    fn ids(&self) -> &[Id] {
+        match self {
+            Self::None => &[],
+            Self::One(id) => std::slice::from_ref(id),
+            Self::Two(ids) => ids,
+            Self::Three(ids) => ids,
+            Self::Many(ids) => ids,
+        }
+    }
+}
+struct Links {
+    operands: Operands,
+    symbol: Option<SymbolRef>,
 }
 pub(super) const MAX_SYMBOLIC_WORK: usize = 1_000_000;
 pub(super) const MAX_ARENA_NODES: usize = 100_000;
@@ -22,6 +50,10 @@ pub(super) struct StateBudget {
     work: usize,
     nodes: usize,
     deadline: Instant,
+    pub heads: usize,
+    pub occurrences: usize,
+    pub expansions: usize,
+    pub pending_queries: usize,
 }
 impl StateBudget {
     pub fn new(deadline: Instant) -> Self {
@@ -29,9 +61,13 @@ impl StateBudget {
             work: 0,
             nodes: 0,
             deadline,
+            heads: 0,
+            occurrences: 0,
+            expansions: 0,
+            pending_queries: 0,
         }
     }
-    fn charge(&mut self, amount: usize) -> Result<(), Failure> {
+    pub fn charge(&mut self, amount: usize) -> Result<(), Failure> {
         if Instant::now() >= self.deadline {
             return Err(Failure::Unknown(
                 "verification deadline exceeded during symbolic analysis".into(),
@@ -44,12 +80,36 @@ impl StateBudget {
             .ok_or_else(|| Failure::Unknown("symbolic work exceeds 1000000 units".into()))?;
         Ok(())
     }
+    pub fn reserve<T>(&mut self, values: &mut Vec<T>, additional: usize) -> Result<(), Failure> {
+        let needed = values
+            .len()
+            .checked_add(additional)
+            .ok_or_else(|| Failure::Unknown("symbolic allocation size overflow".into()))?;
+        if needed > values.capacity() {
+            let capacity = needed
+                .checked_next_power_of_two()
+                .ok_or_else(|| Failure::Unknown("symbolic allocation size overflow".into()))?;
+            self.charge(
+                capacity
+                    .checked_add(values.len())
+                    .ok_or_else(|| Failure::Unknown("symbolic allocation size overflow".into()))?,
+            )?;
+            values
+                .try_reserve_exact(capacity - values.len())
+                .map_err(|_| Failure::Unknown("symbolic allocation failed".into()))?;
+        }
+        self.charge(additional)
+    }
 }
 
 pub(super) struct Arena<'a> {
     nodes: Vec<Node>,
     bytes: usize,
     budget: Option<&'a mut StateBudget>,
+    tracking: bool,
+    heads: Vec<(usize, Type)>,
+    marks: Vec<usize>,
+    traversal: usize,
 }
 impl Arena<'_> {
     pub fn new() -> Self {
@@ -57,6 +117,10 @@ impl Arena<'_> {
             nodes: Vec::new(),
             bytes: 0,
             budget: None,
+            tracking: false,
+            heads: Vec::new(),
+            marks: Vec::new(),
+            traversal: 0,
         }
     }
     pub fn work(&mut self, amount: usize) -> Result<(), Failure> {
@@ -66,6 +130,65 @@ impl Arena<'_> {
         Ok(())
     }
     pub fn add(&mut self, sort: &'static str, body: String) -> Result<Id, Failure> {
+        if self.tracking {
+            return Err(Failure::Error("untracked loop formula insertion".into()));
+        }
+        self.insert(sort, body, None)
+    }
+    pub fn reserve<T>(&mut self, values: &mut Vec<T>, additional: usize) -> Result<(), Failure> {
+        self.budget
+            .as_deref_mut()
+            .ok_or_else(|| Failure::Error("missing symbolic budget".into()))?
+            .reserve(values, additional)
+    }
+    pub fn budget(&mut self) -> Result<&mut StateBudget, Failure> {
+        self.budget
+            .as_deref_mut()
+            .ok_or_else(|| Failure::Error("missing symbolic budget".into()))
+    }
+    pub fn tracking(&mut self) {
+        self.tracking = true;
+    }
+    fn leaf(
+        &mut self,
+        sort: &'static str,
+        body: String,
+        symbol: Option<SymbolRef>,
+    ) -> Result<Id, Failure> {
+        let links = self.tracking.then_some(Links {
+            operands: Operands::None,
+            symbol,
+        });
+        self.insert(sort, body, links)
+    }
+    pub fn app(&mut self, sort: &'static str, body: String, ids: &[Id]) -> Result<Id, Failure> {
+        let links = if self.tracking {
+            self.work(ids.len())?;
+            let operands = match ids {
+                [] => Operands::None,
+                [a] => Operands::One(*a),
+                [a, b] => Operands::Two([*a, *b]),
+                [a, b, c] => Operands::Three([*a, *b, *c]),
+                _ => {
+                    self.work(ids.len())?;
+                    Operands::Many(ids.into())
+                }
+            };
+            Some(Links {
+                operands,
+                symbol: None,
+            })
+        } else {
+            None
+        };
+        self.insert(sort, body, links)
+    }
+    fn insert(
+        &mut self,
+        sort: &'static str,
+        body: String,
+        links: Option<Links>,
+    ) -> Result<Id, Failure> {
         self.work(1)?;
         if let Some(budget) = &mut self.budget {
             if budget.nodes >= MAX_ARENA_NODES {
@@ -86,14 +209,91 @@ impl Arena<'_> {
             ));
         }
         let id = self.nodes.len();
-        self.nodes.push(Node { sort, body });
+        if self.tracking {
+            self.budget
+                .as_deref_mut()
+                .expect("tracking budget")
+                .reserve(&mut self.nodes, 1)?;
+        }
+        self.nodes.push(Node { sort, body, links });
         Ok(id)
     }
+    pub fn head(&mut self, ty: Type) -> Result<(usize, Id), Failure> {
+        if ty == Type::Unit {
+            return Err(Failure::Error(
+                "unit cannot allocate a loop head symbol".into(),
+            ));
+        }
+        let budget = self.budget()?;
+        if budget.heads >= 4096 {
+            return Err(Failure::Unknown("loop heads exceed 4096 symbols".into()));
+        }
+        let head = budget.heads;
+        budget.heads += 1;
+        self.budget
+            .as_deref_mut()
+            .expect("head budget")
+            .reserve(&mut self.heads, 1)?;
+        self.heads.push((head, ty));
+        let id = self.leaf(sort(ty), format!("h{head}"), Some(SymbolRef::Head(head)))?;
+        Ok((head, id))
+    }
+    pub fn relevant_heads(&mut self, root: Id) -> Result<Vec<usize>, Failure> {
+        let missing = self.nodes.len() - self.marks.len();
+        if missing > 0 {
+            self.budget
+                .as_deref_mut()
+                .expect("dependency budget")
+                .reserve(&mut self.marks, missing)?;
+            self.marks.resize(self.nodes.len(), 0);
+        }
+        self.traversal = self
+            .traversal
+            .checked_add(1)
+            .ok_or_else(|| Failure::Unknown("dependency traversal count overflow".into()))?;
+        let mut stack = Vec::new();
+        let mut heads = Vec::new();
+        self.reserve(&mut stack, 1)?;
+        stack.push(root);
+        *self
+            .marks
+            .get_mut(root)
+            .ok_or_else(|| Failure::Error("invalid query root".into()))? = self.traversal;
+        while let Some(id) = stack.pop() {
+            self.work(1)?;
+            let links = self.nodes[id]
+                .links
+                .as_ref()
+                .ok_or_else(|| Failure::Error("missing formula dependencies".into()))?;
+            let symbol = links.symbol;
+            let count = links.operands.ids().len();
+            if let Some(SymbolRef::Head(head)) = symbol {
+                self.reserve(&mut heads, 1)?;
+                heads.push(head);
+            }
+            for index in 0..count {
+                self.work(1)?;
+                let child = self.nodes[id].links.as_ref().expect("links").operands.ids()[index];
+                if child >= id {
+                    return Err(Failure::Error("nonpreceding formula dependency".into()));
+                }
+                if self.marks[child] != self.traversal {
+                    self.marks[child] = self.traversal;
+                    self.reserve(&mut stack, 1)?;
+                    stack.push(child);
+                }
+            }
+        }
+        self.work(heads.len().saturating_mul(13))?;
+        heads.sort_unstable();
+        heads.dedup();
+        Ok(heads)
+    }
     pub fn truth(&mut self) -> Result<Id, Failure> {
-        self.add("Bool", "true".into())
+        self.leaf("Bool", "true".into(), None)
     }
     pub fn bool(&mut self, value: bool) -> Result<Id, Failure> {
-        self.add("Bool", value.to_string())
+        self.leaf("Bool", value.to_string(), None)
     }
     pub fn int(&mut self, value: &str) -> Result<Id, Failure> {
         if self.budget.is_some()
@@ -104,7 +304,7 @@ impl Arena<'_> {
                 "generated query exceeds 1048576 bytes".into(),
             ));
         }
-        self.add("Int", value.into())
+        self.leaf("Int", value.into(), None)
     }
     pub fn and(&mut self, ids: &[Id]) -> Result<Id, Failure> {
         self.work(ids.len())?;
@@ -135,9 +335,9 @@ impl Arena<'_> {
                 write!(body, " n{id}").expect("String write");
             }
             body.push(')');
-            return self.add("Bool", body);
+            return self.app("Bool", body, ids);
         }
-        self.add(
+        self.app(
             "Bool",
             format!(
                 "(and {})",
@@ -146,18 +346,20 @@ impl Arena<'_> {
                     .collect::<Vec<_>>()
                     .join(" ")
             ),
+            ids,
         )
     }
     pub fn not(&mut self, id: Id) -> Result<Id, Failure> {
-        self.add("Bool", format!("(not n{id})"))
+        self.app("Bool", format!("(not n{id})"), &[id])
     }
     pub fn implies(&mut self, a: Id, b: Id) -> Result<Id, Failure> {
-        self.add("Bool", format!("(=> n{a} n{b})"))
+        self.app("Bool", format!("(=> n{a} n{b})"), &[a, b])
     }
     pub fn range(&mut self, id: Id) -> Result<Id, Failure> {
-        self.add(
+        self.app(
             "Bool",
             format!("(and (<= (- 9223372036854775808) n{id}) (<= n{id} 9223372036854775807))"),
+            &[id],
         )
     }
     pub fn render(
@@ -185,6 +387,17 @@ impl Arena<'_> {
                 }
                 text.push_str(&declaration);
             }
+        }
+        for i in 0..self.heads.len() {
+            self.work(1)?;
+            let (id, ty) = self.heads[i];
+            let declaration = format!("(declare-const h{id} {})\n", sort(ty));
+            if text.len() + declaration.len() > MAX_QUERY_BYTES {
+                return Err(Failure::Unknown(
+                    "generated query exceeds 1048576 bytes".into(),
+                ));
+            }
+            text.push_str(&declaration);
         }
         for (i, node) in self.nodes.iter().enumerate() {
             if let Some(budget) = &mut self.budget {
@@ -252,6 +465,10 @@ impl<'a> Generator<'a> {
                 nodes: Vec::new(),
                 bytes: 0,
                 budget: Some(budget),
+                tracking: false,
+                heads: Vec::new(),
+                marks: Vec::new(),
+                traversal: 0,
             },
             program,
             expanded,
@@ -276,11 +493,16 @@ impl<'a> Generator<'a> {
         self.arena.work(params.len())?;
         let mut values = Vec::new();
         let mut domain = Vec::new();
+        if self.arena.tracking {
+            self.arena.reserve(&mut values, params.len())?;
+            self.arena.reserve(&mut domain, params.len())?;
+        }
         for (i, ty) in params.iter().enumerate() {
             let value = if *ty == Type::Unit {
                 self.arena.int("0")?
             } else {
-                self.arena.add(sort(*ty), format!("p{i}"))?
+                self.arena
+                    .leaf(sort(*ty), format!("p{i}"), Some(SymbolRef::Parameter))?
             };
             if *ty == Type::I64 {
                 domain.push(self.arena.range(value)?);
@@ -433,7 +655,9 @@ impl<'a> Generator<'a> {
     ) -> Result<Symbolic, Failure> {
         let value = match op {
             UnaryOp::Not => self.arena.not(a.value)?,
-            UnaryOp::Neg => self.arena.add("Int", format!("(- n{})", a.value))?,
+            UnaryOp::Neg => self
+                .arena
+                .app("Int", format!("(- n{})", a.value), &[a.value])?,
         };
         let safe = if machine && op == UnaryOp::Neg {
             let bound = self.arena.range(value)?;
@@ -468,7 +692,7 @@ impl<'a> Generator<'a> {
             BinaryOp::And => format!("(and n{x} n{y})"),
             BinaryOp::Or => format!("(or n{x} n{y})"),
         };
-        let value = self.arena.add(sort(ty), body)?;
+        let value = self.arena.app(sort(ty), body, &[x, y])?;
         let mut conditions = vec![a.safe];
         match op {
             BinaryOp::And => conditions.push(self.arena.implies(x, b.safe)?),
@@ -479,11 +703,12 @@ impl<'a> Generator<'a> {
             _ => conditions.push(b.safe),
         }
         if matches!(op, BinaryOp::Div | BinaryOp::Rem) {
-            conditions.push(self.arena.add("Bool", format!("(not (= n{y} 0))"))?);
+            conditions.push(self.arena.app("Bool", format!("(not (= n{y} 0))"), &[y])?);
             if machine {
-                conditions.push(self.arena.add(
+                conditions.push(self.arena.app(
                     "Bool",
                     format!("(not (and (= n{x} (- 9223372036854775808)) (= n{y} (- 1))))"),
+                    &[x, y],
                 )?);
             }
         } else if machine && matches!(op, BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul) {
@@ -693,6 +918,10 @@ mod tests {
             nodes: Vec::new(),
             bytes: 0,
             budget: Some(&mut budget),
+            tracking: false,
+            heads: Vec::new(),
+            marks: Vec::new(),
+            traversal: 0,
         };
         assert!(first.truth().is_ok());
         drop(first);
@@ -700,6 +929,10 @@ mod tests {
             nodes: Vec::new(),
             bytes: 0,
             budget: Some(&mut budget),
+            tracking: false,
+            heads: Vec::new(),
+            marks: Vec::new(),
+            traversal: 0,
         };
         assert!(
             matches!(second.truth(), Err(Failure::Unknown(message)) if message.contains("arena"))
@@ -714,6 +947,10 @@ mod tests {
             nodes: Vec::new(),
             bytes: 0,
             budget: Some(&mut budget),
+            tracking: false,
+            heads: Vec::new(),
+            marks: Vec::new(),
+            traversal: 0,
         };
         let value = arena.truth().unwrap();
         arena.budget.as_mut().unwrap().work = MAX_SYMBOLIC_WORK - 1;
@@ -721,5 +958,95 @@ mod tests {
             matches!(arena.and(&[value, value]), Err(Failure::Unknown(message)) if message.contains("symbolic work"))
         );
         assert_eq!(arena.nodes.len(), 1);
+    }
+
+    #[test]
+    fn head_allocation_is_attempt_wide_and_rejects_before_insertion() {
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        budget.heads = 4095;
+        let mut first = Arena::new();
+        first.budget = Some(&mut budget);
+        first.tracking();
+        assert_eq!(first.head(Type::Bool).unwrap().0, 4095);
+        assert!(first.head(Type::Unit).is_err());
+        drop(first);
+        let mut second = Arena::new();
+        second.budget = Some(&mut budget);
+        second.tracking();
+        assert!(
+            matches!(second.head(Type::I64),Err(Failure::Unknown(message)) if message.contains("4096"))
+        );
+        assert!(second.nodes.is_empty());
+        assert!(second.heads.is_empty());
+    }
+
+    #[test]
+    fn dependency_closure_is_exact_and_raw_insertions_cannot_bypass_it() {
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        let mut arena = Arena::new();
+        arena.budget = Some(&mut budget);
+        arena.tracking();
+        let (_, first) = arena.head(Type::I64).unwrap();
+        let (_, second) = arena.head(Type::Bool).unwrap();
+        let compare = arena
+            .app("Bool", format!("(= n{first} 0)"), &[first])
+            .unwrap();
+        let unrelated = arena.not(second).unwrap();
+        assert_eq!(arena.relevant_heads(compare).unwrap(), vec![0]);
+        assert_eq!(arena.relevant_heads(unrelated).unwrap(), vec![1]);
+        let both = arena.and(&[compare, unrelated]).unwrap();
+        assert_eq!(arena.relevant_heads(both).unwrap(), vec![0, 1]);
+        let length = arena.nodes.len();
+        assert!(matches!(
+            arena.add("Bool", "true".into()),
+            Err(Failure::Error(_))
+        ));
+        assert_eq!(arena.nodes.len(), length);
+        arena.budget.as_mut().unwrap().work = MAX_SYMBOLIC_WORK;
+        assert!(matches!(
+            arena.relevant_heads(compare),
+            Err(Failure::Unknown(_))
+        ));
+    }
+
+    #[test]
+    fn loop_formula_byte_and_operand_bounds_precede_node_insertion() {
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        let mut arena = Arena::new();
+        arena.budget = Some(&mut budget);
+        arena.tracking();
+        let id = arena.truth().unwrap();
+        arena.bytes = MAX_QUERY_BYTES;
+        assert!(
+            matches!(arena.int("1"),Err(Failure::Unknown(message)) if message.contains("query"))
+        );
+        assert_eq!(arena.nodes.len(), 1);
+        arena.bytes = 0;
+        arena.budget.as_mut().unwrap().work = MAX_SYMBOLIC_WORK - 1;
+        assert!(
+            matches!(arena.and(&[id,id,id,id]),Err(Failure::Unknown(message)) if message.contains("work"))
+        );
+        assert_eq!(arena.nodes.len(), 1);
+    }
+
+    #[test]
+    fn visits_depth_and_deadline_fail_closed_on_the_loop_route() {
+        let program = crate::compile("fn f()->unit{while(true) invariant true;{}}").unwrap();
+        let mut expanded = MAX_NODES;
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        let mut generator = Generator::with_state_budget(&program, &mut expanded, &mut budget);
+        generator.arena.tracking();
+        assert!(
+            matches!(generator.visit(0),Err(Failure::Unknown(message)) if message.contains("100000"))
+        );
+        *generator.expanded = 0;
+        assert!(
+            matches!(generator.visit(257),Err(Failure::Unknown(message)) if message.contains("depth"))
+        );
+        generator.arena.budget.as_mut().unwrap().deadline = Instant::now();
+        assert!(
+            matches!(generator.arena.truth(),Err(Failure::Unknown(message)) if message.contains("deadline"))
+        );
+        assert!(generator.arena.nodes.is_empty());
     }
 }

@@ -2,7 +2,7 @@
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
 adapters, initialized scalar state and loops, validated structured MIR, C11 native
-backend, and loop-free scalar contract verifier with acyclic calls are implemented.
+backend, and scalar contract verifier with loop invariants and acyclic calls are implemented.
 Ownership/effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
@@ -55,8 +55,9 @@ No serialized representation is trusted merely because it declares itself typed.
 The current Rust boundaries are internal `syntax`, `modules`, `resolve`, and `mir`, plus `types`, `core`, `eval`, `diagnostic`, `codegen`, and `verify`. Checked Program contents are opaque to external mutation and construction; source compilation and core import establish their invariants. The verifier consumes retained typed contract metadata; core import does not recreate it.
 
 Source loop annotations use separate head-local assertions and per-function
-binding/loop metadata. Ordinary lowering erases these annotations; all loops
-remain unsupported by verification.
+binding/loop metadata. Ordinary lowering erases these annotations. Verification
+requires a clause on every loaded loop and checks initialization, preservation
+and effectful exits using fresh abstract mutable heads.
 
 `compile_file(path)` loads the bounded canonical file graph and checks all bodies.
 `compile(source)` performs no filesystem reads and rejects file imports. Each file
@@ -118,14 +119,16 @@ It checks ordered precondition definedness, satisfiability, runtime arithmetic
 safety, callee preconditions, and postconditions. Calls inline the actual body;
 recursive graphs are unsupported, and callee postconditions are never assumed.
 Mutable locals and assignments pass symbolic state through operands, conditions,
-scopes, and arguments. Any while in any function is rejected before tool discovery
-or query generation, including unused bodies and unselected branches.
+scopes, and arguments. Annotated loops use invariant initialization/preservation
+and a separate normal-return path. Missing invariants or recursion in any function
+are rejected before tools, including unused bodies, skipped branches and arguments.
 The [verification specification](../../spec/verification.md) defines the supported
 fragment, bounds, and exact report schema.
 
 Reports identify the checked program's executable revision. Stateful programs
-use schema `apl-verify-v1` and verification revision `apl-state-verify-v1`,
-including unsupported programs; pure programs retain `apl-verify-v0`. Source-error
+use schema `apl-verify-v1` and verification revision `apl-state-verify-v1` without
+loops or `apl-loop-verify-v1` with loops, including preflight failures; pure
+programs retain `apl-verify-v0`. Source-error
 reports use null for the semantic revision when no checked program exists.
 Reports bind retained source snapshots, compiler and solver identities, limits,
 exact SMT commands, obligation locations, and per-obligation results. The driver

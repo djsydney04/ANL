@@ -1,9 +1,9 @@
 # Toolchain and developer ecosystem architecture
 
 Status: the CLI implements scalar checking, interpretation, native compilation,
-file modules, local scalar state and loops, v0/v1 core interchange, and loop-free
-scalar contract verification with acyclic calls. Verification rejects loops and
-recursion before tools run. Package management, formatting, language-server
+file modules, local scalar state and loops, v0/v1 core interchange, and scalar
+contract verification with loop invariants and acyclic calls. Verification rejects
+missing loop invariants and recursion before tools run. Package management, formatting, language-server
 integration, source debugging, and release distribution below remain design
 proposals unless explicitly identified as implemented.
 
@@ -13,7 +13,7 @@ The `apl` CLI calls the compiler library for parsing, resolution, type checking 
 
 The current CLI contract is in [compiler architecture](compiler.md). Implemented commands are `check`, `eval`, `build`, `run`, `emit-c`, `verify`, `dump-core`, `eval-core`, and `--version`. Unsupported commands fail explicitly. `verify` reports per-obligation outcomes using Z3 5.3.3; its [guide](../verification.md) explains solver installation, limits, and trust. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
 
-Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. The implemented `verify --json` mode emits the versioned `apl-verify-v0` report with structured status and exact source/tool/query identities; diagnostics go to stderr. Its executable semantic revision follows the complete checked program, including v1 for unsupported local state, and is null for source failures before a program is checked. General JSON diagnostics and the LSP adapter remain planned.
+Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. The implemented `verify --json` mode emits `apl-verify-v0` for pure programs and `apl-verify-v1` for local state, with `apl-state-verify-v1` or `apl-loop-verify-v1` distinguishing the attempted rules. Reports retain structured status and exact source/tool/query identities; diagnostics go to stderr. The executable semantic revision follows the complete checked program and is null for source failures before a program is checked. General JSON diagnostics and the LSP adapter remain planned.
 
 ## Package and module identities
 

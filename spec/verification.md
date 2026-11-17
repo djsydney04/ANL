@@ -1,13 +1,15 @@
 # Scalar function contract verification
 
-Status: implemented pure and loop-free local-state verification. Production
+Status: implemented pure, loop-free local-state, and invariant-loop verification. Production
 results are solver-trusted; the [proof inventory](../formal/PROOFS.md) records
 separate model coverage and remaining correspondence obligations. Pure programs
 retain executable revision `m1-2026-11-16` and report schema `apl-verify-v0`.
 Local-state programs use executable revision `local-state-2026-11-17`, report
-schema `apl-verify-v1`, and verification revision `apl-state-verify-v1`. The
+schema `apl-verify-v1`, and verification revision `apl-state-verify-v1` without
+loops or `apl-loop-verify-v1` with loops. The
 [loop-free state contract](loop-verification.md#loop-free-report-contract)
-defines the exact v1 fields. While loops remain unsupported.
+and [invariant-loop contract](loop-verification.md#invariant-loop-report-contract)
+define the exact v1 fields.
 
 ## Source contracts
 
@@ -83,23 +85,25 @@ checked. The report states the count of explicit clauses. An empty function grap
 reports `not_requested` and does not succeed as a verification attempt.
 
 The supported executable fragment contains scalar expressions, initialized
-mutable locals, and assignment, with an acyclic function-call graph and no loops. The verifier checks this graph before generating
+mutable locals, assignment, and annotated while loops, with an acyclic
+function-call graph. The verifier checks this graph before generating
 conditions. Any recursive component makes the whole verification attempt
 `unsupported`, including an unused or syntactically unreachable recursive call.
 This limitation applies to verification; ordinary compilation still supports
-recursion. A separate preflight visits every checked function body and rejects
-`while` before compiler hashing, solver discovery, and query generation. This includes unused functions and unselected branches. It
-reports `unsupported` with exit 7, identifies the construct, and emits no query
-obligations. Mutable state is local scalar state only. No loop, heap, ownership,
-concurrency, or foreign-call property is covered. A later loop verifier needs a
-symbolic-state invariant rule covering initialization, preservation, condition and body trap
-freedom, and exit postconditions. Finite unrolling is not verification.
+recursion. Preflight also requires at least one invariant on every loop before
+compiler hashing, solver discovery, and query generation. It scans imported and
+unused functions, unselected branches, conditions, bodies and all call arguments.
+Failure reports `unsupported`, exit 7, and emits no query obligations. Mutable
+state is local scalar state only. Heap, ownership, concurrency, and foreign-call
+properties remain outside the fragment. The [loop rule](loop-verification.md#the-loop-rule-includes-condition-effects)
+checks initialization, preservation, condition/body safety and normal exits.
+Finite unrolling is not verification.
 
 Source loops may contain typed, erased `invariant` clauses under the
 [annotation rules](loop-verification.md#source-annotations-and-erasure).
 Ordinary checking establishes their scope and Boolean types, not their truth or
-definedness. Annotated and unannotated loops both retain the same preflight
-rejection, v1 report revision, and empty obligation list. Invalid annotations
+definedness. Verification separately establishes those obligations for annotated
+loops; unannotated loops fail preflight. Invalid annotations
 fail source checking first and retain the existing v0 source-error envelope.
 
 ## Verification conditions
@@ -108,7 +112,7 @@ Verification consumes the checked program and typed contract metadata, with
 resolved numeric function IDs and lexical binding indices. It never verifies
 untyped parser expressions or trusts serialized acceptance flags.
 
-For each function, `D` gives the machine range of each integer parameter, `P`
+For the pure and loop-free routes, `D` gives the machine range of each integer parameter, `P`
 is its precondition, and `Q` is a requested postcondition. The verifier requires:
 
 1. Defined preconditions under `D`, respecting the clause ordering above.
@@ -167,6 +171,17 @@ The implementation can share immutable expression and formula nodes to avoid
 repeating continuations. It must preserve the stated `wp` rules. Named condition
 records retain their function, source span, obligation kind, and exact formula.
 Decomposed conditions must have the same conjunction as the complete `wp`.
+
+The loop route carries a normal-return path separately from its retained guarded
+checks. Every initialization and preservation clause requires definedness and
+truth under its original incoming path, independently of sibling conclusions.
+All visible mutable non-unit head cells receive fresh symbols; immutable cells
+retain their captured values. The final false condition's environment reaches
+the continuation. Exact query grouping retains arithmetic and call-precondition
+checks even before a suffix with no normal return. Entry definedness and
+satisfiability stay separate; postconditions refer to original parameters and
+normally returned values. Safe divergence may verify, including with a false
+postcondition. No termination or global invariant-satisfiability claim follows.
 
 ## Integer encoding
 
@@ -237,7 +252,9 @@ symbolic work units and 100000 arena insertions. Copies, scans, and merges of
 environment/context entries, variable-length formula operands, and arena
 insertions are charged before allocation. Deadline checks occur during these
 loops and rendering; serialized arena definitions and queries are bounded by
-1 MiB. The pure v0 path retains its existing limits and query semantics.
+1 MiB. The loop route additionally permits at most 4096 fresh head symbols per
+attempt, with repeated inlined occurrences counted separately. The pure v0 path
+retains its existing limits and query semantics.
 
 Source-loading and parsing limits still apply. No unbounded recursive substitution
 or blocking `wait_with_output` may bypass these limits. Resource exhaustion is
@@ -282,10 +299,14 @@ available, and no query records are invented. The executable semantic revision
 comes from the complete checked program, including stateful programs rejected
 as unsupported. When source loading, parsing, or checking fails, no checked
 program exists and `semantic_revision` is null in the unchanged v0 error envelope.
-Checked stateful reports use v1 even when loops or recursion are unsupported,
-retain `expanded_nodes: 0` on preflight failure, and add the exact scope, budget,
-and complete parameter `model_symbols` fields in the loop-free state contract.
-They have no loop-head or invariant metadata. A `verified` report requires all
+Checked stateful reports use v1 even when preflight rejects them and retain
+`expanded_nodes: 0` on preflight failure. Loop-free state reports keep the exact
+scope, budget, and complete parameter `model_symbols` fields in their contract.
+Any while selects the loop revision, with source metadata completeness, partial
+expansion/occurrence records, guarded-check provenance, and relevant abstract head
+models defined in the [loop report contract](loop-verification.md#invariant-loop-report-contract).
+Head integer assignments retain mathematical values and `within_machine_range`;
+an inactive out-of-range head is not a malformed entry parameter. A `verified` report requires all
 compiler, solver, source, and query bindings above.
 
 Every result has `trust: "smt-trusted"`. The report states that type checking ran,
@@ -312,15 +333,18 @@ between named conditions and combined `wp` are separate coverage items. Proofs
 must name any omitted constructors. Even complete model proofs leave the Rust
 generator, source erasure, SMT encoding, solver, and native compiler as separate
 correspondence or trust obligations. The loop-free state model's continuation
-generator and production's forward symbolic environment updates also require a
-separate correspondence argument. The implementation must report FM-07 as open
+generator, the invariant model's path-split outcomes, and production's merged
+symbolic flows require separate correspondence arguments. The formal invariant
+generator's exact mathematical query partition does not prove production
+source metadata, query naming or SMT encoding. The implementation must report FM-07 as open
 or partial until its exact generator coverage has been independently reviewed.
 
 Acceptance requires real solver runs for valid and false postconditions,
 intermediate overflow, both division traps, signed division and remainder,
 short-circuit guards, lexical shadowing, cross-file calls and failed callee
 preconditions. It also requires contradictory and undefined preconditions,
-recursion and loop rejection, mutation order, scope exit, branch-state merges,
+recursion and missing-annotation rejection, invariant initialization/preservation,
+effectful false exits, safe divergence and preceding traps, mutation order, scope exit, branch-state merges,
 argument snapshots, callee isolation, complete input models, symbolic-work limits,
 missing/crashed/malformed solvers, unknown and timeout
 results, input-bound tests, and a source mutation that invalidates prior evidence.

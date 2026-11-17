@@ -253,17 +253,9 @@ pub(crate) struct Clause {
 pub(crate) struct LocalAssertion {
     pub(crate) ty: SpecType,
     pub(crate) span: Span,
-    #[allow(
-        dead_code,
-        reason = "retained source annotation; Stage A rejects every loop"
-    )]
     pub(crate) kind: LocalAssertionKind,
 }
 
-#[allow(
-    dead_code,
-    reason = "retained source annotation; Stage A rejects every loop"
-)]
 #[derive(Clone, Debug)]
 pub(crate) enum LocalAssertionKind {
     Integer(String),
@@ -281,10 +273,6 @@ pub(crate) enum LocalAssertionKind {
     },
 }
 
-#[allow(
-    dead_code,
-    reason = "retained source annotation; Stage A rejects every loop"
-)]
 #[derive(Clone, Debug)]
 pub(crate) struct LocalClause {
     pub(crate) expr: LocalAssertion,
@@ -295,10 +283,6 @@ pub(crate) struct LocalClause {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct BindingId(pub(crate) usize);
 
-#[allow(
-    dead_code,
-    reason = "retained loop-head context; Stage A rejects every loop"
-)]
 #[derive(Clone, Debug)]
 pub(crate) struct HeadBinding {
     pub(crate) parent: Option<BindingId>,
@@ -308,10 +292,6 @@ pub(crate) struct HeadBinding {
     pub(crate) span: Span,
 }
 
-#[allow(
-    dead_code,
-    reason = "retained source annotation; Stage A rejects every loop"
-)]
 #[derive(Clone, Debug)]
 pub(crate) struct LoopAnnotation {
     pub(crate) head: Option<BindingId>,
@@ -324,15 +304,7 @@ pub(crate) struct FunctionContract {
     pub(crate) param_names: Vec<String>,
     pub(crate) requires: Vec<Clause>,
     pub(crate) ensures: Vec<Clause>,
-    #[allow(
-        dead_code,
-        reason = "retained loop-head context; Stage A rejects every loop"
-    )]
     pub(crate) bindings: Vec<HeadBinding>,
-    #[allow(
-        dead_code,
-        reason = "retained source annotations; Stage A rejects every loop"
-    )]
     pub(crate) loops: BTreeMap<usize, LoopAnnotation>,
 }
 
