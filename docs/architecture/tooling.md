@@ -1,16 +1,28 @@
 # Toolchain and developer ecosystem architecture
 
-Status: design proposal. Commands below are planned milestones, not an inventory of available software.
+Status: the CLI implements scalar checking, interpretation, native compilation,
+file modules, and core interchange. Package management, formatting, language-server
+integration, source debugging, and release distribution below remain design
+proposals unless explicitly identified as implemented.
 
 ## One compiler library, several clients
 
-The `apl` CLI and `apl-lsp` language server call the same compiler library for parsing, resolution, type checking and diagnostics. The formatter consumes a syntax representation retaining comments and trivia, because a semantic AST cannot preserve them reliably. The documentation generator consumes resolved public declarations and documentation comments. No client reverse-engineers another client's human-readable output.
+The `apl` CLI calls the compiler library for parsing, resolution, type checking and diagnostics. The planned `apl-lsp` language server will use the same library. The formatter consumes a syntax representation retaining comments and trivia, because a semantic AST cannot preserve them reliably. The documentation generator consumes resolved public declarations and documentation comments. No client reverse-engineers another client's human-readable output.
 
-The initial CLI contract is in [compiler architecture](compiler.md). M1 implements `check`, `eval`, and `--version` only. Unsupported commands fail explicitly. M2 adds `build` and `run` with native execution. Phase 3 adds `verify` with per-obligation outcomes. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
+The current CLI contract is in [compiler architecture](compiler.md). Implemented commands are `check`, `eval`, `build`, `run`, `emit-c`, `dump-core`, `eval-core`, and `--version`. Unsupported commands fail explicitly. Phase 3 will add `verify` with per-obligation outcomes. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
 
 Diagnostics have a code, severity, primary source span, message, related spans, and optional fixes. UTF-8 byte offsets are the compiler's internal representation. The LSP adapter converts positions according to the negotiated encoding and tests non-ASCII source. A JSON CLI mode has a schema version and includes structured status, never ANSI escape sequences.
 
 ## Package and module identities
+
+The implemented [module system](../modules.md) uses explicit `mod name;`
+declarations and sibling source files, with private/public interfaces and qualified
+paths. The loader builds a bounded canonical graph, shares repeated dependencies,
+and rejects cycles. `compile_file(path)` performs this loading;
+`compile(source)` remains an in-memory operation. Immutable source snapshots retain
+file-specific diagnostics. Native compilation lowers the whole graph together;
+there is no package search, network resolution, lockfile, or separate-object cache.
+The package design below is a later extension of these boundaries.
 
 `apl.toml` declares package name, version, language edition, targets, dependencies, and declared native links. `apl.lock` records exact source identity, package version or commit, integrity digest and transitive dependencies. The first package implementation supports local workspace packages and locked immutable Git revisions. A registry can follow once publishing identities, immutability, namespace policy and incident response exist.
 
@@ -42,7 +54,7 @@ API documentation comes from public interfaces and tested examples. The document
 
 LSP provides document synchronization, diagnostics, hover, completion, definition lookup, references and rename as supported features. [LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) is the protocol baseline. Initialization advertises only implemented capabilities. Cancellation and document-version checks prevent stale edits from applying to a newer buffer.
 
-M2 retains source spans through lowering and emits line information where supported by the C backend. Full source debugging requires mappings for functions, lexical scopes, variables and types, plus tests in LLDB or GDB. [LLVM's debug-information tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl09.html) provides a reference for the later direct backend. Debugger success requires stepping an APL program and inspecting its locals, not merely emitting debug flags.
+The current frontend retains source spans and source snapshots for diagnostics; the C11 backend does not yet provide APL source debugging. M2 source-debugging work requires line information and mappings for functions, lexical scopes, variables and types, plus tests in LLDB or GDB. [LLVM's debug-information tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl09.html) provides a reference for the later direct backend. Debugger success requires stepping an APL program and inspecting its locals, not merely emitting debug flags.
 
 Async stack views and agent trace inspection are later extensions. Release documentation must state whether a particular debugging operation is supported for an optimized build, native target or runtime feature.
 

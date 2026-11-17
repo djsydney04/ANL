@@ -1,10 +1,10 @@
 # APL architectural overview
 
-Status: architecture for the complete language, with an implemented M1 scalar
-checker/interpreter and a mechanized expression subset. Later compiler, runtime,
-verification, and ecosystem sections describe planned capabilities. This bounded
-M1 implementation and theorem coverage leave the complete-language release
-requirements open.
+Status: architecture for the complete language, with an implemented scalar core,
+native C11 compiler, file modules, and expression/recursive-function proofs.
+The executable-core sections describe working behavior; wider language
+capabilities remain planned. Current implementation and theorem coverage leave
+the complete-language release requirements open.
 
 The [decision records](decisions.md) summarize alternatives and proof obligations.
 The [bibliography](../research/bibliography.md) lists the supporting literature.
@@ -55,7 +55,8 @@ dependent types, effects, capabilities, typestate, sessions and higher-kinded ty
 
 M1 is a strongly typed scalar/function core with `i64`, `bool`, unit, immutable
 bindings, blocks, conditionals, scalar operators and named recursive functions.
-The [grammar](../../spec/grammar.ebnf) defines its exact syntax. The executable
+The [grammar](../../spec/grammar.ebnf) defines the scalar syntax, extended by the
+[module specification](../../spec/modules.md) for files and visibility. The executable
 entry is nullary `main` returning `i64`. Library checking does not require an entry.
 
 Integers have mathematical checked semantics in the signed 64-bit range.
@@ -65,17 +66,17 @@ boolean operators short-circuit and conditionals select one branch. Resource
 limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
-release feature set. Native compilation, contracts, mutable data, memory and
-concurrency extend the same semantic framework in later increments.
+release feature set. Native compilation and modules extend that core today;
+contracts, mutable data, memory and concurrency remain later increments.
 
-The current Rust CLI implements `check`, `eval`, `dump-core`, and `eval-core`.
-It checks every function, interprets checked source, and independently validates
+The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`,
+`dump-core`, and `eval-core`. It checks every function in the imported source
+graph, interprets or compiles the checked program, and independently validates
 imported [core JSON](../../spec/core-format.md). [Getting started](../getting-started.md)
-provides build/run commands and executable examples. Lean's
-[proof inventory](../../formal/PROOFS.md) records expression typing, preservation,
-progress, and finite evaluator correspondence. Recursive programs have executable
-conformance coverage and mathematical call semantics; FM-05 call safety and
-correspondence proofs remain open. No theorem proves the Rust implementation.
+provides commands and executable examples. Lean's [proof inventory](../../formal/PROOFS.md)
+records expression and recursive-function typing, preservation, progress, and
+finite executable soundness. Reverse evaluator completeness for functions remains
+open. No theorem proves the Rust implementation or module lowering.
 
 ## Compiler and formal-methods architecture
 
@@ -95,9 +96,10 @@ flowchart TD
   Link --> Program[Native executable]
 ```
 
-The source frontend, typed core, Rust evaluator, and Lean model exist today.
-Ownership/effects, verification obligations, MIR, native code generation, and
-runtime linking remain planned stages of this pipeline.
+The source frontend, module loader, typed core, Rust evaluator, Lean model,
+validated structured MIR, C11 code generator, and native linker driver exist
+today. Ownership/effects, contract verification, and broader runtime facilities
+remain planned stages of this pipeline.
 
 Rust implements the production frontend and toolchain. Lean independently models
 semantics and checks metatheory. This separation supports independent comparison

@@ -2,10 +2,11 @@
 
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
-the M1 scalar checker/interpreter, core JSON adapters, a Lean expression model,
-tests, and specifications for the wider language. Follow [getting started](docs/getting-started.md)
-to build and run source programs; the [proof inventory](formal/PROOFS.md) separates
-checked expression theorems from pending call and implementation proofs.
+the scalar checker/interpreter, native C11 backend, file modules, core JSON
+adapters, and a Lean model with expression and recursive-function proofs. Follow
+[getting started](docs/getting-started.md) to build and run source programs; the
+[proof inventory](formal/PROOFS.md) separates checked theorems from pending reverse
+evaluator correspondence and implementation proofs.
 
 ## Build and check
 
@@ -20,7 +21,8 @@ cargo test --locked --release
 python3 -m unittest discover -s benchmarks -p 'test_*.py'
 ```
 
-Both test commands include the public API compile-fail doctests. For formal
+Both test commands include the public API compile-fail doctests. Native tests
+require a host C11 compiler (`cc`, or an executable selected through `CC`). For formal
 changes, install the pinned Lean 4.36.0 tools as described in
 [formal/README.md](formal/README.md), then run:
 

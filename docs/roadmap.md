@@ -21,13 +21,13 @@ each implemented feature. M3 can progress alongside native compiler work once M1
 contracts are stable. A phase number expresses dependencies, not a claim that all
 work in prior phases is finished.
 
-Current status: the M1 source checker/interpreter, strict core JSON interchange,
-Lean expression proofs, and executable examples are available. Follow
-[getting started](getting-started.md) to run the tools and the
-[proof instructions](../formal/README.md) to check the formal artifacts. This
-records bounded M1 coverage; the [52 technical release requirements](requirements.md)
-remain open in their full scope. Native compilation and
-the later language, verification, and ecosystem capabilities remain open.
+Current status: the scalar checker/interpreter, native C11 backend, file modules,
+strict core JSON interchange, and expression/recursive-function proofs are
+available. Follow [getting started](getting-started.md) to run the tools and the
+[proof instructions](../formal/README.md) to check the formal artifacts. Reverse
+evaluator completeness for functions remains open. The
+[52 technical release requirements](requirements.md) remain open in their full
+scope, including later language, verification, and ecosystem capabilities.
 
 ## M0: architecture
 
@@ -60,10 +60,11 @@ The Rust CLI currently checks, evaluates, exports, and imports that core.
 Source and boundary conformance tests cover valid programs, static rejection,
 arithmetic traps, recursion, scoping, and resource/I/O failures. Lean's
 [theorem inventory](../formal/PROOFS.md) records FM-01 through FM-04 for the
-expression fragment. Mathematical call semantics and a tested program evaluator
-exist, but FM-05 function-call safety and evaluator correspondence remain
-unproved. Rust/model correspondence remains testing evidence under FM-06.
-No expression theorem establishes a Rust compiler or whole-language safety claim.
+expression fragment. FM-05 now includes recursive-function typing, preservation,
+progress, finite reduction safety, and soundness of non-resource results from the
+actual bounded program evaluator. Reverse completeness remains open, so FM-05 is
+partial. Rust/model correspondence remains testing evidence under FM-06. These
+model theorems do not establish Rust compiler or whole-language correctness.
 
 ## M2: native compiler
 
@@ -74,6 +75,14 @@ on macOS arm64 initially and Linux x86-64 through CI before claiming support the
 Compare native results and traps against the independent model and interpreter.
 Include multi-module command-line programs. Keep backend correctness assumptions
 explicit; use of a mature backend is not a compiler proof.
+
+The current [native compiler](native-compilation.md) validates structured MIR,
+emits checked C11, and builds host executables. The native baseline passed macOS
+AArch64 and Linux x86-64 CI at `ab8d495`. [File modules](modules.md) add private
+interfaces, qualified paths, bounded import graphs, and source diagnostics;
+the whole graph currently lowers to one translation unit. Separate-object
+compilation, source debugging, broader runtime features, and release qualification
+remain pending. Module resolution and backend correctness are tested boundaries.
 
 ## M3: program verification
 

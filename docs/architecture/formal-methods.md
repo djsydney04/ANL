@@ -1,12 +1,13 @@
 # Formal semantics and verification architecture
 
 Status: formal obligations and planned verification interfaces, with an
-implemented Lean 4.36.0 expression model for semantic revision `m1-2026-11-16`.
-The [proof inventory](../../formal/PROOFS.md) records 21 checked theorems,
-including FM-01 through FM-04 for scalar expressions. Function-call safety and
-evaluator correspondence (FM-05), Rust correspondence proofs, native lowering,
-and the contract verifier remain open. The formal model, verifier and compiler
-must use the same semantic revision and maintain an explicit coverage inventory.
+implemented Lean 4.36.0 scalar and recursive-function model for semantic revision
+`m1-2026-11-16`. The [proof inventory](../../formal/PROOFS.md) records 41 checked
+theorems: FM-01 through FM-04 for expressions, and function typing, safety, and
+finite executable soundness under FM-05. Reverse evaluator completeness for
+functions remains open, so FM-05 is partial. Rust correspondence, module and
+native lowering proofs, and the contract verifier remain open. The formal model,
+verifier and compiler maintain an explicit semantic revision and coverage inventory.
 
 ## Two distinct guarantees
 
@@ -80,12 +81,17 @@ Lean 4 defines untyped core syntax, the typing relation, values, transitions, an
 
 M1 begins with FM-01 through FM-04 for the expression core. FM-05 is separately tracked; mathematical function semantics and executable conformance tests are required even before its proof is complete. A release claim must name exactly which obligations are machine checked. A theorem about an intrinsically typed evaluator alone does not prove that an external untyped program is correctly accepted.
 
-The current expression model has untyped syntax, declarative typing, independently
-proved inference soundness/completeness, typed intermediate machine states, and
-a fuel-free small-step relation. Its expression theorems exclude calls. A separate
-program model defines recursive-call transitions and an executable evaluator;
-those call proofs remain FM-05 work. Source/core comparisons provide testing
-evidence under FM-06 and do not prove the Rust frontend or either JSON adapter.
+The expression and program models use untyped syntax, separate declarative
+typing judgments, proved inference soundness/completeness, typed intermediate
+states, and fuel-free small-step relations. The program proofs cover recursive
+calls, ordered arguments, and caller-environment restoration without assuming
+termination. Non-resource results of the actual bounded `Program.eval` have
+finite relational traces; for well-typed programs these results are values of the
+expected type or defined traps, never `invalid`. Exhausted fuel or depth makes no execution
+claim. The converse—that every finite terminal program reduction is reproduced
+with sufficient depth and fuel—remains unproved. Source/core comparisons provide
+testing evidence under FM-06 and do not prove the Rust frontend, module resolution,
+or either JSON adapter.
 
 Every exported theorem has an inventory entry containing its full name, informal claim, covered constructors, assumptions, semantic revision, proof-tool version, and checking command. A clean build must reject incomplete proofs, custom unsound axioms, or skipped checks. Inspect transitive axiom dependencies. The initial permitted Lean axiom set is at most `propext`, `Classical.choice`, and `Quot.sound`; record the actual subset used. Native-evaluation trust axioms are not accepted for the foundational theorem inventory.
 
@@ -150,6 +156,6 @@ Agent verification models tools as external transitions with explicit contracts 
 
 ## Implementation acceptance
 
-The pinned Lean toolchain, expression proofs, normal and trapping execution examples, coverage inventory, and negative cases are present under [formal/](../../formal/README.md). `formal/check.sh` performs a clean build, rejects incomplete proofs, audits transitive axiom dependencies, and replays declarations through Lean's kernel. The compiler's independent evaluator must match the formal evaluator on the shared corpus using the documented comparison command. Every documented gap remains in the roadmap; these checks establish only their stated expression and executable-core coverage, not whole-language correctness.
+The pinned Lean toolchain, expression and recursive-function proofs, normal and trapping execution examples, coverage inventory, and negative cases are present under [formal/](../../formal/README.md). `formal/check.sh` performs a clean build, rejects incomplete proofs, audits transitive axiom dependencies, and replays declarations through Lean's kernel. The compiler's independent evaluator must match the formal evaluator on the shared corpus using the documented comparison command. Every documented gap remains in the roadmap; these checks establish only their inventoried model and executable-core coverage, not whole-language correctness.
 
 Before the verifier ships, tests must include a valid contract, a false postcondition, intermediate overflow, division faults, unreachable assumptions, short-circuit behavior, unsupported syntax, timeout, missing solver, malformed solver output, and stale artifact rejection. A deliberately broken VC generator must fail the relevant regression. No benchmark or test count substitutes for FM-07.

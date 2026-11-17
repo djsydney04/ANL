@@ -1,16 +1,17 @@
 # Native scalar compilation
 
 APL can build the checked scalar language into a host machine-code executable
-through a C11 compiler. This is the first native increment of M2. Multi-module
-linking and the remaining full-language requirements are pending. The backend
-and its runtime helpers are tested, not formally verified.
+through a C11 compiler. Programs may use the [file module system](modules.md);
+the checked graph lowers to one C11 translation unit. Separate-object compilation
+and the remaining full-language requirements are pending. The backend and its
+runtime helpers are tested, not formally verified.
 
 Install a host C11 toolchain providing `cc`, then build the APL CLI with the pinned
 Rust toolchain. `CC` can select another compiler executable. Its value is one
 executable name or path; embedded options and shell commands are not interpreted.
 
 ```sh
-cargo build --release
+cargo build --release --locked
 ./target/release/apl build examples/factorial.apl -o /tmp/apl-factorial
 /tmp/apl-factorial
 ./target/release/apl run examples/factorial.apl
@@ -22,9 +23,10 @@ cc -std=c11 -O0 /tmp/apl-factorial.c -o /tmp/apl-factorial-debug
 It invokes the host compiler at `-O2`. Without `-o`, the output is beside the
 source with its final extension removed, or with `.out` appended when it has no
 extension. The explicit output directory must already exist. A successful build
-replaces an existing output file. Source aliases, including Unix hard links and
-symbolic links, are rejected as outputs. Compilation takes place in a private
-staging directory beside the output; a successful link is published by rename.
+replaces an existing output file. The root and every transitive source input,
+including Unix hard-link and symbolic-link aliases, are rejected as outputs.
+Compilation takes place in a private staging directory beside the output; a
+successful link is published by rename.
 Missing tools, compiler/linker failures, and publication failures exit 4. Failed
 builds preserve existing output files and remove their staging directory.
 
@@ -90,10 +92,14 @@ protection, and temporary cleanup. The suite runs emitted arithmetic cases under
 the undefined-behavior sanitizer when the installed toolchain supports it; an
 unavailable sanitizer is reported explicitly.
 
-The implementation has been exercised on macOS AArch64. Linux x86-64 remains a
-candidate target until its CI native build, run, trap, and linking checks have
-passed. These checks do not prove compiler correctness, memory safety for future
-heap features, source-to-Lean correspondence, or production performance. The C
-compiler, linker, scalar runtime, host C library, and operating system remain
-trusted components. No modules, source I/O, heap allocation, ownership checking,
-concurrency, FFI, or optimizer transforms are implemented by this increment.
+The native CI build, run, trap, and linking checks passed on macOS AArch64 and
+Linux x86-64 at revision `ab8d495`; see the
+[native CI run](https://github.com/djsydney04/ANL/actions/runs/44040702654).
+That run predates the module increment. Module tests additionally exercise
+multi-file interpretation, native execution at `-O0` and `-O2`, and protection of
+transitive source inputs. These checks do not qualify an installable release or
+prove compiler correctness, memory safety for future heap features, source-to-Lean
+correspondence, or production performance. The C compiler, linker, scalar runtime,
+host C library, and operating system remain trusted components. Source I/O, heap
+allocation, ownership checking, concurrency, FFI, and APL optimizer transforms
+remain unimplemented.

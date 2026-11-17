@@ -3,7 +3,7 @@
 APL targets a complete systems language and development environment. The
 [language charter](charter.md) defines its purpose and the [roadmap](roadmap.md)
 orders delivery. This specification lists the capabilities and evidence needed
-for a release. The M1 implementation covers parts of these requirements; the
+for a release. The current implementation covers parts of these requirements; the
 coverage record below does not close any complete-language release requirement.
 
 Evidence categories are distinct. **Designed** means a specification exists.
@@ -19,15 +19,17 @@ technical requirements remain in the tables below, including missing features.
 
 | Requirement slices | Current evidence | Remaining scope |
 | --- | --- | --- |
-| L01, L02, L09, C01 | Rust checks and interprets `i64`, `bool`, unit, immutable bindings, blocks, conditionals, operators, and named recursive functions; [source tests](../tests/conformance.rs) cover acceptance, rejection, traps, scope, and sequencing. | Wider types, inference, modules, mutation, loops, and the other language features remain open. |
-| F01, F02 | Lean expression typing, preservation, progress, and finite evaluator correspondence have [inventoried kernel-checked theorems](../formal/PROOFS.md). | Call safety and correspondence (FM-05), memory, ownership, effects, and concurrency proofs remain open. These are not Rust implementation proofs. |
-| F06, F07, C05 | Validated [core interchange](../spec/core-format.md), Rust and Lean evaluators, negative tests, and [executable comparisons](../formal/README.md). | Testing does not discharge compiler/model correspondence, transformation, or native-backend proof obligations. |
-| T01, DOC01, DOC02 | Working `check`, `eval`, `dump-core`, and `eval-core` commands, [getting started](getting-started.md), examples, and contributor/proof instructions. | Native build/run, verification, packages, editor tools, and complete learning/reference material remain open. |
-| Q01 (M1 checks) | [CI configuration](../.github/workflows/ci.yml) runs pinned Rust checks and Lean proof/comparison checks; public API and I/O regressions have [boundary tests](../tests/boundaries.rs). | Platform and proof results must be checked for the revision under review. Fuzzing, native, security, install, and release qualification remain open. |
+| L01, L02, L09, C01 | Rust checks and interprets `i64`, `bool`, unit, immutable bindings, blocks, conditionals, operators, and named recursive functions; [source tests](../tests/conformance.rs) cover acceptance, rejection, traps, scope, and sequencing. | Wider types, inference, mutation, loops, and the other language features remain open. |
+| L06, C01 | [File modules](modules.md) provide private/public declarations, qualified paths, bounded graph loading, and cross-file diagnostics; [module tests](../tests/modules.rs) exercise checking and native execution. | Packages, import aliases, separate compilation, explicit errors and propagation, and broader interfaces remain open. |
+| C02, C03 | Validated structured MIR and a [C11 native backend](native-compilation.md) build and run scalar programs; [native tests](../tests/native.rs) compare results and traps at `-O0` and `-O2`. | Ownership/effects, verification integration, optimization passes, source debugging, and broader target/runtime support remain open. |
+| F01, F02 | Lean expression and recursive-function typing, preservation, progress, and finite executable soundness have [inventoried kernel-checked theorems](../formal/PROOFS.md). | Reverse evaluator completeness for functions (part of FM-05), memory, ownership, effects, and concurrency proofs remain open. These are not Rust implementation proofs. |
+| F06, F07, C05 | Validated [core interchange](../spec/core-format.md), Rust and Lean evaluators, negative tests, and [executable comparisons](../formal/README.md). | Testing does not discharge compiler/model correspondence, module lowering, transformation, or native-backend proof obligations. |
+| T01, DOC01, DOC02 | Working `check`, `eval`, `build`, `run`, `emit-c`, `dump-core`, and `eval-core` commands, [getting started](getting-started.md), examples, and contributor/proof instructions. | Verification, packages, editor tools, and complete learning/reference material remain open. |
+| Q01 (development checks) | [CI](../.github/workflows/ci.yml) runs pinned Rust checks and Lean proof/comparison checks. Native checks passed on Linux and macOS at `ab8d495` ([run](https://github.com/djsydney04/ANL/actions/runs/44040702654)); later revisions require their own results. | Fuzzing, security, clean installation, and release qualification remain open. |
 
-There is no native-code backend, source-level I/O, ownership, concurrency,
-contract verifier, or qualified installable release. The [roadmap](roadmap.md)
-retains these requirements and the full-language acceptance criteria.
+There is no source-level I/O, ownership, concurrency, contract verifier, or
+qualified installable release. The [roadmap](roadmap.md) retains these
+requirements and the full-language acceptance criteria.
 
 ## Language and execution
 

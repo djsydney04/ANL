@@ -4,12 +4,13 @@ APL is a programming language under development for native systems software and
 capability-controlled agent applications, with strong static types and integrated
 formal verification.
 
-The current M1 implementation checks and interprets a scalar language with
-`i64`, `bool`, unit, immutable bindings, conditionals, and named recursive
-functions. The Rust CLI also exports and independently validates typed core JSON.
-Lean proofs cover the scalar expression model; function-call safety and Rust
-implementation correctness remain unproved. See the [proof inventory](formal/PROOFS.md)
-for exact theorem scope and assumptions.
+The current implementation checks, interprets, and compiles a scalar language with
+`i64`, `bool`, unit, immutable bindings, conditionals, named recursive functions,
+and explicit file modules. The Rust CLI also exports and independently validates
+typed core JSON. Lean proofs cover expression and recursive-function typing and
+safety, plus finite executable soundness. Reverse evaluator completeness for
+functions and Rust implementation correctness remain unproved. See the
+[proof inventory](formal/PROOFS.md) for exact theorem scope and assumptions.
 
 From this checkout, with Rust installed through rustup:
 
@@ -21,11 +22,15 @@ cargo build --release --locked
 
 Evaluation prints `3628800`. The checked-in toolchain selects Rust 1.99.1.
 The [getting-started guide](docs/getting-started.md) covers examples, diagnostics,
-resource limits, and core import/export. There is no native-code backend or
-qualified installable release yet. Ownership, mutable data, I/O, concurrency,
+resource limits, and core import/export. The CLI also supports native `build`,
+`run`, and `emit-c` through a host C11 compiler; see
+[native compilation](docs/native-compilation.md). There is no qualified
+installable release yet. Ownership, mutable data, I/O, concurrency,
 contracts, and the wider language remain roadmap work.
 
 - [Getting started](docs/getting-started.md)
+- [Native compilation](docs/native-compilation.md)
+- [Programs with modules](docs/modules.md)
 - [Formal model and proof checks](formal/README.md)
 - [Language charter](docs/charter.md)
 - [Architecture](docs/architecture/overview.md)
