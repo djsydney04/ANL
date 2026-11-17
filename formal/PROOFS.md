@@ -816,7 +816,7 @@ against independently specified outcomes, including exact JSON field sorts and
 shape. Type rejection precedes evaluation even with zero fuel. Resource probes
 check tool-specific boundaries separately and do not count as finite semantic
 agreements. The suite is run with
-`python3 formal/test_flat_products.py --rust target/debug/apl` after building both
+`python3 formal/test_flat_products.py --rust target/debug/anl` after building both
 formal executables and the compiler. Decoder correctness, source correspondence
 and compiled-executable correctness remain unproved by this inventory.
 
@@ -838,7 +838,7 @@ check script replays 45 semantic modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
-not establish that the formal definitions match every intended APL rule.
+not establish that the formal definitions match every intended ANL rule.
 
 ## Explicit gaps
 

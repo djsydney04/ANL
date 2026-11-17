@@ -1,4 +1,4 @@
-use apl::{
+use anl::{
     core::{self, ImportError},
     eval::{self, Value},
 };
@@ -33,7 +33,7 @@ impl Input {
         Self { directory, path }
     }
     fn command(&self, command: &str) -> Command {
-        let mut process = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut process = Command::new(env!("CARGO_BIN_EXE_anl"));
         process.arg(command).arg(&self.path);
         process
     }
@@ -46,7 +46,7 @@ impl Drop for Input {
 
 #[test]
 fn checked_program_remains_usable_through_public_source_and_json_apis() {
-    let program = apl::compile("fn main()->i64{if true {42} else {0}}").unwrap();
+    let program = anl::compile("fn main()->i64{if true {42} else {0}}").unwrap();
     let entry = program.entry().unwrap();
     assert_eq!(eval::evaluate(&program, entry, 100), Ok(Value::Integer(42)));
     let json = core::export(&program, entry).unwrap().to_string();
@@ -139,7 +139,7 @@ fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
             "command {command}, input {bytes:?}"
         );
     }
-    let oversized = Input::new(vec![b' '; apl::MAX_SOURCE_BYTES + 1]);
+    let oversized = Input::new(vec![b' '; anl::MAX_SOURCE_BYTES + 1]);
     assert_eq!(
         closed_stderr(&mut oversized.command("check")).status.code(),
         Some(4)
@@ -150,7 +150,7 @@ fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
         closed_stderr(&mut missing.command("check")).status.code(),
         Some(4)
     );
-    let mut misuse = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut misuse = Command::new(env!("CARGO_BIN_EXE_anl"));
     misuse.arg("unknown-command");
     assert_eq!(closed_stderr(&mut misuse).status.code(), Some(4));
 }

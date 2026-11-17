@@ -1,23 +1,23 @@
 # Native compilation
 
-APL can build scalar values and flat tuples into a host machine-code executable
+ANL can build scalar values and flat tuples into a host machine-code executable
 through a C11 compiler. Initialized mutable locals, whole-value assignment, and
 structured `while` statements are supported. Programs may use the
 [file module system](modules.md); the checked graph lowers to one C11 translation unit. Separate-object compilation
 and the remaining full-language requirements are pending. The backend and its
 runtime helpers are tested, not formally verified.
 
-Install a host C11 toolchain providing `cc`, then build the APL CLI with the pinned
+Install a host C11 toolchain providing `cc`, then build the ANL CLI with the pinned
 Rust toolchain. `CC` can select another compiler executable. Its value is one
 executable name or path; embedded options and shell commands are not interpreted.
 
 ```sh
 cargo build --release --locked
-./target/release/apl build examples/factorial.apl -o /tmp/apl-factorial
-/tmp/apl-factorial
-./target/release/apl run examples/factorial.apl
-./target/release/apl emit-c examples/factorial.apl > /tmp/apl-factorial.c
-cc -std=c11 -O0 /tmp/apl-factorial.c -o /tmp/apl-factorial-debug
+./target/release/anl build examples/factorial.anl -o /tmp/anl-factorial
+/tmp/anl-factorial
+./target/release/anl run examples/factorial.anl
+./target/release/anl emit-c examples/factorial.anl > /tmp/anl-factorial.c
+cc -std=c11 -O0 /tmp/anl-factorial.c -o /tmp/anl-factorial-debug
 ```
 
 `build FILE [-o PATH]` checks the complete source and requires `main() -> i64`.
@@ -90,7 +90,7 @@ trap, as do zero divisors. Helpers use no compiler-specific overflow builtins.
 
 Instruction order becomes C statement order. Calls and binary operations receive
 previously computed value temporaries, so C's argument evaluation order cannot
-change APL's first trap. Mutable reads are value snapshots, so later argument
+change ANL's first trap. Mutable reads are value snapshots, so later argument
 mutations cannot change earlier argument values. A callee receives value copies
 and cannot mutate caller slots. Mutable scopes emit lexical C blocks; loops emit
 actual C loops with the condition computation inside the loop. Loads and stores
@@ -134,5 +134,5 @@ installable release or prove compiler correctness, memory safety for future heap
 features, source-to-Lean
 correspondence, or production performance. The C compiler, linker, scalar runtime,
 host C library, and operating system remain trusted components. Source I/O, heap
-allocation, ownership checking, concurrency, FFI, and APL optimizer transforms
+allocation, ownership checking, concurrency, FFI, and ANL optimizer transforms
 remain unimplemented.

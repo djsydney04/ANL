@@ -8,7 +8,7 @@ separate source behavior from model guarantees and implementation correspondence
 
 ## Language model
 
-APL is a strict, statically typed, expression-oriented systems language. Function signatures define module boundaries. Local expressions synthesize types or check against an expected type. There are no implicit numeric conversions, truthiness conversions, dynamically typed escape values, or unchecked downcasts in safe code.
+ANL is a strict, statically typed, expression-oriented systems language. Function signatures define module boundaries. Local expressions synthesize types or check against an expected type. There are no implicit numeric conversions, truthiness conversions, dynamically typed escape values, or unchecked downcasts in safe code.
 
 The complete language requires primitive integers and floating-point numbers, Unicode scalar characters, UTF-8 text, arrays, slices, tuples, records, nominal algebraic data types, exhaustive matches, generics, closures, modules, explicit errors, mutation, and ownership. These remain delivery requirements even when a milestone supports a smaller subset.
 

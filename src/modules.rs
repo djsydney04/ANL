@@ -15,7 +15,15 @@ use std::{
 };
 
 pub(crate) fn compile_file(path: &Path) -> Result<Program, Diagnostic> {
-    let mut loader = Loader::default();
+    // The invocation spelling selects the family, before resolving any symlink.
+    let mut loader = Loader {
+        extension: if path.extension().is_some_and(|ext| ext == "apl") {
+            "apl"
+        } else {
+            "anl"
+        },
+        ..Loader::default()
+    };
     let result = loader.load(path, Span::default());
     let sources = Arc::new(loader.sources);
     result.map_err(|error| error.with_sources(sources.clone()))?;
@@ -25,6 +33,7 @@ pub(crate) fn compile_file(path: &Path) -> Result<Program, Diagnostic> {
 
 #[derive(Default)]
 struct Loader {
+    extension: &'static str,
     paths: HashMap<PathBuf, usize>,
     sources: Vec<SourceFile>,
     modules: Vec<Option<Module>>,
@@ -150,7 +159,7 @@ impl Loader {
             let target = path
                 .parent()
                 .expect("canonical file has a parent")
-                .join(format!("{}.apl", module.name));
+                .join(format!("{}.{}", module.name, self.extension));
             let target = self.load(&target, module.span)?;
             imports.push(Import {
                 name: module.name,

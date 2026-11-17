@@ -22,7 +22,7 @@ impl Source {
     }
 
     fn run(&self, command: &str, extra: &[&str]) -> Output {
-        let mut cmd = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_anl"));
         cmd.arg(command).arg(&self.0).args(extra);
         run_bounded(cmd)
     }
@@ -40,11 +40,11 @@ fn run_bounded(mut command: Command) -> Output {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("start apl CLI");
+        .expect("start anl CLI");
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
-        if child.try_wait().expect("poll apl CLI").is_some() {
-            return child.wait_with_output().expect("collect apl CLI output");
+        if child.try_wait().expect("poll anl CLI").is_some() {
+            return child.wait_with_output().expect("collect anl CLI output");
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
@@ -527,7 +527,7 @@ fn deep_and_oversized_source_fail_with_a_bounded_resource_diagnostic() {
 fn invocation_and_infrastructure_errors_are_distinct_from_source_errors() {
     let source = Source::new("fn main() -> i64 { 7 }");
     for arguments in [vec![], vec!["unknown"], vec!["eval"], vec!["check"]] {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
         command.args(arguments);
         assert_status(&run_bounded(command), 4, "bad invocation");
     }
@@ -543,28 +543,28 @@ fn invocation_and_infrastructure_errors_are_distinct_from_source_errors() {
         assert_status(&output, 4, "bad eval option");
     }
     let missing = source.0.with_file_name("does-not-exist.apl");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
     command.arg("check").arg(missing);
     assert_status(&run_bounded(command), 4, "missing input file");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
     command.arg("--version");
     let output = run_bounded(command);
     assert_status(&output, 0, "version query");
-    assert!(String::from_utf8_lossy(&output.stdout).starts_with("apl "));
+    assert!(String::from_utf8_lossy(&output.stdout).starts_with("anl "));
 }
 
 #[test]
 fn documented_examples_execute_to_their_independent_expected_values() {
     for (name, expected) in [
-        ("factorial.apl", 3628800),
-        ("gcd.apl", 21),
-        ("sum-primes.apl", 328),
-        ("scopes.apl", 78),
+        ("factorial.anl", 3628800),
+        ("gcd.anl", 21),
+        ("sum-primes.anl", 328),
+        ("scopes.anl", 78),
     ] {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("examples")
             .join(name);
-        let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
         command.arg("eval").arg(path);
         let output = run_bounded(command);
         assert_status(&output, 0, name);

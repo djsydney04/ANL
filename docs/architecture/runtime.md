@@ -6,11 +6,11 @@ state as defined by the [type-system specification](type-system.md).
 
 ## Runtime components follow language capabilities
 
-An arithmetic-only APL program requires startup, native scalar operations, and a defined failure path. It does not require a garbage collector, allocator, event loop, thread pool, network stack, or model client. Programs link runtime modules when their capabilities require them.
+An arithmetic-only ANL program requires startup, native scalar operations, and a defined failure path. It does not require a garbage collector, allocator, event loop, thread pool, network stack, or model client. Programs link runtime modules when their capabilities require them.
 
 ```mermaid
 flowchart TD
-    A[Typed and ownership-valid APL IR] --> B[Native code]
+    A[Typed and ownership-valid ANL IR] --> B[Native code]
     B --> C[Startup and defined trap reporting]
     B --> D[Allocation and cleanup]
     B --> E[OS and C ABI adapters]
@@ -29,7 +29,7 @@ M1's reference evaluator represents `i64`, `bool`, and `unit` directly and retur
 
 For the first native executable, a host wrapper invokes `main() -> i64`, prints the full signed decimal result followed by a newline, and exits successfully. A defined arithmetic trap reports failure and exits unsuccessfully. The wrapper never converts the language result to an eight-bit process status. The wrapper's output is a tool convention; it does not give M1 source code an I/O operation.
 
-The C11 backend lowers checked arithmetic without first executing an overflowing C signed operation. Left-to-right evaluation requires explicit temporaries because the backend language's argument evaluation order is not APL's contract. Division and remainder guard zero and `INT64_MIN / -1` before evaluation. Native and reference results must match for both successful and trapping programs.
+The C11 backend lowers checked arithmetic without first executing an overflowing C signed operation. Left-to-right evaluation requires explicit temporaries because the backend language's argument evaluation order is not ANL's contract. Division and remainder guard zero and `INT64_MIN / -1` before evaluation. Native and reference results must match for both successful and trapping programs.
 
 The flat-tuple extension uses immutable validated values in the reference
 evaluator and ordinary struct values in generated C. Whole-value replacement
@@ -81,9 +81,9 @@ Timeout is a local observation that a deadline expired. It is not proof that an 
 
 ## Native interfaces and layout
 
-Native ABI adapters use fixed-width integers and explicit status or result representations. A future `repr(C)` declaration commits to target-specific size, alignment, field order, and calling convention. Ordinary APL records have no stable external layout promise. Packed memory is accessed through byte operations unless alignment is independently established.
+Native ABI adapters use fixed-width integers and explicit status or result representations. A future `repr(C)` declaration commits to target-specific size, alignment, field order, and calling convention. Ordinary ANL records have no stable external layout promise. Packed memory is accessed through byte operations unless alignment is independently established.
 
-C calls are unsafe by default. A safe wrapper must account for pointer validity, length, encoding, ownership transfer, callback lifetime, concurrency, and error behavior. Foreign exceptions or `longjmp` must not cross APL frames unless an accepted unwind protocol explicitly supports them. Callbacks enter through generated ABI thunks that validate the permitted context.
+C calls are unsafe by default. A safe wrapper must account for pointer validity, length, encoding, ownership transfer, callback lifetime, concurrency, and error behavior. Foreign exceptions or `longjmp` must not cross ANL frames unless an accepted unwind protocol explicitly supports them. Callbacks enter through generated ABI thunks that validate the permitted context.
 
 The compiler owns the layout description. Runtime code consumes a generated, versioned layout and calling-convention interface. Hand-maintained duplicate assumptions about enum tags, closure captures, or slice layout are prohibited. Debug information must describe the same layouts used by native code.
 

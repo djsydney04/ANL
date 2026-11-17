@@ -1,6 +1,6 @@
 # Verify scalar function contracts
 
-`apl verify` checks arithmetic safety and function contracts for pure scalar
+`anl verify` checks arithmetic safety and function contracts for pure scalar
 code, mutable scalar locals, and while loops with invariants. It uses Z3 5.3.3
 and reports solver-trusted results. It supports acyclic calls across source
 modules. Verification requires an invariant on every loaded loop and rejects
@@ -19,8 +19,8 @@ select its executable explicitly:
 
 ```sh
 cargo build --release --locked
-./target/release/apl verify examples/contracts/increment.apl --solver /path/to/z3
-./target/release/apl verify examples/contracts/increment.apl --solver /path/to/z3 --json
+./target/release/anl verify examples/contracts/increment.anl --solver /path/to/z3
+./target/release/anl verify examples/contracts/increment.anl --solver /path/to/z3 --json
 ```
 
 The checked-in increment example verifies successfully. A solver installed in the
@@ -83,7 +83,7 @@ that division and remainder are overflow traps in executable code.
 ## Verify a loop
 
 An invariant describes the state immediately before each condition evaluation.
-The [counter example](../examples/contracts/count.apl) uses two independent clauses:
+The [counter example](../examples/contracts/count.anl) uses two independent clauses:
 
 ```text
 fn count_to(n: i64) -> i64
@@ -104,9 +104,9 @@ fn count_to(n: i64) -> i64
 Its `main` calls `count_to(42)`. With the pinned solver installed, run:
 
 ```sh
-./target/release/apl verify examples/contracts/count.apl --solver /path/to/z3 --json
-./target/release/apl eval examples/contracts/count.apl
-./target/release/apl run examples/contracts/count.apl
+./target/release/anl verify examples/contracts/count.anl --solver /path/to/z3 --json
+./target/release/anl eval examples/contracts/count.anl
+./target/release/anl run examples/contracts/count.anl
 ```
 
 Verification returns `verified`, exit 0, with `verification_revision:
@@ -253,11 +253,12 @@ resource bounds, protocol behavior, and the remaining FM-07 obligations. The
 implemented loop-free and invariant-loop report contracts.
 
 For development checks, install the pinned solver before running the complete
-suite. `APL_TEST_SOLVER` can select it for integration tests:
+suite. `ANL_TEST_SOLVER` can select it for integration tests; the legacy
+`APL_TEST_SOLVER` remains a fallback when the preferred variable is absent:
 
 ```sh
-APL_TEST_SOLVER=/path/to/z3 cargo test --locked
-APL_TEST_SOLVER=/path/to/z3 cargo test --release --locked
+ANL_TEST_SOLVER=/path/to/z3 cargo test --locked
+ANL_TEST_SOLVER=/path/to/z3 cargo test --release --locked
 ```
 
 CI downloads the host's official archive, verifies its SHA-256, and runs real

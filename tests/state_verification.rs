@@ -1,5 +1,5 @@
 //! Real solver evidence for loop-free mutable state; no model-to-Rust proof claim.
-use apl::eval::{self, Value as Scalar};
+use anl::eval::{self, Value as Scalar};
 use serde_json::{Value, json};
 use std::{
     fs,
@@ -38,7 +38,8 @@ impl Drop for Fixture {
     }
 }
 fn solver() -> PathBuf {
-    std::env::var_os("APL_TEST_SOLVER")
+    std::env::var_os("ANL_TEST_SOLVER")
+        .or_else(|| std::env::var_os("APL_TEST_SOLVER"))
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let local = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -47,7 +48,7 @@ fn solver() -> PathBuf {
         })
 }
 fn verify(source: &Path, timeout: u64) -> (Output, Value) {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
     command
         .arg("verify")
         .arg(source)
@@ -115,7 +116,7 @@ fn status(output: &Output, report: &Value, code: i32, expected: &str) {
     assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
 }
 fn evaluates(source: &str, expected: i64) {
-    let program = apl::compile(source).unwrap();
+    let program = anl::compile(source).unwrap();
     assert_eq!(
         eval::evaluate(&program, program.entry().unwrap(), 100_000),
         Ok(Scalar::Integer(expected)),
@@ -273,7 +274,7 @@ fn state_reports_bind_complete_parameter_models_and_checked_error_envelopes() {
     assert_eq!(invalid["schema"], "apl-verify-v0");
     assert!(invalid["semantic_revision"].is_null());
     assert!(invalid.get("verification_revision").is_none());
-    let bad_options = Command::new(env!("CARGO_BIN_EXE_apl"))
+    let bad_options = Command::new(env!("CARGO_BIN_EXE_anl"))
         .arg("verify")
         .arg(fixture.0.join("main.apl"))
         .args(["--timeout-ms", "0", "--json"])
@@ -282,15 +283,15 @@ fn state_reports_bind_complete_parameter_models_and_checked_error_envelopes() {
     assert_eq!(bad_options.status.code(), Some(4));
     assert!(bad_options.stdout.is_empty());
     assert!(!bad_options.stderr.is_empty());
-    let error = apl::verify::verify_file(
+    let error = anl::verify::verify_file(
         fixture.0.join("absent.apl"),
-        &apl::verify::VerifyOptions {
+        &anl::verify::VerifyOptions {
             solver: solver(),
             timeout_ms: 0,
         },
     )
     .unwrap_err();
-    let report = apl::verify::VerificationReport::source_error(&error);
+    let report = anl::verify::VerificationReport::source_error(&error);
     assert_eq!(report.json()["schema"], "apl-verify-v0");
     assert!(report.json()["semantic_revision"].is_null());
     assert!(report.json().get("verification_revision").is_none());

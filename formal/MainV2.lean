@@ -21,7 +21,7 @@ def main (args : List String) : IO UInt32 := do
           return 4
         pure (path, fuel, false)
       | none => IO.eprintln "invalid fuel"; return 4
-    | _ => IO.eprintln "usage: apl_formal_v2 FILE [--fuel N | --revision]"; return 4
+    | _ => IO.eprintln "usage: anl_formal_v2 FILE [--fuel N | --revision]"; return 4
   let metadata ← try (System.FilePath.mk path).metadata catch e => IO.eprintln e.toString; return 4
   if metadata.byteSize > 1048576 then return ← finish (.error .resourceLimit)
   let bytes ← try IO.FS.readBinFile path catch e => IO.eprintln e.toString; return 4

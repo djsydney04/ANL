@@ -86,7 +86,7 @@ ResourceLimit(reason)
 InvalidInput(diagnostic)
 ```
 
-`ResourceLimit` includes fuel and stack limits and is not an APL value, trap, or proof of divergence. Differential tests compare values and trap kinds; they report resource-limited cases as inconclusive. Invalid serialized inputs fail validation before evaluation.
+`ResourceLimit` includes fuel and stack limits and is not an ANL value, trap, or proof of divergence. Differential tests compare values and trap kinds; they report resource-limited cases as inconclusive. Invalid serialized inputs fail validation before evaluation.
 
 ## Local-state semantic extension
 
@@ -131,7 +131,7 @@ extend scalar verification-condition generation to tuples. The
 [55-statement inventory](../../formal/PROOFS.md#flat-scalar-products-with-local-state)
 records the exact premises; the earlier scalar definitions and proofs are unchanged.
 
-The separate `apl_formal_v2` adapter validates v2 artifacts and runs this machine.
+The separate `anl_formal_v2` adapter validates v2 artifacts and runs this machine.
 [Executable comparisons](../../formal/README.md#v2-interchange-adapter) cover
 hand-authored valid/malformed artifacts, source exports and scalar embeddings.
 Resource probes remain inconclusive about language behavior: Lean counts machine
@@ -215,7 +215,7 @@ invariant initialization/preservation and uses final false-guard state.
 Ownership/effect analysis and solver-certificate checking remain planned. Source invariants are name/type-checked
 and erased; ordinary compilation proves neither their truth nor their definedness.
 
-Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
+Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use ANL's truncation rule, not a solver's default integer-division convention.
 
 For a function with precondition `P`, postcondition `Q`, and body `e`, partial correctness requires that any execution satisfying `P` and returning a value satisfies `Q`. Trap freedom is a separate mandatory safety obligation in the default verification profile. Termination is a separate property. A recursive function is not proved total without a checked well-founded variant or equivalent argument.
 

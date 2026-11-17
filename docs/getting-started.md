@@ -1,6 +1,6 @@
-# Getting started with APL
+# Getting started with ANL
 
-APL provides a Rust command-line checker, reference interpreter, and native
+ANL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, and file modules.
@@ -16,9 +16,9 @@ checked-in toolchain file selects Rust 1.99.1, including rustfmt and Clippy.
 
 ```sh
 cargo build --release --locked
-./target/release/apl --version
-./target/release/apl check examples/factorial.apl
-./target/release/apl eval examples/factorial.apl
+./target/release/anl --version
+./target/release/anl check examples/factorial.anl
+./target/release/anl eval examples/factorial.anl
 ```
 
 The evaluation prints `3628800` followed by a newline. Its process exit status is
@@ -40,7 +40,7 @@ fn main() -> i64 {
 }
 ```
 
-Save it as `answer.apl` and run `./target/release/apl eval answer.apl` to print `42`.
+Save it as `answer.anl` and run `./target/release/anl eval answer.anl` to print `42`.
 The final expression has no semicolon. A block with no final expression returns
 `unit`, whose literal is `()`. Arithmetic and function arguments are statically
 checked; there are no implicit type conversions.
@@ -50,9 +50,9 @@ checked; there are no implicit type conversions.
 Install a host C11 compiler providing `cc`, then run:
 
 ```sh
-./target/release/apl build examples/factorial.apl -o /tmp/apl-factorial
-/tmp/apl-factorial
-./target/release/apl run examples/factorial.apl
+./target/release/anl build examples/factorial.anl -o /tmp/anl-factorial
+/tmp/anl-factorial
+./target/release/anl run examples/factorial.anl
 ```
 
 Both executions print `3628800`. `build` publishes an executable at the requested
@@ -83,9 +83,9 @@ Assignment requires a semicolon; a while statement ends at its closing brace.
 The final expression `sum` returns `5050`. The checked-in examples run as follows:
 
 ```sh
-./target/release/apl eval examples/control-flow/sum.apl
-./target/release/apl run examples/control-flow/sum.apl
-./target/release/apl eval examples/control-flow/gcd.apl
+./target/release/anl eval examples/control-flow/sum.anl
+./target/release/anl run examples/control-flow/sum.anl
+./target/release/anl eval examples/control-flow/gcd.anl
 ```
 
 The first two commands print `5050`; the last prints `21`. Inner scopes preserve
@@ -109,13 +109,13 @@ fn main() -> i64 {
 }
 ```
 
-Save this as `annotated-loop.apl`. With Z3 5.3.3 installed as described in the
+Save this as `annotated-loop.anl`. With Z3 5.3.3 installed as described in the
 [verification guide](verification.md), run:
 
 ```sh
-./target/release/apl check annotated-loop.apl
-./target/release/apl eval annotated-loop.apl
-./target/release/apl verify annotated-loop.apl
+./target/release/anl check annotated-loop.anl
+./target/release/anl eval annotated-loop.anl
+./target/release/anl verify annotated-loop.anl
 ```
 
 Checking succeeds, evaluation prints `3`, and verification returns `verified`
@@ -125,7 +125,7 @@ well-typed clauses are erased; `verify` separately checks their definedness and
 truth. Names refer to locals visible before the condition
 runs; annotation arithmetic uses mathematical integers. See the
 [annotation specification](../spec/loop-verification.md#source-annotations-and-erasure)
-for scope and syntax. The [bounded counter](../examples/contracts/count.apl) also
+for scope and syntax. The [bounded counter](../examples/contracts/count.anl) also
 checks that its returned value equals its original input. Loop verification
 proves partial correctness and arithmetic safety, not termination.
 
@@ -135,8 +135,8 @@ Flat tuples contain 1–8 scalar fields and use fixed, ordered types. A function
 can return `(i64, i64)`; callers select fields with `.0` and `.1`:
 
 ```sh
-./target/release/apl eval examples/tuples/count-sum.apl
-./target/release/apl run examples/tuples/snapshots.apl
+./target/release/anl eval examples/tuples/count-sum.anl
+./target/release/anl run examples/tuples/snapshots.anl
 ```
 
 These print `55` and `42`. The first example updates a whole `(count, sum)` tuple
@@ -154,13 +154,13 @@ syntax, value semantics, limits and the v2 interchange format.
 ## Use several source files
 
 ```sh
-./target/release/apl check examples/modules/main.apl
-./target/release/apl eval examples/modules/main.apl
-./target/release/apl run examples/modules/main.apl
+./target/release/anl check examples/modules/main.anl
+./target/release/anl eval examples/modules/main.anl
+./target/release/anl run examples/modules/main.anl
 ```
 
 The three-file example evaluates to `42` in both execution modes. `mod math;`
-loads a sibling `math.apl`; `pub fn` exposes a function, and `math::double(21)`
+loads a sibling `math.anl`; `pub fn` exposes a function, and `math::double(21)`
 calls it. The complete import graph is checked, including unused bodies. The
 [module guide](modules.md) explains nested namespaces, visibility, and paths.
 
@@ -170,8 +170,8 @@ Install Z3 5.3.3 and put `z3` on `PATH` using the
 [verification guide](verification.md), then run:
 
 ```sh
-./target/release/apl verify examples/contracts/increment.apl
-./target/release/apl verify examples/contracts/increment.apl --json
+./target/release/anl verify examples/contracts/increment.anl
+./target/release/anl verify examples/contracts/increment.anl --json
 ```
 
 The example returns `verified` with `trust=smt-trusted` and exit 0. `--solver PATH`
@@ -201,8 +201,8 @@ fn increment(value: i64) -> i64
 }
 ```
 
-Save it as `mutable-increment.apl` and run
-`./target/release/apl verify mutable-increment.apl`. It returns `verified` with
+Save it as `mutable-increment.anl` and run
+`./target/release/anl verify mutable-increment.anl`. It returns `verified` with
 `trust=smt-trusted`. Verification accepts this library without a `main` function.
 
 `requires` and `ensures` clauses use mathematical integers. Runtime expressions
@@ -223,16 +223,16 @@ the scalar examples; the tuple commands above exercise the new examples.
 
 | File | Demonstrates | Result |
 | --- | --- | ---: |
-| [factorial.apl](../examples/factorial.apl) | Recursive arithmetic | 3628800 |
-| [gcd.apl](../examples/gcd.apl) | Euclid's algorithm and remainder | 21 |
-| [sum-primes.apl](../examples/sum-primes.apl) | Boolean helpers, short-circuiting, recursive traversal | 328 |
-| [scopes.apl](../examples/scopes.apl) | Inner shadowing, old-environment initializers, discarded unit results | 78 |
-| [modules/main.apl](../examples/modules/main.apl) | File namespaces and public functions | 42 |
-| [contracts/increment.apl](../examples/contracts/increment.apl) | Preconditions and a result postcondition | 42 |
-| [control-flow/sum.apl](../examples/control-flow/sum.apl) | Mutable accumulation in a while loop | 5050 |
-| [control-flow/gcd.apl](../examples/control-flow/gcd.apl) | Iterative Euclid's algorithm | 21 |
-| [tuples/count-sum.apl](../examples/tuples/count-sum.apl) | Multiple results and whole-tuple loop updates | 55 |
-| [tuples/snapshots.apl](../examples/tuples/snapshots.apl) | Saved values and ordered argument capture | 42 |
+| [factorial.anl](../examples/factorial.anl) | Recursive arithmetic | 3628800 |
+| [gcd.anl](../examples/gcd.anl) | Euclid's algorithm and remainder | 21 |
+| [sum-primes.anl](../examples/sum-primes.anl) | Boolean helpers, short-circuiting, recursive traversal | 328 |
+| [scopes.anl](../examples/scopes.anl) | Inner shadowing, old-environment initializers, discarded unit results | 78 |
+| [modules/main.anl](../examples/modules/main.anl) | File namespaces and public functions | 42 |
+| [contracts/increment.anl](../examples/contracts/increment.anl) | Preconditions and a result postcondition | 42 |
+| [control-flow/sum.anl](../examples/control-flow/sum.anl) | Mutable accumulation in a while loop | 5050 |
+| [control-flow/gcd.anl](../examples/control-flow/gcd.anl) | Iterative Euclid's algorithm | 21 |
+| [tuples/count-sum.anl](../examples/tuples/count-sum.anl) | Multiple results and whole-tuple loop updates | 55 |
+| [tuples/snapshots.anl](../examples/tuples/snapshots.anl) | Saved values and ordered argument capture | 42 |
 
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.
@@ -255,9 +255,9 @@ The minimum value is written `-9223372036854775808`; the positive magnitude
 Source diagnostics include a filename, line, and column. Imported-file errors
 and interpreter traps use the actual file's retained source snapshot. Runtime
 traps retain canonical trap tags. For a deliberately trapping example, run
-`./target/release/apl eval benchmarks/cases/overflow.apl`.
+`./target/release/anl eval benchmarks/cases/overflow.apl`.
 
-`apl eval FILE --fuel N` accepts `N` from `0` through `1000000000`; the default is
+`anl eval FILE --fuel N` accepts `N` from `0` through `1000000000`; the default is
 `100000`. The interpreter charges one unit before each core expression evaluation.
 Skipped branches and short-circuited operands cost nothing. Calls charge their
 arguments and bodies normally, and discarded statements lower to lets. Evaluation
@@ -289,7 +289,8 @@ language trap nor proof of divergence. Exact protocols are in
 ## Check this checkout
 
 The complete suite requires a host C11 compiler and Z3 5.3.3. Put `z3` on `PATH`,
-or set `APL_TEST_SOLVER` to its executable path.
+or set `ANL_TEST_SOLVER` to its executable path (`APL_TEST_SOLVER` remains a
+fallback).
 
 ```sh
 cargo fmt --all --check
@@ -309,8 +310,8 @@ protection, local-state sequencing, and bounded resource failures. Revision
 including local-state execution, proof checks, and evaluator comparisons. These
 checks are development evidence, not installation or release qualification.
 
-`apl dump-core FILE` exports checked source into the versioned JSON format, and
-`apl eval-core FILE [--fuel N]` independently validates a core artifact and emits
+`anl dump-core FILE` exports checked source into the versioned JSON format, and
+`anl eval-core FILE [--fuel N]` independently validates a core artifact and emits
 a JSON outcome. Programs using only immutable constructors still export the
 unchanged `apl-core-v0` revision `m1-2026-11-16`. In scalar programs, any local-state constructor,
 including one in an unused function, selects `apl-core-v1` revision
@@ -319,7 +320,7 @@ revision `flat-products-2026-11-17`. Scalar-only v2 inputs normalize to v0/v1
 behavior. Each importer checks its own schema and revision.
 A modular program exports as one resolved function table;
 file boundaries and visibility are checked before export. Rust library users
-choose `apl::compile_file(path)` for imports or pure `apl::compile(source)` for
+choose `anl::compile_file(path)` for imports or pure `anl::compile(source)` for
 in-memory source without imports. These tools expose the model boundary for
 comparison; they do not prove source-to-core translation or module resolution
 correct. See the [formal methods scope](architecture/formal-methods.md)

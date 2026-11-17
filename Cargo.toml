@@ -1,9 +1,9 @@
 [package]
-name = "apl"
+name = "anl"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.99.1"
-description = "APL scalar-core checker and reference evaluator"
+description = "ANL checker, reference evaluator, and native compiler"
 
 [dependencies]
 nix = { version = "0.30.1", features = ["fs", "signal", "process"] }

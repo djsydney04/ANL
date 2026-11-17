@@ -1,4 +1,4 @@
-use apl::{
+use anl::{
     DEFAULT_FUEL, MAX_FUEL, MAX_SOURCE_BYTES, codegen,
     core::{self, ImportError},
     diagnostic::{Diagnostic, Span},
@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "APL 0.1 scalar checker, evaluator, and native compiler\n\nUsage:\n  apl check FILE\n  apl eval FILE [--fuel N]\n  apl build FILE [-o PATH]\n  apl run FILE\n  apl emit-c FILE\n  apl dump-core FILE\n  apl eval-core FILE [--fuel N]\n  apl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  apl --version\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
+const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -31,11 +31,11 @@ impl From<&str> for CliError {
     }
 }
 
-impl From<apl::bounded::OutputError> for CliError {
-    fn from(error: apl::bounded::OutputError) -> Self {
+impl From<anl::bounded::OutputError> for CliError {
+    fn from(error: anl::bounded::OutputError) -> Self {
         match error {
-            apl::bounded::OutputError::ResourceLimit(reason) => Self::ResourceLimit(reason),
-            apl::bounded::OutputError::Infrastructure(reason) => Self::Message(reason),
+            anl::bounded::OutputError::ResourceLimit(reason) => Self::ResourceLimit(reason),
+            anl::bounded::OutputError::Infrastructure(reason) => Self::Message(reason),
         }
     }
 }
@@ -43,12 +43,12 @@ fn main() -> ExitCode {
     match run(env::args_os().skip(1).collect()) {
         Ok(code) => ExitCode::from(code),
         Err(CliError::Message(message)) => {
-            let _ = diagnostic(format_args!("apl: {message}"));
+            let _ = diagnostic(format_args!("anl: {message}"));
             ExitCode::from(4)
         }
         Err(CliError::StderrUnavailable) => ExitCode::from(4),
         Err(CliError::ResourceLimit(reason)) => ExitCode::from(
-            if diagnostic(format_args!("apl: resource_limit: {reason}")).is_ok() {
+            if diagnostic(format_args!("anl: resource_limit: {reason}")).is_ok() {
                 3
             } else {
                 4
@@ -65,7 +65,7 @@ fn diagnostic(text: impl std::fmt::Display) -> Result<(), CliError> {
 }
 fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if args.len() == 1 && args[0] == "--version" {
-        output(concat!("apl ", env!("CARGO_PKG_VERSION")))?;
+        output(concat!("anl ", env!("CARGO_PKG_VERSION")))?;
         return Ok(0);
     }
     if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
@@ -75,7 +75,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if args.first().is_some_and(|arg| arg == "verify") {
         return verify_command(&args[1..]);
     }
-    let usage = "invalid invocation; use apl --help";
+    let usage = "invalid invocation; use anl --help";
     let command = args.first().and_then(|arg| arg.to_str()).ok_or(usage)?;
     if !matches!(
         command,
@@ -156,7 +156,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         output(core::outcome(&result))?;
         return report_execution(result, &filename, &source, None);
     }
-    let program = match apl::compile_file(path) {
+    let program = match anl::compile_file(path) {
         Ok(program) => program,
         Err(error) => {
             diagnostic(error.render(&filename, &source))?;
@@ -224,7 +224,7 @@ fn report_execution(
     result: Result<eval::Value, EvalError>,
     filename: &str,
     source: &str,
-    program: Option<&apl::types::Program>,
+    program: Option<&anl::types::Program>,
 ) -> Result<u8, CliError> {
     let render = |error: Diagnostic| {
         let error = if let Some(program) = program {
@@ -254,9 +254,9 @@ fn report_execution(
 }
 
 fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
-    let usage = "usage: apl verify FILE [--solver PATH] [--timeout-ms N] [--json]";
+    let usage = "usage: anl verify FILE [--solver PATH] [--timeout-ms N] [--json]";
     let path = args.first().ok_or(usage)?;
-    let mut options = apl::verify::VerifyOptions::default();
+    let mut options = anl::verify::VerifyOptions::default();
     let mut json = false;
     let mut solver_seen = false;
     let mut timeout_seen = false;
@@ -288,11 +288,11 @@ fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
             _ => return Err(usage.into()),
         }
     }
-    let report = match apl::verify::verify_file(Path::new(path), &options) {
+    let report = match anl::verify::verify_file(Path::new(path), &options) {
         Ok(report) => report,
         Err(error) => {
             diagnostic(error.render(&path.to_string_lossy(), ""))?;
-            apl::verify::VerificationReport::source_error(&error)
+            anl::verify::VerificationReport::source_error(&error)
         }
     };
     if json {

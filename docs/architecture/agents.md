@@ -4,7 +4,7 @@ Status: design proposal. The runtime, durable execution and capability guarantee
 
 ## Library model
 
-APL agent applications use ordinary functions, algebraic data types, typed messages, explicit capabilities, and structured tasks. An agent is a state machine owned by one task or actor. Its state has one mutation owner. Other tasks send messages or receive immutable snapshots. No model API, planner, or `agent` keyword is part of the language core.
+ANL agent applications use ordinary functions, algebraic data types, typed messages, explicit capabilities, and structured tasks. An agent is a state machine owned by one task or actor. Its state has one mutation owner. Other tasks send messages or receive immutable snapshots. No model API, planner, or `agent` keyword is part of the language core.
 
 The intended library layers are `agent.protocol` for message types and transitions, `agent.tool` for capability-bound tool requests, `agent.workflow` for durable decisions, `agent.trace` for observations, and `agent.test` for deterministic environments. These are ownership boundaries for future implementation, not claims that packages already exist.
 
@@ -21,7 +21,7 @@ flowchart LR
     History --> Step
 ```
 
-A protocol defines `State`, `Message`, and `Command` algebraic data types. Its transition is conceptually `step(State, Message) -> (State, List<Command>)`. This is explanatory notation, not committed APL syntax. In a durable workflow, each recorded message identifies its schema and workflow version. Concurrent completions become ordered events before the deterministic transition observes them.
+A protocol defines `State`, `Message`, and `Command` algebraic data types. Its transition is conceptually `step(State, Message) -> (State, List<Command>)`. This is explanatory notation, not committed ANL syntax. In a durable workflow, each recorded message identifies its schema and workflow version. Concurrent completions become ordered events before the deterministic transition observes them.
 
 ## Authority is a value and a runtime restriction
 
@@ -31,7 +31,7 @@ Capabilities are attenuable. A parent may grant fewer operations, narrower resou
 
 Effects describe which kinds of interaction a function can perform. Capabilities identify the particular authority available at runtime. Both are needed. `io` does not mean permission to read every file. A safe entry point receives its initial authority explicitly. FFI, unsafe memory, ambient operating-system access, and compromised adapters remain outside the language-level guarantee and inside the stated trust boundary.
 
-The [Cap'n Proto RPC model](https://capnproto.org/rpc.html) demonstrates explicit authority-bearing references. APL uses that design principle without adopting its complete protocol or treating distributed handles as ordinary forgeable integer IDs.
+The [Cap'n Proto RPC model](https://capnproto.org/rpc.html) demonstrates explicit authority-bearing references. ANL uses that design principle without adopting its complete protocol or treating distributed handles as ordinary forgeable integer IDs.
 
 ## Approval state machine
 
@@ -49,7 +49,7 @@ Network effects cannot be made exactly-once solely by a local journal. If a remo
 
 Use a transactional local store for the first durable implementation, then evaluate a distributed service when multi-host ownership is required. The storage format includes checksums and versioned schemas. Leases and fencing prevent two workers from concurrently owning the same workflow where the storage service supports that guarantee. Crash tests cover every durable-write boundary before claiming recovery.
 
-The [Temporal replay model](https://docs.temporal.io/workflow-execution) is a reference for comparing workflow commands against stored event history. APL's implementation must establish its own durability, compatibility and external-effect guarantees.
+The [Temporal replay model](https://docs.temporal.io/workflow-execution) is a reference for comparing workflow commands against stored event history. ANL's implementation must establish its own durability, compatibility and external-effect guarantees.
 
 ## Determinism and resource limits
 

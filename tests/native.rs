@@ -1,6 +1,6 @@
 //! Execute real host binaries and compare independent scalar expectations and the
 //! reference evaluator. These checks are evidence, not a compiler-correctness proof.
-use apl::{
+use anl::{
     codegen, core,
     eval::{self, EvalError, Value},
 };
@@ -58,7 +58,7 @@ fn bounded(mut command: Command) -> Output {
     }
 }
 fn cli(command: &str, source: &Path) -> Command {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_anl"));
     cmd.arg(command).arg(source);
     cmd
 }
@@ -83,7 +83,7 @@ fn compile_c(fixture: &Fixture, c: &str, optimization: &str, sanitizer: bool) ->
 }
 fn assert_native(source: &str, expected: Result<i64, &str>, sanitizer: bool) {
     let fixture = Fixture::new();
-    let program = apl::compile(source).unwrap();
+    let program = anl::compile(source).unwrap();
     let entry = program.entry().unwrap();
     let c = codegen::emit_c(&program, entry).unwrap();
     let reference = eval::evaluate(&program, entry, 10_000_000);
@@ -467,7 +467,7 @@ fn output_aliases_cannot_replace_source() {
 fn native_stream_failures_return_infrastructure_status() {
     let fixture = Fixture::new();
     for source in ["fn main()->i64 { 42 }", "fn main()->i64 { 1 / 0 }"] {
-        let program = apl::compile(source).unwrap();
+        let program = anl::compile(source).unwrap();
         let c = codegen::emit_c(&program, program.entry().unwrap()).unwrap();
         let binary = compile_c(&fixture, &c, "-O2", false);
         let (reader, writer) = std::io::pipe().unwrap();

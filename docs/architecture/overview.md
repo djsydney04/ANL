@@ -1,4 +1,4 @@
-# APL architectural overview
+# ANL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar/flat-tuple core,
 native C11 compiler, file modules, initialized local state and loops, scalar
@@ -13,7 +13,7 @@ The [bibliography](../research/bibliography.md) lists the supporting literature.
 
 ## Purpose and requirements
 
-APL is intended to combine strong static typing, predictable native execution,
+ANL is intended to combine strong static typing, predictable native execution,
 expressive functional and imperative programming, and practical verification.
 Systems software must be possible without a mandatory tracing collector.
 Agent applications use the same types, memory rules and runtime as other software.
@@ -128,7 +128,7 @@ small runtime. It must avoid C signed-overflow UB and unspecified evaluation ord
 LLVM is the intended production optimization backend after independent semantic
 comparison and workload evaluation. Cranelift remains a credible alternative;
 MLIR is deferred until workloads justify multi-level transforms. Backend reputation
-does not establish APL performance or compiler correctness.
+does not establish ANL performance or compiler correctness.
 
 The implemented [program verifier](../verification.md) covers scalar functions
 with mutable locals, annotated loops and acyclic calls across modules. It expands actual

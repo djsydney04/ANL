@@ -9,7 +9,7 @@ proposals unless explicitly identified as implemented.
 
 ## One compiler library, several clients
 
-The `apl` CLI calls the compiler library for parsing, resolution, type checking and diagnostics. The planned `apl-lsp` language server will use the same library. The formatter consumes a syntax representation retaining comments and trivia, because a semantic AST cannot preserve them reliably. The documentation generator consumes resolved public declarations and documentation comments. No client reverse-engineers another client's human-readable output.
+The `anl` CLI calls the compiler library for parsing, resolution, type checking and diagnostics. The planned `anl-lsp` language server will use the same library. The formatter consumes a syntax representation retaining comments and trivia, because a semantic AST cannot preserve them reliably. The documentation generator consumes resolved public declarations and documentation comments. No client reverse-engineers another client's human-readable output.
 
 The current CLI contract is in [compiler architecture](compiler.md). Implemented commands are `check`, `eval`, `build`, `run`, `emit-c`, `verify`, `dump-core`, `eval-core`, and `--version`. Unsupported commands fail explicitly. `verify` reports per-obligation outcomes using Z3 5.3.3; its [guide](../verification.md) explains solver installation, limits, and trust. `new`, `test`, `fmt`, `lint`, `doc`, `add`, and `update` arrive with their working implementations. Publishing help for nonexistent commands must identify them as unavailable.
 
@@ -28,13 +28,13 @@ file-specific diagnostics. Native compilation lowers the whole graph together;
 there is no package search, network resolution, lockfile, or separate-object cache.
 The package design below is a later extension of these boundaries.
 
-`apl.toml` declares package name, version, language edition, targets, dependencies, and declared native links. `apl.lock` records exact source identity, package version or commit, integrity digest and transitive dependencies. The first package implementation supports local workspace packages and locked immutable Git revisions. A registry can follow once publishing identities, immutability, namespace policy and incident response exist.
+`anl.toml` declares package name, version, language edition, targets, dependencies, and declared native links. `anl.lock` records exact source identity, package version or commit, integrity digest and transitive dependencies. The first package implementation supports local workspace packages and locked immutable Git revisions. A registry can follow once publishing identities, immutability, namespace policy and incident response exist.
 
 Module names are lexical identities resolved inside a package. Dependencies are addressed by declared aliases and exact package identities, not arbitrary filesystem traversal. Exported interfaces carry type parameters, ownership/effect requirements and API contracts. Private implementation details do not become visible merely because a source file is readable. Cyclic module and package dependencies have an explicit rejection or strongly connected component policy before support is advertised.
 
-Ordinary builds use the lockfile and do not update dependencies. `apl update` resolves and rewrites it deliberately. `--locked` rejects stale or missing resolution, and `--offline` forbids network access. Local path dependencies are permitted for development but their content digests become release-build inputs. Package extraction rejects path traversal, symlink escape and conflicting entries.
+Ordinary builds use the lockfile and do not update dependencies. `anl update` resolves and rewrites it deliberately. `--locked` rejects stale or missing resolution, and `--offline` forbids network access. Local path dependencies are permitted for development but their content digests become release-build inputs. Package extraction rejects path traversal, symlink escape and conflicting entries.
 
-This separation follows the [Cargo manifest/lockfile precedent](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html). APL's design adds its own edition, runtime ABI and verification metadata; dependency locking alone does not guarantee reproducible binaries.
+This separation follows the [Cargo manifest/lockfile precedent](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html). ANL's design adds its own edition, runtime ABI and verification metadata; dependency locking alone does not guarantee reproducible binaries.
 
 ## Build graph and reproducibility
 
@@ -58,13 +58,13 @@ API documentation comes from public interfaces and tested examples. The document
 
 LSP provides document synchronization, diagnostics, hover, completion, definition lookup, references and rename as supported features. [LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) is the protocol baseline. Initialization advertises only implemented capabilities. Cancellation and document-version checks prevent stale edits from applying to a newer buffer.
 
-The current frontend retains source spans and source snapshots for diagnostics; the C11 backend does not yet provide APL source debugging. M2 source-debugging work requires line information and mappings for functions, lexical scopes, variables and types, plus tests in LLDB or GDB. [LLVM's debug-information tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl09.html) provides a reference for the later direct backend. Debugger success requires stepping an APL program and inspecting its locals, not merely emitting debug flags.
+The current frontend retains source spans and source snapshots for diagnostics; the C11 backend does not yet provide ANL source debugging. M2 source-debugging work requires line information and mappings for functions, lexical scopes, variables and types, plus tests in LLDB or GDB. [LLVM's debug-information tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl09.html) provides a reference for the later direct backend. Debugger success requires stepping an ANL program and inspecting its locals, not merely emitting debug flags.
 
 Async stack views and agent trace inspection are later extensions. Release documentation must state whether a particular debugging operation is supported for an optimized build, native target or runtime feature.
 
 ## Installation and release contents
 
-The development toolchain uses pinned Rust, Lean and backend tools. End users receive versioned native binaries and required runtime/backend assets. Running an already-built APL binary must not require Rust, Lean or an SMT solver. Verification can be an explicit optional component, but `apl verify` must explain its absence and installation path.
+The development toolchain uses pinned Rust, Lean and backend tools. End users receive versioned native binaries and required runtime/backend assets. Running an already-built ANL binary must not require Rust, Lean or an SMT solver. Verification can be an explicit optional component, but `anl verify` must explain its absence and installation path.
 
 Initial supported platforms are earned individually by clean CI and independent onboarding tests. The candidate matrix is macOS AArch64 and Linux x86-64, followed by macOS x86-64, Linux AArch64 and Windows x86-64 when verified. A source-build success on one host is not a portable release claim.
 
@@ -74,7 +74,7 @@ Checksums detect corruption. Authenticated release metadata establishes provenan
 
 ## Onboarding and quality gates
 
-An external developer receives only published installation and learning materials. In a clean environment they install APL, inspect `apl --version`, create a project, run it, add a package, see a type error, correct it, and verify a contract. Later release exercises add a generic collection, concurrent application, network service and capability-controlled agent.
+An external developer receives only published installation and learning materials. In a clean environment they install ANL, inspect `anl --version`, create a project, run it, add a package, see a type error, correct it, and verify a contract. Later release exercises add a generic collection, concurrent application, network service and capability-controlled agent.
 
 The release gate records the exact artifact, platform, commands, expected and observed outcomes, and problems found. Tests run without access to development checkout caches or unpublished instructions. Documentation examples, package resolution, formatter idempotence, LSP behavior, native debugging and upgrades have their own integration tests.
 

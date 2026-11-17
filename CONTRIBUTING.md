@@ -1,4 +1,4 @@
-# Contribute to APL
+# Contribute to ANL
 
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
@@ -17,7 +17,7 @@ directions and the remaining source, Rust, module, and backend proof boundaries.
 From the repository root, use the pinned Rust 1.99.1 toolchain selected by rustup.
 Native tests require a host C11 compiler. Verification tests require Z3 5.3.3;
 install it using the [verification guide](docs/verification.md) and place `z3` on
-`PATH`, or set `APL_TEST_SOLVER` to its executable path before running the suite.
+`PATH`, or set `ANL_TEST_SOLVER` to its executable path before running the suite.
 A missing solver fails the semantic integration tests rather than skipping them.
 
 ```sh
@@ -36,8 +36,8 @@ tools as described in
 
 ```sh
 formal/check.sh
-python3 formal/test.py --rust target/release/apl
-python3 formal/test_local_state.py --rust target/release/apl
+python3 formal/test.py --rust target/release/anl
+python3 formal/test_local_state.py --rust target/release/anl
 ```
 
 The proof check rebuilds the model, audits theorem dependencies, and replays

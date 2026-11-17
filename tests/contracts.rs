@@ -1,5 +1,5 @@
 //! Contract syntax, mathematical typing, scope, and erasure at real compiler boundaries.
-use apl::{
+use anl::{
     core,
     eval::{self, Value},
 };
@@ -53,7 +53,7 @@ fn bounded(mut command: Command) -> Output {
     }
 }
 fn cli(command: &str, path: &Path) -> Command {
-    let mut process = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut process = Command::new(env!("CARGO_BIN_EXE_anl"));
     process.arg(command).arg(path);
     process
 }
@@ -63,7 +63,7 @@ fn succeeds(output: Output, stdout: &[u8]) {
     assert!(output.stderr.is_empty(), "{output:?}");
 }
 fn rejected(source: &str, message: &str) {
-    let error = apl::compile(source).unwrap_err();
+    let error = anl::compile(source).unwrap_err();
     assert!(!error.resource_limit, "{error:?}");
     let rendered = error.render("case.apl", source);
     assert!(rendered.contains(message), "{rendered}");
@@ -76,8 +76,8 @@ fn contracts_are_checked_then_erased_from_execution_and_core() {
         requires 1 / 0 == 0;
         ensures (answer) answer == 9223372036854775808 * 9223372036854775808;
         { 42 }";
-    let plain = apl::compile(bare).unwrap();
-    let program = apl::compile(annotated).unwrap();
+    let plain = anl::compile(bare).unwrap();
+    let program = anl::compile(annotated).unwrap();
     let entry = program.entry().unwrap();
     assert_eq!(eval::evaluate(&program, entry, 100), Ok(Value::Integer(42)));
     let json = core::export(&program, entry).unwrap();
@@ -112,12 +112,12 @@ fn mathematical_contracts_accept_scalar_types_and_contextual_identifiers() {
         fn bool_result()->bool ensures (answer) answer || !answer; {true}
         fn unit_result()->unit ensures (answer) answer == (); {}
         fn main()->i64 { requires(41, bool_result(), unit_result()) }";
-    let program = apl::compile(source).unwrap();
+    let program = anl::compile(source).unwrap();
     assert_eq!(
         eval::evaluate(&program, program.entry().unwrap(), 100),
         Ok(Value::Integer(42))
     );
-    assert!(apl::compile("fn helper(x:i64)->i64 requires x > 0; { x }").is_ok());
+    assert!(anl::compile("fn helper(x:i64)->i64 requires x > 0; { x }").is_ok());
 }
 
 #[test]
@@ -215,7 +215,7 @@ fn specifications_reject_unsupported_executable_constructs() {
 #[test]
 fn specification_literal_and_nesting_limits_do_not_change_runtime_literals() {
     let digits = "9".repeat(4096);
-    let program = apl::compile(&format!(
+    let program = anl::compile(&format!(
         "fn main()->i64 requires -{digits} < {digits}; {{42}}"
     ))
     .unwrap();
@@ -225,7 +225,7 @@ fn specification_literal_and_nesting_limits_do_not_change_runtime_literals() {
     );
     for digits in ["9".repeat(4097), "0".repeat(4097)] {
         let error =
-            apl::compile(&format!("fn f()->i64 requires {digits} == 0; {{0}}")).unwrap_err();
+            anl::compile(&format!("fn f()->i64 requires {digits} == 0; {{0}}")).unwrap_err();
         assert!(error.resource_limit, "{error:?}");
         assert!(error.message.contains("4096"));
     }
@@ -234,7 +234,7 @@ fn specification_literal_and_nesting_limits_do_not_change_runtime_literals() {
         "(".repeat(200),
         ")".repeat(200)
     );
-    assert!(apl::compile(&deep).unwrap_err().resource_limit);
+    assert!(anl::compile(&deep).unwrap_err().resource_limit);
     rejected("fn main()->i64 {9223372036854775808}", "outside i64 range");
 }
 

@@ -82,7 +82,7 @@ The verifier does not add `assert`, `assume`, ghost statements, or runtime
 contract traps. Runtime assertions require a separate semantic revision, core
 format extension, evaluator behavior, native lowering, and formal coverage.
 
-`apl verify FILE [--solver PATH] [--timeout-ms N] [--json]` checks every function in
+`anl verify FILE [--solver PATH] [--timeout-ms N] [--json]` checks every function in
 the complete loaded module graph, including private and unused functions. It
 accepts libraries without `main`. A function without explicit contracts has
 precondition `true` and no requested postcondition; arithmetic safety is still
@@ -195,7 +195,7 @@ has one value and needs no free solver variable. Formulas contain generated
 numeric names, never unescaped source identifiers.
 
 SMT-LIB integer `div` uses Euclidean division. The translation must explicitly
-encode APL's truncation rule. For `b ≠ 0`:
+encode ANL's truncation rule. For `b ≠ 0`:
 
 ```text
 q = div(abs(a), abs(b))

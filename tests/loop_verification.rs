@@ -1,5 +1,5 @@
 //! Invariant-loop behavior against explicit runtime and mathematical oracles.
-use apl::eval::{self, Value as Scalar};
+use anl::eval::{self, Value as Scalar};
 use serde_json::{Value, json};
 use std::{
     fs,
@@ -38,7 +38,8 @@ impl Drop for Fixture {
     }
 }
 fn solver() -> PathBuf {
-    std::env::var_os("APL_TEST_SOLVER")
+    std::env::var_os("ANL_TEST_SOLVER")
+        .or_else(|| std::env::var_os("APL_TEST_SOLVER"))
         .map(PathBuf::from)
         .unwrap_or_else(|| {
             let local = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -47,7 +48,7 @@ fn solver() -> PathBuf {
         })
 }
 fn verify(source: &Path, timeout: u64) -> (Output, Value) {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
     command
         .arg("verify")
         .arg(source)
@@ -115,7 +116,7 @@ fn status(output: &Output, report: &Value, code: i32, expected: &str) {
     assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
 }
 fn evaluates(source: &str, expected: i64) {
-    let program = apl::compile(source).unwrap();
+    let program = anl::compile(source).unwrap();
     assert_eq!(
         eval::evaluate(&program, program.entry().unwrap(), 100_000),
         Ok(Scalar::Integer(expected)),
@@ -365,7 +366,7 @@ fn recursion_inside_guards_bodies_and_arguments_rejects_before_tools() {
         "fn main()->i64{42}fn unused()->unit{while(false) invariant true;{unused();}}",
     ] {
         let path = fixture.file("recursive.apl", source);
-        let output = Command::new(env!("CARGO_BIN_EXE_apl"))
+        let output = Command::new(env!("CARGO_BIN_EXE_anl"))
             .arg("verify")
             .arg(path)
             .args(["--solver", "/no-such-apl-solver", "--json"])
@@ -514,7 +515,7 @@ fn attempted_queries_are_retained_when_the_attempt_wide_query_limit_is_hit() {
     let path = fixture.file("queries.apl", &source);
     let solver=fixture.file("unknown-solver","#!/bin/sh\nif [ \"$1\" = '-version' ]; then echo 'Z3 version 5.3.3 - controlled query-limit substitute'; exit 0; fi\nwhile IFS= read -r line; do\ncase \"$line\" in '(check-sat)') echo unknown;; '(exit)') exit 0;; esac\ndone\n");
     fs::set_permissions(&solver, fs::Permissions::from_mode(0o755)).unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_apl"))
+    let output = Command::new(env!("CARGO_BIN_EXE_anl"))
         .arg("verify")
         .arg(path)
         .arg("--solver")

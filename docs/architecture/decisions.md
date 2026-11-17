@@ -50,11 +50,11 @@ about the Lean model does not certify the Rust parser, checker or evaluator.
 
 ## AD-05: direct verification conditions with explicit solver trust
 
-Start with an APL verification IR and weakest-precondition generation for a bounded
+Start with an ANL verification IR and weakest-precondition generation for a bounded
 pure fragment, emitting SMT-LIB to Z3. [Boogie](https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/)
 and [Why3](https://why3.org/) are concrete alternatives before extending the encoding
 to mutable heaps. Direct encoding retains source locations and checked arithmetic,
-but APL must establish substitution, path-condition and encoding soundness. Preserve
+but ANL must establish substitution, path-condition and encoding soundness. Preserve
 solver `unknown` outcomes and distinguish trusted-SMT results from kernel-checked
 artifacts. Termination, trap freedom and postconditions are separate obligations.
 

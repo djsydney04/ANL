@@ -34,7 +34,9 @@ impl Drop for Fixture {
     }
 }
 fn solver() -> PathBuf {
-    if let Some(path) = std::env::var_os("APL_TEST_SOLVER") {
+    if let Some(path) =
+        std::env::var_os("ANL_TEST_SOLVER").or_else(|| std::env::var_os("APL_TEST_SOLVER"))
+    {
         return path.into();
     }
     let local =
@@ -42,7 +44,7 @@ fn solver() -> PathBuf {
     if local.is_file() { local } else { "z3".into() }
 }
 fn verify(path: &Path, solver: &Path, timeout: u64) -> (Output, Value) {
-    let output = Command::new(env!("CARGO_BIN_EXE_apl"))
+    let output = Command::new(env!("CARGO_BIN_EXE_anl"))
         .arg("verify")
         .arg(path)
         .arg("--solver")
@@ -484,7 +486,7 @@ fn replacing_solver_with_fifo_cannot_block_final_identity_check() {
     let fixture = Fixture::new();
     let source = fixture.file("main.apl", "fn f()->i64{42}");
     let executable = fake(&fixture, "fifo");
-    let mut child = Command::new(env!("CARGO_BIN_EXE_apl"))
+    let mut child = Command::new(env!("CARGO_BIN_EXE_anl"))
         .arg("verify")
         .arg(source)
         .arg("--solver")

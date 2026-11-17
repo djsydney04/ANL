@@ -1,5 +1,5 @@
 //! Invariant typing and source-only erasure; this does not enable loop verification.
-use apl::{
+use anl::{
     codegen, core,
     eval::{self, EvalError, Trap, Value},
 };
@@ -18,7 +18,7 @@ enum Outcome {
     Resource(&'static str),
     InvalidIr,
 }
-fn outcome(program: &apl::types::Program, fuel: u64) -> Outcome {
+fn outcome(program: &anl::types::Program, fuel: u64) -> Outcome {
     match eval::evaluate(program, program.entry().unwrap(), fuel) {
         Ok(value) => Outcome::Value(value),
         Err(EvalError::Trap { kind, .. }) => Outcome::Trap(kind),
@@ -26,11 +26,11 @@ fn outcome(program: &apl::types::Program, fuel: u64) -> Outcome {
         Err(EvalError::InvalidIr) => Outcome::InvalidIr,
     }
 }
-fn checked(source: &str) -> apl::types::Program {
-    apl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)))
+fn checked(source: &str) -> anl::types::Program {
+    anl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)))
 }
 fn rejected(source: &str, message: &str) {
-    let error = apl::compile(source).unwrap_err();
+    let error = anl::compile(source).unwrap_err();
     assert!(!error.resource_limit, "{error:?}");
     let rendered = error.render("case.apl", source);
     assert!(rendered.contains(message), "{rendered}");
@@ -227,14 +227,14 @@ fn annotation_resource_limits_cover_literals_expression_depth_and_tokens() {
     );
     let tokens = format!(
         "fn main()->i64 {{while(false) {} {{}}42}}",
-        "invariant true;".repeat(apl::MAX_TOKENS / 3)
+        "invariant true;".repeat(anl::MAX_TOKENS / 3)
     );
     for (source, message) in [
         (literal, "4096 decimal digits"),
         (depth, "limit exceeded"),
         (tokens, "token limit exceeded"),
     ] {
-        let error = apl::compile(&source).unwrap_err();
+        let error = anl::compile(&source).unwrap_err();
         assert!(error.resource_limit, "{error:?}");
         assert!(
             error.render("case.apl", &source).contains(message),
@@ -302,7 +302,7 @@ fn imported_unused_annotations_are_checked_with_their_own_source_locations() {
         "helper.apl",
         "fn unused()->unit {\n while(false)\n invariant unknown;\n {}\n}",
     );
-    let error = apl::compile_file(&root).unwrap_err();
+    let error = anl::compile_file(&root).unwrap_err();
     let rendered = error.render("unused", "");
     assert!(
         rendered.contains(&format!("{}:3:", imported.display())),
@@ -316,7 +316,7 @@ fn imported_unused_annotations_are_checked_with_their_own_source_locations() {
         "helper.apl",
         "fn unused()->unit {while(false) invariant false; invariant 1/0==0; {}}",
     );
-    let program = apl::compile_file(&root).unwrap();
+    let program = anl::compile_file(&root).unwrap();
     assert_eq!(outcome(&program, 1), Outcome::Value(Value::Integer(42)));
 }
 
@@ -332,7 +332,7 @@ fn ordinary_cli_commands_erase_annotations_before_native_execution() {
         ("eval", b"42\n".as_slice()),
         ("run", b"42\n".as_slice()),
     ] {
-        let mut process = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut process = Command::new(env!("CARGO_BIN_EXE_anl"));
         process.arg(command).arg(&path);
         let output = bounded(process);
         assert_eq!(output.status.code(), Some(0), "{output:?}");

@@ -108,8 +108,8 @@ SOURCES = [
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rust", type=Path, required=True, help="production apl executable")
-    parser.add_argument("--formal", type=Path, default=ROOT / "formal/.lake/build/bin/apl_formal")
+    parser.add_argument("--rust", type=Path, required=True, help="production anl executable")
+    parser.add_argument("--formal", type=Path, default=ROOT / "formal/.lake/build/bin/anl_formal")
     args = parser.parse_args()
     rust, formal = args.rust.resolve(), args.formal.resolve()
     for executable in (rust, formal):
@@ -118,7 +118,7 @@ def main():
     counts = {"finite": 0, "invalid": 0, "resource": 0, "inconclusive": 0}
 
     with tempfile.TemporaryDirectory(prefix="apl-local-state-") as directory:
-        path, source = Path(directory) / "case.json", Path(directory) / "case.apl"
+        path, source = Path(directory) / "case.json", Path(directory) / "case.anl"
 
         def invoke(command):
             return subprocess.run([str(part) for part in command], capture_output=True, timeout=45)

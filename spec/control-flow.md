@@ -257,7 +257,7 @@ Cross-evaluator tests compare finite values and trap kinds and treat resource
 exhaustion as inconclusive. These model proofs and conformance tests do not
 establish Rust or compiler correspondence, termination, or arithmetic trap freedom.
 
-`apl verify` supports `let_mut`, assignment and annotated while loops with
+`anl verify` supports `let_mut`, assignment and annotated while loops with
 acyclic calls. It rejects the complete checked program as `unsupported` when
 any loop lacks an invariant or the call graph contains recursion. This preflight runs before solver discovery and query generation, including for unused functions
 and unselected branches. It exits 7, identifies the source construct, and emits

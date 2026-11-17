@@ -51,13 +51,13 @@ whole value of the same shape. For example, after `let saved = pair;` and
 the second receives the replacement. Callee-local mutation cannot change caller
 bindings. No mutable payload, pointer identity or storage alias is exposed.
 
-The [count-and-sum example](../examples/tuples/count-sum.apl) returns two results
-from a loop. The [snapshot example](../examples/tuples/snapshots.apl) exercises
+The [count-and-sum example](../examples/tuples/count-sum.anl) returns two results
+from a loop. The [snapshot example](../examples/tuples/snapshots.anl) exercises
 ordered argument capture, a saved value and whole-tuple replacement:
 
 ```sh
-./target/release/apl eval examples/tuples/count-sum.apl
-./target/release/apl run examples/tuples/snapshots.apl
+./target/release/anl eval examples/tuples/count-sum.anl
+./target/release/anl run examples/tuples/snapshots.anl
 ```
 
 These print `55` and `42`, respectively. Native lowering uses ordinary C structs
@@ -101,7 +101,7 @@ unknown object fields, nested/overwide tuples, and mismatched fields are invalid
 IR. The original scalar integer-string rules still apply.
 
 Run the [tuple expression fixture](fixtures/tuple-expression.json) with
-`./target/release/apl eval-core spec/fixtures/tuple-expression.json`. Its outcome is:
+`./target/release/anl eval-core spec/fixtures/tuple-expression.json`. Its outcome is:
 
 ```json
 {"outcome":"value","type":{"tuple":["i64","bool","unit"]},"value":["42",true,null]}
@@ -152,7 +152,7 @@ in source contexts, so later scalar names do not change meaning.
 After source checking, any structural tuple use rejects the entire verification
 attempt before scalar formula conversion, route analysis or tool discovery.
 This rejection takes precedence over recursion and missing loop invariants.
-`apl verify ... --json` returns exit 7 and these fixed fields:
+`anl verify ... --json` returns exit 7 and these fixed fields:
 
 | Field | Value |
 | --- | --- |

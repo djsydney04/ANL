@@ -1,6 +1,6 @@
 # Programs with modules
 
-APL source programs can span several files. Each file has its own namespace;
+ANL source programs can span several files. Each file has its own namespace;
 `pub` makes a function available to other files. The compiler checks the complete
 import graph before interpreting or building the program.
 
@@ -12,11 +12,11 @@ also require the host C11 compiler described in
 
 ```sh
 cargo build --release --locked
-./target/release/apl check examples/modules/main.apl
-./target/release/apl eval examples/modules/main.apl
-./target/release/apl run examples/modules/main.apl
-./target/release/apl build examples/modules/main.apl -o /tmp/apl-modules
-/tmp/apl-modules
+./target/release/anl check examples/modules/main.anl
+./target/release/anl eval examples/modules/main.anl
+./target/release/anl run examples/modules/main.anl
+./target/release/anl build examples/modules/main.anl -o /tmp/anl-modules
+/tmp/anl-modules
 ```
 
 `check` succeeds without printing a result. `eval`, `run`, and the built binary
@@ -26,9 +26,9 @@ The example has three sibling files:
 
 | File | Contents |
 | --- | --- |
-| [main.apl](../examples/modules/main.apl) | Imports `math` and defines the executable entry |
-| [math.apl](../examples/modules/math.apl) | Exposes `double` and the `constants` namespace; keeps `multiply` private |
-| [constants.apl](../examples/modules/constants.apl) | Exposes `seed`, returning `21` |
+| [main.anl](../examples/modules/main.anl) | Imports `math` and defines the executable entry |
+| [math.anl](../examples/modules/math.anl) | Exposes `double` and the `constants` namespace; keeps `multiply` private |
+| [constants.anl](../examples/modules/constants.anl) | Exposes `seed`, returning `21` |
 
 The root file calls both a public function and a function in a public nested
 namespace:
@@ -41,8 +41,8 @@ fn main() -> i64 {
 }
 ```
 
-`mod math;` loads `math.apl` beside the declaring file. In `math.apl`,
-`pub mod constants;` loads its sibling `constants.apl` and permits callers to
+`mod math;` loads `math.anl` beside the declaring file. In `math.anl`,
+`pub mod constants;` loads its sibling `constants.anl` and permits callers to
 continue through `math::constants`. Namespaces follow declarations; they do not
 require matching directory trees. A declaration can appear before or after a
 function that uses it.
@@ -63,8 +63,8 @@ fn multiply(left: i64, right: i64) -> i64 {
 ```
 
 Other files can call `math::double(21)`. Calling `math::multiply(21, 2)` is a
-visibility error. If `math.apl` changes `pub mod constants;` to `mod constants;`,
-`math::constants::seed()` becomes a visibility error as well; `math.apl` can
+visibility error. If `math.anl` changes `pub mod constants;` to `mod constants;`,
+`math::constants::seed()` becomes a visibility error as well; `math.anl` can
 still use `constants::seed()` internally.
 
 Function signatures are the interface: argument count, argument types, and result
@@ -74,7 +74,7 @@ Functions and modules cannot share a name in the same file. Two separate files
 may declare functions with the same name.
 
 Only the root file's nullary `fn main() -> i64` is the executable entry. An
-imported function named `main` remains an ordinary function. `apl check` also
+imported function named `main` remains an ordinary function. `anl check` also
 accepts a library with no root `main`. Unused imported functions are checked, so
 an error in one still prevents execution or a native build.
 
@@ -82,6 +82,14 @@ an error in one still prevents execution or a native build.
 i64) -> i64 { pub }` remain valid.
 
 ## Paths, failures, and limits
+
+The root path as passed to `anl` or `compile_file` selects one extension family
+before symlinks are resolved. An explicit `.apl` root retains legacy `.apl`
+imports throughout its graph. A `.anl` root, or a root with another or no suffix,
+uses `.anl` throughout. Both families can coexist: the loader selects only the
+chosen suffix, with no fallback or mixed lookup. Renaming a root invocation from
+`.apl` to `.anl` therefore requires migrating that graph's module filenames too.
+
 
 Imports resolve from the canonical directory of the declaring source file. A
 symbolic link therefore uses the target file's directory for its imports. Shared
@@ -115,8 +123,8 @@ or separate compilation interface.
 
 ## Library and core interfaces
 
-Rust callers use `apl::compile_file(path)` to load a file and its imports.
-`apl::compile(source)` remains a pure in-memory operation and reports an error
+Rust callers use `anl::compile_file(path)` to load a file and its imports.
+`anl::compile(source)` remains a pure in-memory operation and reports an error
 when the source declares a file import.
 
 `dump-core` exports the checked graph as one function table. Tuple use in any

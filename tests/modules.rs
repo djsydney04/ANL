@@ -1,5 +1,5 @@
 //! Filesystem, interface, source-location, and native-publication module contracts.
-use apl::{
+use anl::{
     core,
     eval::{self, Value},
 };
@@ -56,7 +56,7 @@ fn bounded(mut command: Command) -> Output {
     }
 }
 fn cli(command: &str, path: &Path) -> Command {
-    let mut process = Command::new(env!("CARGO_BIN_EXE_apl"));
+    let mut process = Command::new(env!("CARGO_BIN_EXE_anl"));
     process.arg(command).arg(path);
     process
 }
@@ -65,8 +65,8 @@ fn succeeds(output: Output, stdout: &[u8]) {
     assert_eq!(output.stdout, stdout);
     assert!(output.stderr.is_empty(), "{output:?}");
 }
-fn value(path: &Path, expected: i64) -> apl::types::Program {
-    let program = apl::compile_file(path).unwrap();
+fn value(path: &Path, expected: i64) -> anl::types::Program {
+    let program = anl::compile_file(path).unwrap();
     assert_eq!(
         eval::evaluate(&program, program.entry().unwrap(), 100_000),
         Ok(Value::Integer(expected))
@@ -76,7 +76,7 @@ fn value(path: &Path, expected: i64) -> apl::types::Program {
 
 #[test]
 fn documented_library_executes_through_checker_interpreter_and_native_cli() {
-    let main = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/modules/main.apl");
+    let main = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/modules/main.anl");
     value(&main, 42);
     succeeds(bounded(cli("check", &main)), b"");
     succeeds(bounded(cli("eval", &main)), b"42\n");
@@ -109,7 +109,7 @@ fn same_named_functions_and_user_mangling_lookalikes_stay_distinct_in_core() {
     let json = core::export(&program, program.entry().unwrap()).unwrap();
     assert_eq!(
         json,
-        core::export(&apl::compile_file(&main).unwrap(), program.entry().unwrap()).unwrap()
+        core::export(&anl::compile_file(&main).unwrap(), program.entry().unwrap()).unwrap()
     );
     let imported = core::import(&json.to_string()).unwrap();
     assert_eq!(
@@ -117,17 +117,17 @@ fn same_named_functions_and_user_mangling_lookalikes_stay_distinct_in_core() {
         Ok(Value::Integer(42))
     );
     project.main("mod a;");
-    assert!(apl::compile_file(&main).unwrap().entry().is_err());
+    assert!(anl::compile_file(&main).unwrap().entry().is_err());
 }
 
 #[test]
 fn contextual_words_preserve_old_identifiers_and_pure_compile_never_loads_modules() {
-    let program = apl::compile("fn mod(pub:i64)->i64{pub+1} fn pub(mod:i64)->i64{mod+1} fn main()->i64{let mod=40; pub(mod)+1}").unwrap();
+    let program = anl::compile("fn mod(pub:i64)->i64{pub+1} fn pub(mod:i64)->i64{mod+1} fn main()->i64{let mod=40; pub(mod)+1}").unwrap();
     assert_eq!(
         eval::evaluate(&program, program.entry().unwrap(), 100),
         Ok(Value::Integer(42))
     );
-    let error = apl::compile("mod absent; fn main()->i64{42}").unwrap_err();
+    let error = anl::compile("mod absent; fn main()->i64{42}").unwrap_err();
     assert!(error.message.contains("compile_file"));
     assert!(!error.infrastructure);
     let project = Project::new();
@@ -144,7 +144,7 @@ fn private_access_and_argument_mismatches_report_both_actual_files() {
         "math.apl",
         "\n\nfn hidden()->i64{42}\npub fn double(x:i64)->i64{x+x}",
     );
-    let error = apl::compile_file(&main).unwrap_err();
+    let error = anl::compile_file(&main).unwrap_err();
     let rendered = error.render("wrong.apl", "");
     assert!(error.message.contains("private"), "{rendered}");
     assert!(
@@ -156,7 +156,7 @@ fn private_access_and_argument_mismatches_report_both_actual_files() {
         "{rendered}"
     );
     project.main("mod math;\nfn main()->i64{math::double(true)}");
-    let rendered = apl::compile_file(&main)
+    let rendered = anl::compile_file(&main)
         .unwrap_err()
         .render("wrong.apl", "");
     assert!(rendered.contains("expected i64, found bool"), "{rendered}");
@@ -175,7 +175,7 @@ fn unused_imported_bodies_and_lexical_namespaces_are_checked() {
     let project = Project::new();
     let main = project.main("mod math; fn helper()->i64{42} fn main()->i64{42}");
     let math = project.file("math.apl", "\nfn unused()->i64{true}");
-    let rendered = apl::compile_file(&main).unwrap_err().render("wrong", "");
+    let rendered = anl::compile_file(&main).unwrap_err().render("wrong", "");
     assert!(
         rendered.contains(&format!("{}:2:", math.display())),
         "{rendered}"
@@ -183,7 +183,7 @@ fn unused_imported_bodies_and_lexical_namespaces_are_checked() {
     assert!(rendered.contains("expected i64, found bool"));
     project.file("math.apl", "pub fn unused()->i64{helper()}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("undefined function `helper`")
@@ -191,7 +191,7 @@ fn unused_imported_bodies_and_lexical_namespaces_are_checked() {
     project.file("math.apl", "pub fn unused()->i64{42}");
     project.main("mod math; fn main()->i64{unused()}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("undefined function `unused`")
@@ -208,7 +208,7 @@ fn intermediate_visibility_is_enforced_and_local_namespace_calls_remain_usable()
     );
     project.file("constants.apl", "pub fn seed()->i64{42}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("module `constants` is private")
@@ -238,27 +238,27 @@ fn duplicates_cycles_unknown_paths_and_missing_files_are_actionable() {
     let main = project.main("mod a; mod a; fn main()->i64{42}");
     project.file("a.apl", "pub fn answer()->i64{42}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("duplicate name `a`")
     );
     project.main("mod a; fn a()->i64{42}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("duplicate name `a`")
     );
     project.main("mod a; fn main()->i64{a::missing()}");
     assert!(
-        apl::compile_file(&main)
+        anl::compile_file(&main)
             .unwrap_err()
             .message
             .contains("undefined function `a::missing`")
     );
     project.file("a.apl", "mod main;");
-    let error = apl::compile_file(&main).unwrap_err();
+    let error = anl::compile_file(&main).unwrap_err();
     assert!(error.message.contains("module import cycle:"));
     assert!(error.message.contains("main.apl") && error.message.contains("a.apl"));
     project.main("mod missing; fn main()->i64{42}");
@@ -280,7 +280,7 @@ fn imported_invalid_utf8_and_runtime_traps_use_imported_source_locations() {
     let project = Project::new();
     let main = project.main("mod math; fn main()->i64{math::fail()}");
     let math = project.file("math.apl", b"// valid\n\xff");
-    let rendered = apl::compile_file(&main).unwrap_err().render("wrong", "");
+    let rendered = anl::compile_file(&main).unwrap_err().render("wrong", "");
     assert!(
         rendered.contains(&format!("{}:2:1", math.display())),
         "{rendered}"
@@ -298,7 +298,7 @@ fn imported_invalid_utf8_and_runtime_traps_use_imported_source_locations() {
     assert_eq!(output.status.code(), Some(2));
     assert_eq!(output.stderr, b"division_by_zero\n");
 
-    let program = apl::compile_file(&main).unwrap();
+    let program = anl::compile_file(&main).unwrap();
     project.file("math.apl", "// source changed after compilation");
     let Err(eval::EvalError::Trap { kind, span }) =
         eval::evaluate(&program, program.entry().unwrap(), 100)
@@ -306,14 +306,14 @@ fn imported_invalid_utf8_and_runtime_traps_use_imported_source_locations() {
         panic!("expected imported arithmetic trap")
     };
     let rendered = program
-        .source_diagnostic(apl::diagnostic::Diagnostic::new(span, kind.as_str()))
+        .source_diagnostic(anl::diagnostic::Diagnostic::new(span, kind.as_str()))
         .render("wrong", "");
     assert!(
         rendered.contains(&format!("{}:3:", math.display())),
         "{rendered}"
     );
-    let missing = apl::diagnostic::Diagnostic::new(
-        apl::diagnostic::Span {
+    let missing = anl::diagnostic::Diagnostic::new(
+        anl::diagnostic::Span {
             source_id: usize::MAX,
             start: usize::MAX,
             end: usize::MAX,
@@ -331,7 +331,7 @@ fn import_depth_file_count_source_bytes_paths_and_diagnostics_are_bounded() {
         project.file(&format!("m{i}.apl"), format!("mod m{};", i + 1));
     }
     project.file("m32.apl", "");
-    let error = apl::compile_file(&main).unwrap_err();
+    let error = anl::compile_file(&main).unwrap_err();
     assert!(error.resource_limit && error.message.contains("depth"));
     let imports = (0..128)
         .map(|i| {
@@ -340,21 +340,21 @@ fn import_depth_file_count_source_bytes_paths_and_diagnostics_are_bounded() {
         })
         .collect::<String>();
     project.main(&imports);
-    let error = apl::compile_file(&main).unwrap_err();
+    let error = anl::compile_file(&main).unwrap_err();
     assert!(error.resource_limit && error.message.contains("128"));
     project.main("mod large;");
-    project.file("large.apl", " ".repeat(apl::MAX_SOURCE_BYTES + 1));
-    assert!(apl::compile_file(&main).unwrap_err().resource_limit);
+    project.file("large.apl", " ".repeat(anl::MAX_SOURCE_BYTES + 1));
+    assert!(anl::compile_file(&main).unwrap_err().resource_limit);
     project.main(&(0..8).map(|i| format!("mod m{i};")).collect::<String>());
     for i in 0..8 {
-        project.file(&format!("m{i}.apl"), " ".repeat(apl::MAX_SOURCE_BYTES));
+        project.file(&format!("m{i}.apl"), " ".repeat(anl::MAX_SOURCE_BYTES));
     }
-    let error = apl::compile_file(&main).unwrap_err();
+    let error = anl::compile_file(&main).unwrap_err();
     assert!(error.resource_limit && error.message.contains("8388608"));
     let error =
-        apl::compile(&format!("fn main()->i64{{{}()}}", "a::".repeat(33) + "f")).unwrap_err();
+        anl::compile(&format!("fn main()->i64{{{}()}}", "a::".repeat(33) + "f")).unwrap_err();
     assert!(error.resource_limit && error.message.contains("segments"));
-    let error = apl::compile(&format!("fn main()->i64{{{}()}}", "x".repeat(20_000))).unwrap_err();
+    let error = anl::compile(&format!("fn main()->i64{{{}()}}", "x".repeat(20_000))).unwrap_err();
     assert!(error.message.len() <= 8192);
     assert!(error.render("case", "").len() <= 8192);
 }
@@ -378,7 +378,7 @@ fn symlinks_use_canonical_import_directories_and_hardlink_modules_are_ambiguous(
     let a = project.file("a.apl", "pub fn value()->i64{42}");
     fs::hard_link(a, project.0.join("b.apl")).unwrap();
     assert!(
-        apl::compile_file(main)
+        anl::compile_file(main)
             .unwrap_err()
             .message
             .contains("ambiguous module identity")
@@ -413,7 +413,7 @@ fn native_outputs_cannot_replace_any_transitive_source_or_alias() {
     let program = value(&main, 42);
     let unrelated = project.file("unrelated.apl", "fn main()->i64{0}");
     assert!(
-        apl::codegen::build(&program, program.entry().unwrap(), &unrelated, &hard)
+        anl::codegen::build(&program, program.entry().unwrap(), &unrelated, &hard)
             .unwrap_err()
             .to_string()
             .contains("overwrite the source")
@@ -451,4 +451,53 @@ fn native_publication_rechecks_transitive_inputs_after_the_external_compiler() {
     assert!(String::from_utf8_lossy(&result.stderr).contains("overwrite the source"));
     assert_eq!(fs::read_to_string(&shared).unwrap(), original);
     assert_eq!(fs::read_to_string(&output).unwrap(), original);
+}
+
+#[test]
+fn root_extension_selects_one_family_for_the_complete_graph() {
+    let p = Project::new();
+    let source = "mod helper; fn main()->i64 { helper::value() }";
+    let old = p.file("main.apl", source);
+    let new = p.file("main.anl", source);
+    let default = p.file("main", source);
+    for (suffix, answer) in [("apl", 11), ("anl", 22)] {
+        p.file(
+            &format!("helper.{suffix}"),
+            "mod leaf; pub fn value()->i64 { leaf::value() }",
+        );
+        p.file(
+            &format!("leaf.{suffix}"),
+            format!("pub fn value()->i64 {{{answer}}}"),
+        );
+    }
+    for (root, expected) in [(&old, b"11\n"), (&new, b"22\n"), (&default, b"22\n")] {
+        succeeds(bounded(cli("eval", root)), expected);
+    }
+    fs::remove_file(p.0.join("leaf.anl")).unwrap();
+    let missing = bounded(cli("check", &new));
+    assert_eq!(missing.status.code(), Some(4));
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("leaf.anl"));
+    succeeds(bounded(cli("eval", &old)), b"11\n");
+    p.file("leaf.anl", "pub fn value()->i64 {22}");
+    fs::remove_file(p.0.join("leaf.apl")).unwrap();
+    let missing = bounded(cli("check", &old));
+    assert_eq!(missing.status.code(), Some(4));
+    assert!(String::from_utf8_lossy(&missing.stderr).contains("leaf.apl"));
+    succeeds(bounded(cli("eval", &new)), b"22\n");
+}
+
+#[cfg(unix)]
+#[test]
+fn root_family_uses_invocation_spelling_before_symlink_resolution() {
+    let p = Project::new();
+    let target = p.file("target.apl", "mod helper; fn main()->i64 {helper::value()}");
+    p.file("helper.apl", "pub fn value()->i64 {11}");
+    p.file("helper.anl", "pub fn value()->i64 {22}");
+    let alias = p.0.join("alias.anl");
+    std::os::unix::fs::symlink(&target, &alias).unwrap();
+    succeeds(bounded(cli("eval", &alias)), b"22\n");
+    let target = p.file("target.anl", "mod helper; fn main()->i64 {helper::value()}");
+    let alias = p.0.join("alias.apl");
+    std::os::unix::fs::symlink(&target, &alias).unwrap();
+    succeeds(bounded(cli("eval", &alias)), b"11\n");
 }

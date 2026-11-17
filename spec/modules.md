@@ -28,8 +28,13 @@ values. A namespace itself is not a value.
 
 ## Files and module identities
 
-The explicitly supplied source file is the root module. In any file, `mod name;`
-loads `name.apl` from the canonical parent directory of that declaring file. The
+The explicitly supplied source file is the root module. Its lexical invocation
+path selects the extension family before canonicalization: an exact `.apl`
+suffix selects legacy `.apl`; `.anl`, another suffix, or no suffix selects `.anl`.
+This family applies to the complete graph, including symlinked roots and modules.
+In any file, `mod name;` loads exactly `name` plus that suffix from the canonical
+parent directory of the declaring file. There is no fallback, mixed-family
+search, or ambiguity when both candidate filenames coexist. The
 resolution rule does not depend on the process's working directory after the
 root path is resolved. Import identifiers cannot express directory traversal.
 Symlinks are resolved before determining a source file's dependency directory.

@@ -1,13 +1,13 @@
-# APL
+# ANL
 
-APL is a programming language under development for native systems software and
+ANL is a programming language under development for native systems software and
 capability-controlled agent applications, with strong static types and integrated
 formal verification.
 
 The current implementation checks, interprets, and compiles `i64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
 structured while loops, conditionals, recursive functions, and file modules.
-`apl verify` checks arithmetic safety and contracts for scalar code with mutable
+`anl verify` checks arithmetic safety and contracts for scalar code with mutable
 locals, annotated while loops and acyclic calls, using Z3 5.3.3. Results are labeled
 `smt-trusted`.
 Ordinary compilation type-checks and erases function contracts and loop invariant
@@ -33,8 +33,8 @@ From this checkout, with Rust installed through rustup:
 
 ```sh
 cargo build --release --locked
-./target/release/apl check examples/factorial.apl
-./target/release/apl eval examples/factorial.apl
+./target/release/anl check examples/factorial.anl
+./target/release/anl eval examples/factorial.anl
 ```
 
 Evaluation prints `3628800`. The checked-in toolchain selects Rust 1.99.1.
@@ -60,5 +60,7 @@ starting a solver. Tuple execution does not inherit the scalar verification proo
 - [Roadmap](docs/roadmap.md)
 - [Contributing](CONTRIBUTING.md)
 
-The repository is named ANL; the language is named APL. This project is unrelated
-to the existing APL array-programming language.
+The language and its current tools are named ANL. Historical `apl-*` wire schema
+IDs and semantic revisions, generated C/SMT identifiers, and the internal Lean
+namespace `APL` remain compatibility identifiers. They do not name a different
+language or change the recorded proof and benchmark artifacts.

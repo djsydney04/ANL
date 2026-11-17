@@ -40,7 +40,7 @@ impl std::error::Error for TupleError {}
 /// A nonempty flat product shape. Unused storage is always normalized.
 ///
 /// ```compile_fail,E0451
-/// use apl::types::{TupleShape, ScalarType};
+/// use anl::types::{TupleShape, ScalarType};
 /// let shape = TupleShape { fields: [ScalarType::Unit; 8], len: 0 };
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -402,12 +402,12 @@ pub(crate) struct FunctionContract {
 /// Its function table cannot be constructed or mutated by library callers.
 ///
 /// ```compile_fail,E0616
-/// let mut program = apl::compile("fn main()->i64{42}").unwrap();
+/// let mut program = anl::compile("fn main()->i64{42}").unwrap();
 /// program.functions.clear();
 /// ```
 ///
 /// ```compile_fail,E0451
-/// let program = apl::types::Program { functions: Vec::new() };
+/// let program = anl::types::Program { functions: Vec::new() };
 /// ```
 #[derive(Clone, Debug)]
 pub struct Program {

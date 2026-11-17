@@ -1,4 +1,4 @@
-(* APL scalar and flat-tuple grammar with erased contracts and local state.
+(* ANL scalar and flat-tuple grammar with erased contracts and local state.
    Complete language grammar is intentionally not claimed here.
    Semantics and static restrictions: docs/architecture/type-system.md.
    Module declarations, public functions and qualified paths: spec/modules.md.

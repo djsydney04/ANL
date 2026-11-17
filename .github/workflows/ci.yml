@@ -44,7 +44,7 @@ jobs:
             --output ".tools/$bundle.zip"
           echo "$digest  .tools/$bundle.zip" | shasum -a 256 --check
           unzip -q ".tools/$bundle.zip" -d .tools
-          echo "APL_TEST_SOLVER=$GITHUB_WORKSPACE/.tools/$bundle/bin/z3" >> "$GITHUB_ENV"
+          echo "ANL_TEST_SOLVER=$GITHUB_WORKSPACE/.tools/$bundle/bin/z3" >> "$GITHUB_ENV"
           ".tools/$bundle/bin/z3" -version
       - name: Check formatting
         run: cargo +1.99.1 fmt --all --check
@@ -94,6 +94,6 @@ jobs:
         run: cargo +1.99.1 build --locked
       - name: Compare formal and production evaluators
         run: |
-          python3 formal/test.py --rust target/debug/apl
-          python3 formal/test_local_state.py --rust target/debug/apl
-          python3 formal/test_flat_products.py --rust target/debug/apl
+          python3 formal/test.py --rust target/debug/anl
+          python3 formal/test_local_state.py --rust target/debug/anl
+          python3 formal/test_flat_products.py --rust target/debug/anl

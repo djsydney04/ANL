@@ -1,5 +1,5 @@
 //! Local state semantics through source checking and strict core interchange.
-use apl::{
+use anl::{
     core,
     eval::{self, EvalError, Trap, Value},
 };
@@ -13,13 +13,13 @@ use std::{
 
 fn source_result(source: &str, fuel: u64) -> Result<Value, EvalError> {
     let program =
-        apl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)));
+        anl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)));
     eval::evaluate(&program, program.entry().unwrap(), fuel)
 }
 
 fn result(source: &str, expected: i64) {
     let program =
-        apl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)));
+        anl::compile(source).unwrap_or_else(|error| panic!("{}", error.render("case.apl", source)));
     let entry = program.entry().unwrap();
     assert_eq!(
         eval::evaluate(&program, entry, 1_000_000),
@@ -42,7 +42,7 @@ fn body(source: &str, expected: i64) {
 }
 
 fn rejects(source: &str, message: &str) {
-    let error = apl::compile(source).unwrap_err();
+    let error = anl::compile(source).unwrap_err();
     assert!(!error.resource_limit, "{error:?}");
     let rendered = error.render("case.apl", source);
     assert!(rendered.contains(message), "{rendered}");
@@ -162,7 +162,7 @@ fn loops_and_assignments_preserve_defined_traps_and_trap_order() {
         ),
     ] {
         let source = format!("fn main()->i64 {{ {source} }}");
-        let program = apl::compile(&source).unwrap();
+        let program = anl::compile(&source).unwrap();
         let entry = program.entry().unwrap();
         assert!(
             matches!(eval::evaluate(&program, entry, 1000), Err(EvalError::Trap {kind, ..}) if kind==expected),
@@ -248,10 +248,10 @@ fn static_permissions_and_statement_types_are_enforced_in_all_code() {
         "fn main()->i64 {while true {} 0}",
         "fn main()->i64 {let mut x=0; while(x<1) {x=1} x}",
     ] {
-        assert!(apl::compile(source).is_err(), "{source}");
+        assert!(anl::compile(source).is_err(), "{source}");
     }
     let source = "fn main()->i64 {let mut x=1; x=true; x}";
-    let error = apl::compile(source).unwrap_err();
+    let error = anl::compile(source).unwrap_err();
     assert_eq!(error.span.start, source.find("true").unwrap());
     assert_eq!(error.related.unwrap().0.start, source.find("x=1").unwrap());
 }
@@ -260,7 +260,7 @@ fn static_permissions_and_statement_types_are_enforced_in_all_code() {
 fn contextual_words_preserve_old_programs_and_v0_export() {
     let source = "fn while(mut:i64)->i64 {mut+1}
         fn main()->i64 {let mut=40; while(mut); let while=2; mut+while}";
-    let program = apl::compile(source).unwrap();
+    let program = anl::compile(source).unwrap();
     assert!(!program.has_local_state());
     assert_eq!(program.semantic_revision(), "m1-2026-11-16");
     assert_eq!(
@@ -274,7 +274,7 @@ fn contextual_words_preserve_old_programs_and_v0_export() {
         eval::evaluate(&imported.program, imported.entry, 100),
         Ok(Value::Integer(42))
     );
-    let plain = apl::compile("fn main()->i64 {42}").unwrap();
+    let plain = anl::compile("fn main()->i64 {42}").unwrap();
     assert_eq!(
         core::export(&plain, 0).unwrap().to_string(),
         r#"{"entry":0,"functions":[{"body":{"tag":"integer","ty":"i64","value":"42"},"id":0,"name":"main","params":[],"result":"i64"}],"schema":"apl-core-v0","semantic_revision":"m1-2026-11-16"}"#
@@ -296,7 +296,7 @@ fn revision_selection_inspects_unused_functions_and_unselected_branches() {
         "fn unused()->unit {while(false) {}} fn main()->i64 {42}",
         "fn main()->i64 {if false {let mut x=0; x} else {42}}",
     ] {
-        let program = apl::compile(source).unwrap();
+        let program = anl::compile(source).unwrap();
         assert!(program.has_local_state());
         assert_eq!(program.semantic_revision(), "local-state-2026-11-17");
         assert_eq!(
@@ -426,8 +426,8 @@ fn v1_rejects_schema_mismatches_duplicate_fields_and_invalid_indices() {
 fn erased_contracts_do_not_add_dynamic_checks_to_stateful_execution() {
     let bare = "fn main()->i64 {let mut x=0; while(x<3) {x=x+1;} x}";
     let annotated = "fn main()->i64 requires false; ensures(answer) answer==9; {let mut x=0; while(x<3) {x=x+1;} x}";
-    let bare = apl::compile(bare).unwrap();
-    let annotated = apl::compile(annotated).unwrap();
+    let bare = anl::compile(bare).unwrap();
+    let annotated = anl::compile(annotated).unwrap();
     assert_eq!(
         core::export(&bare, 0).unwrap(),
         core::export(&annotated, 0).unwrap()
@@ -469,7 +469,7 @@ fn cli_checks_evaluates_and_round_trips_v1() {
             Some(b"{\"outcome\":\"value\",\"type\":\"i64\",\"value\":\"42\"}\n".as_slice()),
         ),
     ] {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_apl"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_anl"))
             .arg(command)
             .arg(input)
             .stdout(Stdio::piped())
@@ -498,7 +498,7 @@ fn cli_checks_evaluates_and_round_trips_v1() {
     }
     fs::write(&source, "mod hidden; fn main()->i64 {42}").unwrap();
     fs::write(path.join("hidden.apl"), "fn unused()->unit {let mut x=0;}").unwrap();
-    let program = apl::compile_file(&source).unwrap();
+    let program = anl::compile_file(&source).unwrap();
     assert!(program.has_local_state());
     assert_eq!(
         core::export(&program, program.entry().unwrap()).unwrap()["schema"],

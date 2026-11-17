@@ -1,4 +1,4 @@
-# APL core interchange v0
+# ANL core interchange v0
 
 This is the M1 compiler/formal-tool contract. Its semantic revision is
 `m1-2026-11-16`. It is not a compiler correctness proof.
@@ -83,12 +83,12 @@ Value outcomes are `{"outcome":"value","type":"i64","value":"42"}`,
 `{"outcome":"resource_limit"}`. Rejected artifacts return
 `{"outcome":"invalid_ir"}`. Outcome objects contain exactly those fields.
 
-`apl dump-core FILE` checks source, requires its executable entry, and writes a
-program artifact. `apl eval-core FILE [--fuel N]` imports a program or expression
+`anl dump-core FILE` checks source, requires its executable entry, and writes a
+program artifact. `anl eval-core FILE [--fuel N]` imports a program or expression
 fixture, independently rechecks it, and writes one outcome JSON object. These
 commands expose the interchange for conformance tooling; they do not verify
-source-level correspondence. `apl eval FILE [--fuel N]` writes the signed decimal
-entry result and a newline. `apl check FILE` permits a library without an entry.
+source-level correspondence. `anl eval FILE [--fuel N]` writes the signed decimal
+entry result and a newline. `anl check FILE` permits a library without an entry.
 
 Success exits 0, source/IR rejection 1, arithmetic traps 2, resource limits 3,
 and invocation or infrastructure errors 4. Human diagnostics go to stderr.

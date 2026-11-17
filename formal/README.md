@@ -1,4 +1,4 @@
-# APL formal core
+# ANL formal core
 
 This directory implements the `m1-2026-11-16` scalar function model and the
 separate `local-state-2026-11-17` and `flat-products-2026-11-17` extensions in Lean 4.36.0. It includes untyped syntax, declarative typing, independently checked
@@ -16,7 +16,7 @@ local-state loops under interpreted logical obligations.
 
 The original model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
-recursive function calls. It is the first mechanized slice of APL. It does not
+recursive function calls. It is the first mechanized slice of ANL. It does not
 replace the complete-language roadmap.
 
 ## Build and check
@@ -31,9 +31,9 @@ From the repository root:
 formal/check.sh
 python3 formal/test.py
 cargo build --locked
-python3 formal/test.py --rust target/debug/apl
-python3 formal/test_local_state.py --rust target/debug/apl
-python3 formal/test_flat_products.py --rust target/debug/apl
+python3 formal/test.py --rust target/debug/anl
+python3 formal/test_local_state.py --rust target/debug/anl
+python3 formal/test_flat_products.py --rust target/debug/anl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
@@ -65,8 +65,8 @@ use the pinned version selected by the developer's toolchain manager.
 The built CLI accepts the shared [core format](../spec/core-format.md):
 
 ```sh
-formal/.lake/build/bin/apl_formal spec/fixtures/core-expression.json
-formal/.lake/build/bin/apl_formal spec/fixtures/core-program.json --fuel 100000
+formal/.lake/build/bin/anl_formal spec/fixtures/core-expression.json
+formal/.lake/build/bin/anl_formal spec/fixtures/core-program.json --fuel 100000
 ```
 
 Both fixtures produce `{"outcome":"value","type":"i64","value":"42"}`.
@@ -340,15 +340,15 @@ the public theorem inventory.
 
 ### V2 interchange adapter
 
-The separate `apl_formal_v2` executable accepts `apl-expr-v2` and `apl-core-v2`
-with revision `flat-products-2026-11-17`. The existing `apl_formal` executable
+The separate `anl_formal_v2` executable accepts `apl-expr-v2` and `apl-core-v2`
+with revision `flat-products-2026-11-17`. The existing `anl_formal` executable
 and its v0/v1 readers are unchanged. To export and compare a tuple program:
 
 ```sh
-target/debug/apl dump-core examples/tuples/snapshots.apl > /tmp/apl-tuples.json
-formal/.lake/build/bin/apl_formal_v2 /tmp/apl-tuples.json --fuel 100000
-formal/.lake/build/bin/apl_formal_v2 /tmp/apl-tuples.json --revision
-python3 formal/test_flat_products.py --rust target/debug/apl
+target/debug/anl dump-core examples/tuples/snapshots.anl > /tmp/anl-tuples.json
+formal/.lake/build/bin/anl_formal_v2 /tmp/anl-tuples.json --fuel 100000
+formal/.lake/build/bin/anl_formal_v2 /tmp/anl-tuples.json --revision
+python3 formal/test_flat_products.py --rust target/debug/anl
 ```
 
 `APL/FlatProductsWire.lean` checks exact members, duplicate keys, canonical i64

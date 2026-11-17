@@ -128,8 +128,9 @@ def generate(rng, ty, depth, env=()):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rust", type=Path, help="also compare the production CLI and source exporter")
+    parser.add_argument("--formal", type=Path, default=ROOT / "formal/.lake/build/bin/anl_formal")
     args = parser.parse_args()
-    lean = ROOT / "formal/.lake/build/bin/apl_formal"
+    lean = args.formal.resolve()
     rust = args.rust.resolve() if args.rust else None
     count = 0
     with tempfile.TemporaryDirectory(prefix="apl-formal-") as directory:
@@ -218,13 +219,13 @@ def main():
                 ("fn main()->i64 { let x=7; 0; { let x=x+1; x; }; x }", value(7)),
                 ("fn loop()->i64 { loop() } fn main()->i64 { loop() }", dict(outcome="resource_limit")),
             ]
-            source = Path(directory) / "case.apl"
+            source = Path(directory) / "case.anl"
             for text, oracle in sources:
                 source.write_text(text)
                 dumped = subprocess.run([str(rust), "dump-core", str(source)], capture_output=True, timeout=15)
                 assert dumped.returncode == 0, dumped.stderr
                 check(dumped.stdout, oracle)
-            for example in sorted((ROOT / "examples").glob("*.apl")):
+            for example in sorted((ROOT / "examples").glob("*.anl")):
                 dumped = subprocess.run([str(rust), "dump-core", str(example)], capture_output=True, timeout=15)
                 assert dumped.returncode == 0, dumped.stderr
                 run = subprocess.run([str(rust), "eval", str(example)], capture_output=True, timeout=15)

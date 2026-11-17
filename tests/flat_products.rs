@@ -1,4 +1,4 @@
-use apl::{
+use anl::{
     bounded::OutputError,
     core,
     eval::{self, EvalError, ScalarValue, Trap, TupleValue, Value},
@@ -28,7 +28,7 @@ impl Fixture {
         Self { dir, source }
     }
     fn command(&self, name: &str) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_apl"));
+        let mut c = Command::new(env!("CARGO_BIN_EXE_anl"));
         c.arg(name).arg(&self.source);
         c
     }
@@ -39,7 +39,7 @@ impl Drop for Fixture {
     }
 }
 fn result(source: &str) -> Result<Value, EvalError> {
-    let p = apl::compile(source).unwrap();
+    let p = anl::compile(source).unwrap();
     eval::evaluate(&p, p.entry().unwrap(), 10_000_000)
 }
 fn source(body: &str) -> String {
@@ -47,7 +47,7 @@ fn source(body: &str) -> String {
 }
 fn native_and_core(source: &str, expected: &str, exit: i32) {
     let fixture = Fixture::new(source);
-    let p = apl::compile(source).unwrap();
+    let p = anl::compile(source).unwrap();
     let entry = p.entry().unwrap();
     let json = core::export(&p, entry).unwrap();
     assert_eq!(json["schema"], "apl-core-v2");
@@ -56,7 +56,7 @@ fn native_and_core(source: &str, expected: &str, exit: i32) {
         core::outcome(&eval::evaluate(&p, entry, 10000)),
         core::outcome(&eval::evaluate(&imported.program, imported.entry, 10000))
     );
-    let c = apl::codegen::emit_c(&p, entry).unwrap();
+    let c = anl::codegen::emit_c(&p, entry).unwrap();
     let emitted = fixture.command("emit-c").output().unwrap();
     assert_eq!(emitted.status.code(), Some(0));
     assert_eq!(
@@ -156,11 +156,11 @@ fn tuple_syntax_projection_and_type_errors_are_static() {
         "let p:(i64)=1;0",
         "let p:((i64,),) = ((1,),);0",
     ] {
-        let error = apl::compile(&source(body)).unwrap_err();
+        let error = anl::compile(&source(body)).unwrap_err();
         assert!(!error.resource_limit, "{body}");
     }
-    assert!(apl::compile("fn f(x:(i64,),)->i64{x.0}").is_err());
-    assert!(apl::compile("fn f(x:(i64,))->i64{x.0} fn main()->i64{f((1,),)}").is_err());
+    assert!(anl::compile("fn f(x:(i64,),)->i64{x.0}").is_err());
+    assert!(anl::compile("fn f(x:(i64,))->i64{x.0} fn main()->i64{f((1,),)}").is_err());
 }
 #[test]
 fn construction_projection_and_equality_preserve_effect_order_and_copies() {
@@ -274,7 +274,7 @@ fn strict_v2_artifacts_have_exact_types_values_and_scalar_normalization() {
     for v in invalid {
         assert!(core::import(&v.to_string()).is_err(), "{v}");
     }
-    let p = apl::compile("fn main()->i64{42}").unwrap();
+    let p = anl::compile("fn main()->i64{42}").unwrap();
     let mut wire = core::export(&p, 0).unwrap();
     wire["schema"] = serde_json::json!("apl-core-v2");
     wire["semantic_revision"] = serde_json::json!(core::FLAT_PRODUCTS_SEMANTIC_REVISION);
@@ -287,18 +287,18 @@ fn strict_v2_artifacts_have_exact_types_values_and_scalar_normalization() {
 }
 #[test]
 fn tuple_fuel_counts_only_executed_constructors() {
-    let p = apl::compile(&source("(42,true).0")).unwrap();
+    let p = anl::compile(&source("(42,true).0")).unwrap();
     assert!(matches!(
         eval::evaluate(&p, 0, 3),
         Err(EvalError::ResourceLimit { .. })
     ));
     assert_eq!(eval::evaluate(&p, 0, 4), Ok(Value::Integer(42)));
-    let p = apl::compile(&source("if true {42}else{(1/0,).0}")).unwrap();
+    let p = anl::compile(&source("if true {42}else{(1/0,).0}")).unwrap();
     assert_eq!(eval::evaluate(&p, 0, 3), Ok(Value::Integer(42)));
 }
 #[test]
 fn real_tuple_churn_charges_cumulative_allocations_without_retaining_old_values() {
-    let p = apl::compile(&source(
+    let p = anl::compile(&source(
         "let mut i=0;let mut p=(0,0,0,0,0,0,0,0);while(i<131071){p=(i,i,i,i,i,i,i,i);i=i+1;}p.0",
     ))
     .unwrap();
@@ -306,7 +306,7 @@ fn real_tuple_churn_charges_cumulative_allocations_without_retaining_old_values(
         eval::evaluate(&p, 0, 10_000_000),
         Ok(Value::Integer(131070))
     );
-    let p = apl::compile(&source(
+    let p = anl::compile(&source(
         "let mut i=0;let mut p=(0,0,0,0,0,0,0,0);while(i<131072){p=(i,i,i,i,i,i,i,i);i=i+1;}p.0",
     ))
     .unwrap();
@@ -368,7 +368,7 @@ fn aggregate_verification_precedes_solver_and_other_unsupported_routes() {
         "fn main()->i64{let p=(1,);while(false) invariant p==p;{}0}",
         "fn f()->i64 requires (1,).0==1; {1}",
     ] {
-        assert!(apl::compile(s).is_err());
+        assert!(anl::compile(s).is_err());
     }
 }
 #[test]
@@ -382,7 +382,7 @@ fn oversized_v2_json_fails_without_publishing_a_prefix() {
     }
     s.push_str("fn main()->i64{42}");
     let f = Fixture::new(&s);
-    let p = apl::compile(&s).unwrap();
+    let p = anl::compile(&s).unwrap();
     assert!(matches!(
         core::export(&p, p.entry().unwrap()),
         Err(OutputError::ResourceLimit(_))
@@ -404,7 +404,7 @@ fn wide_recursive_calls_reach_slot_limit_before_host_depth_or_unbounded_reservat
         .join(",");
     let initial = vec!["0"; 3000].join(",");
     let s = format!("fn f({params})->i64{{f({args})}} fn main()->i64{{let p=(1,);f({initial})}}");
-    let p = apl::compile(&s).unwrap();
+    let p = anl::compile(&s).unwrap();
     assert!(
         matches!(eval::evaluate(&p,p.entry().unwrap(),10_000_000),Err(EvalError::ResourceLimit{reason,..}) if reason.contains("slot"))
     );

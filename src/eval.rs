@@ -33,7 +33,7 @@ impl ScalarValue {
 /// Immutable, validated flat tuple payload. Copies share immutable storage only.
 ///
 /// ```compile_fail,E0451
-/// let tuple = apl::eval::TupleValue { fields: std::sync::Arc::from([]) };
+/// let tuple = anl::eval::TupleValue { fields: std::sync::Arc::from([]) };
 /// ```
 #[derive(Clone, PartialEq, Eq)]
 pub struct TupleValue {

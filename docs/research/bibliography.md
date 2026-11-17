@@ -1,13 +1,13 @@
 # Research bibliography
 
 These primary sources inform the language and architecture proposals. Their
-results apply to the systems they describe; they do not establish APL's safety,
+results apply to the systems they describe; they do not establish ANL's safety,
 performance or implementation correctness. The research documents explain how
 each source affects a proposed decision.
 
 ## Types, memory and effects
 
-| Source | Relevance to APL |
+| Source | Relevance to ANL |
 | --- | --- |
 | [Dunfield and Krishnaswami, Bidirectional Typing](https://arxiv.org/abs/1908.05839) | Synthesis and checking, explicit boundaries, and inference tradeoffs |
 | [Tofte and Talpin, Region-Based Memory Management](https://www.sciencedirect.com/science/article/pii/S0890540196926139) | Region allocation as an alternative to universal ownership and mandatory GC |
@@ -20,21 +20,21 @@ each source affects a proposed decision.
 
 ## Formal semantics and verification
 
-| Source | Relevance to APL |
+| Source | Relevance to ANL |
 | --- | --- |
 | [Lean reference, Validating proofs](https://lean-lang.org/doc/reference/latest/ValidatingProofs/) | Kernel checking, axiom inspection and the distinction between theorem meaning and proof validity |
 | [Rocq documentation](https://rocq-prover.org/docs) | Alternative mechanization environment |
 | [K tutorial, Proving properties](https://kframework.org/k-distribution/k-tutorial/1_basic/22_proofs/) | Executable operational semantics and deductive verification |
 | [Z3 guide, Basic commands](https://microsoft.github.io/z3guide/docs/logic/basiccommands/) | Solver result semantics, including unknown outcomes |
-| [Boogie](https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/) | Verification IR and VC generation as an alternative to a direct APL encoding |
+| [Boogie](https://www.microsoft.com/en-us/research/project/boogie-an-intermediate-verification-language/) | Verification IR and VC generation as an alternative to a direct ANL encoding |
 | [Why3](https://why3.org/) | Proof sessions, logical theories and multiple provers |
 | [CompCert manual, Introduction](https://compcert.org/man/manual001.html) | The precise scope and assumptions of a compiler preservation theorem |
 | [CompCert manual, The CompCert C compiler](https://compcert.org/man/manual002.html) | Supported compilation behavior and interfaces |
-| [Alive2](https://github.com/AliveToolkit/alive2) | LLVM transformation validation as a possible complement to APL-specific proofs |
+| [Alive2](https://github.com/AliveToolkit/alive2) | LLVM transformation validation as a possible complement to ANL-specific proofs |
 
 ## Native compilation
 
-| Source | Relevance to APL |
+| Source | Relevance to ANL |
 | --- | --- |
 | [LLVM language reference](https://llvm.org/docs/LangRef.html) | IR instructions, attributes and backend invariants |
 | [LLVM undefined behavior](https://llvm.org/docs/UndefinedBehavior.html) | Poison, undefined behavior and conditions the frontend must preserve |
@@ -44,7 +44,7 @@ each source affects a proposed decision.
 
 ## Capabilities, workflows and tooling
 
-| Source | Relevance to APL |
+| Source | Relevance to ANL |
 | --- | --- |
 | [Cap'n Proto RPC](https://capnproto.org/rpc.html) | Explicit authority-bearing references |
 | [Temporal workflow execution](https://docs.temporal.io/workflow-execution) | Deterministic decisions, event histories and replay |

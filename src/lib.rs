@@ -1,4 +1,4 @@
-//! APL scalar checker, typed core interchange, reference evaluator, and native compiler.
+//! ANL checker, typed core interchange, reference evaluator, and native compiler.
 //! Formal proof scope is recorded separately under `formal/`.
 pub mod bounded;
 pub mod codegen;
@@ -40,6 +40,8 @@ pub fn compile(source: &str) -> Result<types::Program, diagnostic::Diagnostic> {
 }
 
 /// Read and check a local source file and its complete, bounded module graph.
+/// The invocation path selects `.apl` imports for an explicit legacy `.apl`
+/// root, and `.anl` imports otherwise, before symlink resolution.
 /// Imports resolve relative to each declaring file's canonical directory.
 pub fn compile_file(
     path: impl AsRef<std::path::Path>,

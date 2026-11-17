@@ -1,6 +1,6 @@
 # Language requirements
 
-APL targets a complete systems language and development environment. The
+ANL targets a complete systems language and development environment. The
 [language charter](charter.md) defines its purpose and the [roadmap](roadmap.md)
 orders delivery. This specification lists the capabilities and evidence needed
 for a release. The current implementation covers parts of these requirements; the

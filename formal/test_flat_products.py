@@ -99,8 +99,8 @@ def check_oracle():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--rust", type=Path, required=True)
-    parser.add_argument("--formal", type=Path, default=ROOT / "formal/.lake/build/bin/apl_formal_v2")
-    parser.add_argument("--old-formal", type=Path, default=ROOT / "formal/.lake/build/bin/apl_formal")
+    parser.add_argument("--formal", type=Path, default=ROOT / "formal/.lake/build/bin/anl_formal_v2")
+    parser.add_argument("--old-formal", type=Path, default=ROOT / "formal/.lake/build/bin/anl_formal")
     parser.add_argument("--report", type=Path, help="optional JSON command and outcome evidence")
     args = parser.parse_args()
     rust, formal, old_formal = (p.resolve() for p in (args.rust, args.formal, args.old_formal))
@@ -131,7 +131,7 @@ def main():
         return actual
 
     with tempfile.TemporaryDirectory(prefix="apl-flat-products-") as directory:
-        path, source = Path(directory) / "case.json", Path(directory) / "case.apl"
+        path, source = Path(directory) / "case.json", Path(directory) / "case.anl"
         for case in manifest["cases"]:
             name, expected = case["name"], case["expected"]
             if "source" in case:

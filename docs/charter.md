@@ -1,11 +1,11 @@
-# APL language charter
+# ANL language charter
 
-APL is a general-purpose, strongly and statically typed programming language for
+ANL is a general-purpose, strongly and statically typed programming language for
 native systems software, high-performance computation, and reliable agent
 applications. Its design combines explicit control over resources with expressive
 abstractions and integrated formal verification.
 
-APL is currently under development. The architecture describes intended behavior;
+ANL is currently under development. The architecture describes intended behavior;
 it does not establish implemented functionality, proven safety, or performance.
 
 ## Language goals

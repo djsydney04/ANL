@@ -12,7 +12,7 @@ recursive-function and separate local-state models, not Rust implementation corr
 
 ```mermaid
 flowchart LR
-    Source[APL source] --> Parse[Lexer and parser]
+    Source[ANL source] --> Parse[Lexer and parser]
     Parse --> AST[AST with source spans]
     AST --> Resolve[Names and modules]
     Resolve --> Core[Resolved typed core]
@@ -38,7 +38,7 @@ The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser
 and its separate verification boundary. Formal coverage follows the inventory
 and does not automatically extend to a newly implemented form.
 
-The CLI provides `apl check FILE` and `apl eval FILE` in M1. `check` resolves and checks every function, including unused functions, and accepts a typed library file without `main`. `eval` checks first, requires exactly one nullary `main` in the root file with result type `i64`, then displays its decimal result followed by a newline. The implemented `build`, `run`, and `emit-c` commands inherit that entry requirement. Internal expression evaluators may also return `bool`, unit and tuples; those are not executable entry types. Successful commands exit 0. Invalid source exits 1. Execution traps exit 2. Evaluation resource exhaustion exits 3 and is not reported as a language trap or divergence proof. CLI invocation or infrastructure errors exit 4.
+The CLI provides `anl check FILE` and `anl eval FILE` in M1. `check` resolves and checks every function, including unused functions, and accepts a typed library file without `main`. `eval` checks first, requires exactly one nullary `main` in the root file with result type `i64`, then displays its decimal result followed by a newline. The implemented `build`, `run`, and `emit-c` commands inherit that entry requirement. Internal expression evaluators may also return `bool`, unit and tuples; those are not executable entry types. Successful commands exit 0. Invalid source exits 1. Execution traps exit 2. Evaluation resource exhaustion exits 3 and is not reported as a language trap or divergence proof. CLI invocation or infrastructure errors exit 4.
 
 An evaluation budget bounds interpreter work and call depth. The exact budget accounting is an implementation protocol recorded with tests, not language semantics. The implementation must fail with a diagnostic before exhausting the host stack. A native program is not required to reproduce the interpreter's artificial fuel budget.
 
@@ -77,7 +77,7 @@ wrappers. Construct them with `TupleShape::new(&[ScalarType])` and
 `TupleValue::new(&[ScalarValue])`, which return `Result<_, TupleError>` and
 require 1–8 fields. The Rust `fields()` accessors expose immutable slices;
 tuple-value clones may share immutable storage, and host callers can inspect
-slice addresses. APL source has no operation exposing pointer identity or
+slice addresses. ANL source has no operation exposing pointer identity or
 writable aliases.
 
 Output functions now return typed errors:
@@ -105,13 +105,13 @@ split. Tuple use anywhere instead selects `apl-core-v2` or `apl-expr-v2` with
 defines flat types, construction, projection and scalar-only v2 normalization.
 V0 fields and semantics are unchanged. V1 adds `let_mut`, `assign`, and
 `while`, and its importer checks target permissions, exact types, and loop-body
-unit results. See the [state interchange rules](../../spec/control-flow.md#typed-core-and-interchange). Its semantic content is a function table and entry function ID. Each function contains its ID, printable name, ordered parameter types, result type, and body. Module graphs export as one function table with collision-free generated names; visibility and file boundaries are not represented in this interchange. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `apl dump-core FILE` exports checked source; `apl eval-core FILE` independently validates and evaluates the artifact.
+unit results. See the [state interchange rules](../../spec/control-flow.md#typed-core-and-interchange). Its semantic content is a function table and entry function ID. Each function contains its ID, printable name, ordered parameter types, result type, and body. Module graphs export as one function table with collision-free generated names; visibility and file boundaries are not represented in this interchange. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `anl dump-core FILE` exports checked source; `anl eval-core FILE` independently validates and evaluates the artifact.
 
 Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID. New state in any checked scalar function, including an unused one, selects v1 for the whole export; tuple use takes precedence and selects v2.
 
 For the documented v0/v1 comparison, the Rust exporter and Lean importer are
 trusted adapters until separately verified. The Lean side independently validates
-those imported scalar programs. The separate `apl_formal_v2` executable validates
+those imported scalar programs. The separate `anl_formal_v2` executable validates
 v2 artifacts and runs the flat-tuple model, with [independent executable
 comparisons](../../formal/README.md#v2-interchange-adapter). Its decoder and compiled
 execution remain tested trust boundaries. The runtime model proves typed finite
@@ -137,7 +137,7 @@ Each iteration creates fresh body slots. Separate statements preserve load/store
 argument, and trap order. The validator rejects uninitialized, mistyped, duplicate,
 or out-of-scope slots before emission.
 
-The planned LLVM backend must preserve the same checks and use overflow intrinsics or equivalent validated lowering. It cannot attach `nsw`, `nuw`, or other strengthening attributes without their preconditions. LLVM's [IR contracts](https://llvm.org/docs/LangRef.html) and [UB model](https://llvm.org/docs/UndefinedBehavior.html) are backend obligations, not APL language semantics.
+The planned LLVM backend must preserve the same checks and use overflow intrinsics or equivalent validated lowering. It cannot attach `nsw`, `nuw`, or other strengthening attributes without their preconditions. LLVM's [IR contracts](https://llvm.org/docs/LangRef.html) and [UB model](https://llvm.org/docs/UndefinedBehavior.html) are backend obligations, not ANL language semantics.
 
 ## Native interface and runtime boundary
 
@@ -146,7 +146,7 @@ AArch64 and Linux x86-64 at `19d726c` ([CI run](https://github.com/djsydney04/AN
 Builds target the host; cross-compilation and qualified installation artifacts
 remain pending.
 
-Internal functions have fixed scalar or flat-tuple signatures. Unit has no meaningful payload. The native entry wrapper calls the required nullary APL `main() -> i64`, prints its full decimal result followed by a newline, and returns status 0; it must not truncate the result into the operating system exit code. Arithmetic traps report their code on stderr and exit 2. M4 ordinary I/O programs use an explicitly specified entry ABI and do not inherit this evaluation-oriented display wrapper accidentally.
+Internal functions have fixed scalar or flat-tuple signatures. Unit has no meaningful payload. The native entry wrapper calls the required nullary ANL `main() -> i64`, prints its full decimal result followed by a newline, and returns status 0; it must not truncate the result into the operating system exit code. Arithmetic traps report their code on stderr and exit 2. M4 ordinary I/O programs use an explicitly specified entry ABI and do not inherit this evaluation-oriented display wrapper accidentally.
 
 Foreign calls use an explicit C ABI declaration, target layout, and unsafe boundary until a safe wrapper establishes its preconditions. The compiler owns symbol mangling and ABI versioning. Heap resources and async tasks require a runtime ABI added with their language feature, not guessed from a C struct layout.
 
@@ -154,7 +154,7 @@ The linker driver receives structured arguments through a process API. It checks
 
 ## Verification and optimization boundaries
 
-`apl verify` consumes the complete checked source graph and its typed contracts.
+`anl verify` consumes the complete checked source graph and its typed contracts.
 Structural tuple use returns the unsupported v2 report before scalar conversion
 or tool discovery. For supported scalar programs, it checks ordered precondition definedness, satisfiability, runtime arithmetic
 safety, callee preconditions, and postconditions. Calls inline the actual body;
@@ -179,7 +179,7 @@ uses Z3 5.3.3 with a shared deadline and bounded protocol I/O. Only an aggregate
 are unreplayed. Reports are not imported or cached as proof input. Ordinary
 compilation and core export erase contracts without dynamic checks or solver use.
 
-Planned MIR transforms start with validated constant folding and dead-block removal; the current backend performs no APL optimization passes. Each transform has a semantics statement and tests covering values, traps, and termination behavior within the tested scope. Later inlining, specialization, allocation elimination, loop transforms and layout optimization require explicit effect, alias and ownership conditions. A small transformation proof does not certify the backend.
+Planned MIR transforms start with validated constant folding and dead-block removal; the current backend performs no ANL optimization passes. Each transform has a semantics statement and tests covering values, traps, and termination behavior within the tested scope. Later inlining, specialization, allocation elimination, loop transforms and layout optimization require explicit effect, alias and ownership conditions. A small transformation proof does not certify the backend.
 
 Formal and native evaluators should not share arithmetic implementation code. Shared schemas are allowed; independent semantics are required to expose correlated mistakes. Differential testing compares terminating values and traps, and labels budget-limited cases inconclusive. Random testing supplements adversarial fixtures rather than replacing them.
 
