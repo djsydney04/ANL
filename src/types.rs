@@ -167,6 +167,82 @@ pub struct Function {
     pub span: Span,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SpecType {
+    Int,
+    Bool,
+    Unit,
+}
+
+impl From<Type> for SpecType {
+    fn from(ty: Type) -> Self {
+        match ty {
+            Type::I64 => Self::Int,
+            Type::Bool => Self::Bool,
+            Type::Unit => Self::Unit,
+        }
+    }
+}
+
+impl SpecType {
+    pub(crate) fn scalar_type(self) -> Type {
+        match self {
+            Self::Int => Type::I64,
+            Self::Bool => Type::Bool,
+            Self::Unit => Type::Unit,
+        }
+    }
+}
+
+impl fmt::Display for SpecType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::Int => "int",
+            Self::Bool => "bool",
+            Self::Unit => "unit",
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SpecExpr {
+    pub(crate) ty: SpecType,
+    pub(crate) span: Span,
+    pub(crate) kind: SpecExprKind,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum SpecExprKind {
+    Integer(String),
+    Boolean(bool),
+    Unit,
+    Param(usize),
+    Result,
+    Unary {
+        op: UnaryOp,
+        operand: Box<SpecExpr>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Box<SpecExpr>,
+        right: Box<SpecExpr>,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct Clause {
+    pub(crate) expr: SpecExpr,
+    pub(crate) span: Span,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct FunctionContract {
+    pub(crate) source_name: String,
+    pub(crate) param_names: Vec<String>,
+    pub(crate) requires: Vec<Clause>,
+    pub(crate) ensures: Vec<Clause>,
+}
+
 /// A checked program produced by [`crate::compile`] or [`crate::core::import`].
 /// Its function table cannot be constructed or mutated by library callers.
 ///
@@ -182,6 +258,7 @@ pub struct Function {
 pub struct Program {
     pub(crate) functions: Vec<Function>,
     pub(crate) sources: Sources,
+    pub(crate) contracts: Option<Vec<FunctionContract>>,
 }
 
 impl Program {

@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "APL 0.1 scalar checker, evaluator, and native compiler\n\nUsage:\n  apl check FILE\n  apl eval FILE [--fuel N]\n  apl build FILE [-o PATH]\n  apl run FILE\n  apl emit-c FILE\n  apl dump-core FILE\n  apl eval-core FILE [--fuel N]\n  apl --version\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\n";
+const HELP: &str = "APL 0.1 scalar checker, evaluator, and native compiler\n\nUsage:\n  apl check FILE\n  apl eval FILE [--fuel N]\n  apl build FILE [-o PATH]\n  apl run FILE\n  apl emit-c FILE\n  apl dump-core FILE\n  apl eval-core FILE [--fuel N]\n  apl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  apl --version\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -55,6 +55,9 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if args.len() == 1 && (args[0] == "--help" || args[0] == "-h") {
         output(HELP.trim_end())?;
         return Ok(0);
+    }
+    if args.first().is_some_and(|arg| arg == "verify") {
+        return verify_command(&args[1..]);
     }
     let usage = "invalid invocation; use apl --help";
     let command = args.first().and_then(|arg| arg.to_str()).ok_or(usage)?;
@@ -224,4 +227,54 @@ fn report_execution(
             1
         }
     })
+}
+
+fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
+    let usage = "usage: apl verify FILE [--solver PATH] [--timeout-ms N] [--json]";
+    let path = args.first().ok_or(usage)?;
+    let mut options = apl::verify::VerifyOptions::default();
+    let mut json = false;
+    let mut solver_seen = false;
+    let mut timeout_seen = false;
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].to_str() {
+            Some("--json") if !json => {
+                json = true;
+                i += 1;
+            }
+            Some("--solver") if !solver_seen => {
+                options.solver = args.get(i + 1).ok_or(usage)?.into();
+                solver_seen = true;
+                i += 2;
+            }
+            Some("--timeout-ms") if !timeout_seen => {
+                let n = args.get(i + 1).and_then(|s| s.to_str()).ok_or(usage)?;
+                if n.is_empty() || !n.bytes().all(|b| b.is_ascii_digit()) {
+                    return Err(usage.into());
+                }
+                options.timeout_ms = n
+                    .parse()
+                    .ok()
+                    .filter(|n| (1..=600_000).contains(n))
+                    .ok_or(usage)?;
+                timeout_seen = true;
+                i += 2;
+            }
+            _ => return Err(usage.into()),
+        }
+    }
+    let report = match apl::verify::verify_file(Path::new(path), &options) {
+        Ok(report) => report,
+        Err(error) => {
+            diagnostic(error.render(&path.to_string_lossy(), ""))?;
+            apl::verify::VerificationReport::source_error(&error)
+        }
+    };
+    if json {
+        output(report.json())?;
+    } else {
+        output(report.human())?;
+    }
+    Ok(report.exit_code())
 }

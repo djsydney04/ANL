@@ -2,7 +2,10 @@ use crate::{
     MAX_DEPTH,
     diagnostic::{Diagnostic, Sources, Span},
     syntax,
-    types::{Expr, ExprKind, Function, Program, Type, UnaryOp},
+    types::{
+        Clause, Expr, ExprKind, Function, FunctionContract, Program, SpecExpr, SpecExprKind,
+        SpecType, Type, UnaryOp,
+    },
 };
 use std::collections::HashMap;
 
@@ -98,6 +101,7 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
     }
     let modular = modules.len() > 1;
     let mut checked = Vec::with_capacity(checker.signatures.len());
+    let mut contracts = Vec::with_capacity(checker.signatures.len());
     for (module_id, module) in modules.into_iter().enumerate() {
         checker.current_module = module_id;
         for function in module.functions {
@@ -119,6 +123,35 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                     span: parameter.span,
                 });
             }
+            let requires = function
+                .requires
+                .into_iter()
+                .map(|clause| spec_clause(clause, &env, None))
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut ensures = Vec::new();
+            for postcondition in function.ensures {
+                if let Some(previous) = parameter_names.get(&postcondition.binder) {
+                    return Err(Diagnostic::new(
+                        postcondition.binder_span,
+                        format!(
+                            "result binder `{}` cannot shadow a parameter",
+                            postcondition.binder
+                        ),
+                    )
+                    .related(*previous, "parameter declared here"));
+                }
+                ensures.push(spec_clause(
+                    postcondition.clause,
+                    &env,
+                    Some((&postcondition.binder, function.result)),
+                )?);
+            }
+            contracts.push(FunctionContract {
+                source_name: function.name.clone(),
+                param_names: env.iter().filter_map(|p| p.name.clone()).collect(),
+                requires,
+                ensures,
+            });
             let body = checker.expr(function.body, &mut env)?;
             expect_type(
                 body.ty,
@@ -144,7 +177,130 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
     Ok(Program {
         functions: checked,
         sources,
+        contracts: Some(contracts),
     })
+}
+
+fn spec_clause(
+    clause: syntax::Clause,
+    params: &[Binding],
+    result: Option<(&str, Type)>,
+) -> Result<Clause, Diagnostic> {
+    let expr = spec_expr(clause.expr, params, result)?;
+    if expr.ty != SpecType::Bool {
+        return Err(Diagnostic::new(
+            expr.span,
+            format!("contract clause must have type bool, found {}", expr.ty),
+        ));
+    }
+    Ok(Clause {
+        expr,
+        span: clause.span,
+    })
+}
+
+fn spec_expr(
+    expr: syntax::Expr,
+    params: &[Binding],
+    result: Option<(&str, Type)>,
+) -> Result<SpecExpr, Diagnostic> {
+    let span = expr.span;
+    let (ty, kind) = match expr.kind {
+        syntax::ExprKind::Integer(value) => {
+            if value.len() > 4096 {
+                return Err(Diagnostic::resource(
+                    span,
+                    "specification integer literal exceeds 4096 decimal digits",
+                ));
+            }
+            let digits = value.trim_start_matches('0');
+            let value = if digits.is_empty() { "0" } else { digits }.to_owned();
+            (SpecType::Int, SpecExprKind::Integer(value))
+        }
+        syntax::ExprKind::Boolean(value) => (SpecType::Bool, SpecExprKind::Boolean(value)),
+        syntax::ExprKind::Unit => (SpecType::Unit, SpecExprKind::Unit),
+        syntax::ExprKind::Name(name) => {
+            if let Some((_, ty)) = result.filter(|(binder, _)| *binder == name) {
+                (ty.into(), SpecExprKind::Result)
+            } else if let Some(index) = params.iter().position(|p| p.name.as_ref() == Some(&name)) {
+                (params[index].ty.into(), SpecExprKind::Param(index))
+            } else {
+                return Err(Diagnostic::new(
+                    span,
+                    format!(
+                        "undefined specification name `{name}`; only parameters and this clause's result binder are available"
+                    ),
+                ));
+            }
+        }
+        syntax::ExprKind::Group(inner) => return spec_expr(*inner, params, result),
+        syntax::ExprKind::Unary { op, operand } => {
+            let operand = spec_expr(*operand, params, result)?;
+            let ty = SpecType::from(op.input());
+            if operand.ty != ty {
+                return Err(Diagnostic::new(
+                    operand.span,
+                    format!(
+                        "specification operator {} requires {ty}, found {}",
+                        op.as_str(),
+                        operand.ty
+                    ),
+                ));
+            }
+            (
+                ty,
+                SpecExprKind::Unary {
+                    op,
+                    operand: Box::new(operand),
+                },
+            )
+        }
+        syntax::ExprKind::Binary { op, left, right } => {
+            let left = spec_expr(*left, params, result)?;
+            let right = spec_expr(*right, params, result)?;
+            // Scalar operator signatures are shared; specification values remain unbounded.
+            let ty = op
+                .result(left.ty.scalar_type(), right.ty.scalar_type())
+                .ok_or_else(|| {
+                    Diagnostic::new(
+                        span,
+                        format!(
+                            "specification operator {} does not accept {} and {}",
+                            op.as_str(),
+                            left.ty,
+                            right.ty
+                        ),
+                    )
+                })?;
+            (
+                ty.into(),
+                SpecExprKind::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+            )
+        }
+        syntax::ExprKind::Call { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "function calls are not allowed in specification expressions",
+            ));
+        }
+        syntax::ExprKind::Block { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "blocks and local declarations are not allowed in specification expressions",
+            ));
+        }
+        syntax::ExprKind::If { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "conditional expressions are not allowed in specifications; use Boolean guards",
+            ));
+        }
+    };
+    Ok(SpecExpr { ty, span, kind })
 }
 
 fn expect_type(

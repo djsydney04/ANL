@@ -1,6 +1,8 @@
-(* APL M1 scalar grammar proposal, revision 0.
+(* APL scalar grammar with erased contract annotations.
    Complete language grammar is intentionally not claimed here.
    Semantics and static restrictions: docs/architecture/type-system.md.
+   Module declarations, public functions and qualified paths: spec/modules.md.
+   Contract types, scope and verification: spec/verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
    The lexer uses maximal munch for operators and identifiers.
@@ -9,7 +11,9 @@
 
 program         = { function } ;
 function        = "fn", identifier, "(", [ parameters ], ")",
-                  "->", type, block ;
+                  "->", type, { requires_clause }, { ensures_clause }, block ;
+requires_clause = "requires", spec_expression, ";" ;
+ensures_clause  = "ensures", "(", identifier, ")", spec_expression, ";" ;
 parameters      = parameter, { ",", parameter } ;
 parameter       = identifier, ":", type ;
 type            = "i64" | "bool" | "unit" ;
@@ -36,6 +40,17 @@ primary         = integer
                 | block ;
 arguments       = expression, { ",", expression } ;
 
+spec_expression = spec_disjunction ;
+spec_disjunction = spec_conjunction, { "||", spec_conjunction } ;
+spec_conjunction = spec_equality, { "&&", spec_equality } ;
+spec_equality   = spec_comparison, [ ( "==" | "!=" ), spec_comparison ] ;
+spec_comparison = spec_sum, [ ( "<" | "<=" | ">" | ">=" ), spec_sum ] ;
+spec_sum        = spec_product, { ( "+" | "-" ), spec_product } ;
+spec_product    = spec_unary, { ( "*" | "/" | "%" ), spec_unary } ;
+spec_unary      = ( "!" | "-" ), spec_unary | spec_primary ;
+spec_primary    = integer | "true" | "false" | "(", ")"
+                | "(", spec_expression, ")" | identifier ;
+
 identifier      = ident_start, { ident_start | digit } ;
 ident_start     = "A" .. "Z" | "a" .. "z" | "_" ;
 integer         = digit, { digit } ;
@@ -46,6 +61,10 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
 (* Source is valid UTF-8. Identifiers are ASCII in M1. Non-ASCII text is
    accepted in comments only. Unknown characters produce lexical errors.
    Keywords: fn let if else true false i64 bool unit.
+   requires and ensures are contextual only after a function result type.
+   Specification integers are unbounded, with at most 4096 decimal digits per
+   literal. Contract expressions cannot call functions, use blocks, or use if.
+   Each contract clause must have bool type; ordinary execution erases clauses.
    Repeated sum/product/boolean operators associate left.
    Unary operators associate right. Repeated comparisons at the comparison
    level and repeated equalities at the equality level require parentheses:

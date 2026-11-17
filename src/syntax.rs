@@ -194,7 +194,20 @@ pub struct Function {
     pub params: Vec<Parameter>,
     pub result: Type,
     pub result_span: Span,
+    pub requires: Vec<Clause>,
+    pub ensures: Vec<Postcondition>,
     pub body: Expr,
+}
+#[derive(Debug)]
+pub struct Clause {
+    pub expr: Expr,
+    pub span: Span,
+}
+#[derive(Debug)]
+pub struct Postcondition {
+    pub binder: String,
+    pub binder_span: Span,
+    pub clause: Clause,
 }
 #[derive(Debug)]
 pub struct Module {
@@ -385,6 +398,42 @@ impl Parser {
             self.expect(TokenKind::RParen, ")")?;
             self.expect(TokenKind::Arrow, "->")?;
             let (result, result_span) = self.ty()?;
+            let mut requires = Vec::new();
+            let mut ensures = Vec::new();
+            while matches!(&self.current().kind, TokenKind::Ident(name) if name == "requires" || name == "ensures")
+            {
+                let token = self.bump();
+                if matches!(&token.kind, TokenKind::Ident(name) if name == "requires") {
+                    if !ensures.is_empty() {
+                        return Err(Diagnostic::new(
+                            token.span,
+                            "requires clauses must precede ensures clauses",
+                        ));
+                    }
+                    let expr = self.expression()?;
+                    let end = self
+                        .expect(TokenKind::Semi, "; after requires clause")?
+                        .span;
+                    requires.push(Clause {
+                        expr,
+                        span: token.span.join(end),
+                    });
+                } else {
+                    self.expect(TokenKind::LParen, "( before result binder")?;
+                    let (binder, binder_span) = self.name()?;
+                    self.expect(TokenKind::RParen, ") after result binder")?;
+                    let expr = self.expression()?;
+                    let end = self.expect(TokenKind::Semi, "; after ensures clause")?.span;
+                    ensures.push(Postcondition {
+                        binder,
+                        binder_span,
+                        clause: Clause {
+                            expr,
+                            span: token.span.join(end),
+                        },
+                    });
+                }
+            }
             let body = self.block()?;
             functions.push(Function {
                 name,
@@ -393,6 +442,8 @@ impl Parser {
                 params,
                 result,
                 result_span,
+                requires,
+                ensures,
                 body,
             });
         }

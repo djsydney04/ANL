@@ -154,6 +154,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         return Ok(Artifact {
             program: Program {
                 sources: Default::default(),
+                contracts: None,
                 functions: vec![Function {
                     name: "expression".into(),
                     params: Vec::new(),
@@ -209,6 +210,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         program: Program {
             functions: checked,
             sources: Default::default(),
+            contracts: None,
         },
         entry,
     })
