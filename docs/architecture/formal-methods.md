@@ -2,9 +2,10 @@
 
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
-[proof inventory](../../formal/PROOFS.md) records 134 checked statements:
+[proof inventory](../../formal/PROOFS.md) records 166 checked statements:
 81 immutable/verification statements, 37 local-state statements, and 16 loop-free
-state-verification statements. FM-01 through
+state-verification statements, plus 32 frame, fresh-head, and annotation-erasure
+foundations. These foundations do not establish general loop verification. FM-01 through
 FM-05 apply to the documented v0 model; local state has its own typing, machine
 safety, finite correspondence, and forward v0 embedding results.
 
@@ -225,9 +226,10 @@ overflow, division faults, unsatisfiable or undefined preconditions, guarded
 paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
 malformed protocol output, limits, and report identities. The Linux/macOS Rust
 jobs and the Lean proof/comparison job, including loop-free mutable-code
-verification and all 134 audited statements, passed for
-`5e9dff071bf58a369af0386fb042c5948dcf8862`
-([CI run](https://github.com/djsydney04/ANL/actions/runs/44066324662)). Passing CI
+verification and all 166 audited statements, passed for
+`088c9b793aff4afa499981ebddc7af2dda33b944`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44071284677)). That run
+precedes source loop annotations. Passing CI
 does not discharge the remaining FM-07 or implementation-correspondence obligations.
 
 The Lean generators construct concrete formulas and prove soundness under

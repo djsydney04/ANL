@@ -205,8 +205,9 @@ soundness theorem for loop invariants remain a separate increment.
 
 Three modules provide supporting model proofs for future invariant verification.
 They do not add a loop verification-condition generator or prove loop safety from
-invariant obligations, and they do not enable source invariant syntax or production
-loop verification.
+invariant obligations. The production frontend separately accepts and erases
+typed source invariant clauses, but these proofs do not establish its correctness
+or enable production loop verification.
 
 `LocalStateFrame` proves that a finite typed evaluation preserves immutable entry
 cells and binding types through scopes, calls, and loops. It also isolates a

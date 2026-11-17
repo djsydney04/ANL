@@ -1,22 +1,25 @@
 # Verification of local state and loop invariants
 
-Status: loop-free local-state verification is implemented; loop annotations and
-invariant verification remain a proposal. This specifies two verification
-increments over the existing `local-state-2026-11-17` runtime. The
+Status: loop-free local-state verification and typed, erased loop annotations are
+implemented. Invariant verification remains a proposal. This specifies two
+verification increments over the existing `local-state-2026-11-17` runtime. The
 [loop-free report contract](#loop-free-report-contract) describes current behavior.
-The remaining loop-specific syntax and rules are not implemented. The
-[proof inventory](../formal/PROOFS.md) records the separate loop-free model proofs
-and the unproved correspondence to the production verifier.
+The [source annotation rules](#source-annotations-and-erasure) also describe
+current behavior; every annotated or unannotated loop remains unsupported by
+`verify`. The loop verification rules below are not implemented. The
+[proof inventory](../formal/PROOFS.md) records the separate loop-free and supporting
+frame, fresh-state, and annotation-erasure model proofs. Their correspondence to
+the production frontend and verifier remains unproved.
 
 The first increment verifies loop-free mutable scalar code with acyclic calls.
-The proposed second increment adds annotated while loops, including conditions
-that change local state. Both rules target arithmetic safety and partial
+The proposed second verification increment uses annotated while loops, including
+conditions that change local state. Both rules target arithmetic safety and partial
 correctness under the stated contracts. Production reports claim neither
 termination nor native compiler correctness.
 
 ## Source annotations and erasure
 
-The second increment adds clauses between a while condition and its body:
+Source programs can place clauses between a while condition and its body:
 
 ```text
 fn count_to(n: i64) -> i64
@@ -36,7 +39,7 @@ fn count_to(n: i64) -> i64
 ```ebnf
 while_statement = "while", "(", expression, ")",
                   { invariant_clause }, block ;
-invariant_clause = "invariant", specification_expression, ";" ;
+invariant_clause = "invariant", spec_expression, ";" ;
 ```
 
 `invariant` is contextual only in that position. Existing functions, parameters,
@@ -54,14 +57,22 @@ condition or body are unavailable. An ordinary immutable `let before = x;`
 can retain an earlier value. There is no `old`, result binder, function call,
 block, assignment, quantifier, or ghost declaration in an invariant expression.
 
-Source checking validates every annotation's names and types. Ordinary execution
-erases annotations, without evaluating them or invoking a solver. Adding or
+Source checking validates every annotation's names and types, including in
+unused functions and skipped branches. It does not evaluate clauses or prove
+their truth or definedness: well-typed `false` and `1 / 0 == 0` clauses are
+accepted. Mathematical integer literals allow up to 4096 decimal digits.
+Ordinary execution erases annotations, without evaluating them or invoking a
+solver. Adding or
 changing a well-typed annotation leaves erased core output, native C, runtime
-values/traps, and interpreter fuel unchanged. The runtime core schemas and
-semantic revision do not change. Core import does not recover annotations.
+values, trap kinds, and interpreter fuel unchanged. Source hashes and physical
+diagnostic positions can change when annotation text changes. The runtime core
+schemas and semantic revision do not change. Core import does not recover
+annotations.
 
-The loop-free increment reports every loop as `unsupported`. The loop increment
-requires at least one invariant clause on every loop in every loaded function,
+The current verifier reports every loop as `unsupported`, before tool discovery,
+with the existing `apl-verify-v1` / `apl-state-verify-v1` report and no obligations.
+It does not report invariant truth or definedness. Unannotated loops remain valid
+source. The proposed loop verification increment requires at least one invariant clause on every loop in every loaded function,
 including unused functions and unselected branches. A missing clause produces
 `unsupported`, exit 7, before solver discovery or query generation. An explicit
 `invariant true;` is permitted, but may be too weak to prove safety or a result.

@@ -95,6 +95,13 @@ concurrency, or foreign-call property is covered. A later loop verifier needs a
 symbolic-state invariant rule covering initialization, preservation, condition and body trap
 freedom, and exit postconditions. Finite unrolling is not verification.
 
+Source loops may contain typed, erased `invariant` clauses under the
+[annotation rules](loop-verification.md#source-annotations-and-erasure).
+Ordinary checking establishes their scope and Boolean types, not their truth or
+definedness. Annotated and unannotated loops both retain the same preflight
+rejection, v1 report revision, and empty obligation list. Invalid annotations
+fail source checking first and retain the existing v0 source-error envelope.
+
 ## Verification conditions
 
 Verification consumes the checked program and typed contract metadata, with

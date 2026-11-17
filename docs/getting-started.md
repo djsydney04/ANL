@@ -94,6 +94,36 @@ change caller variables. This introduces no references or shared cells. See the
 [local-state specification](../spec/control-flow.md) for exact evaluation order,
 typing, and limits. `break`, `continue`, early `return`, and `for` are not supported.
 
+You can attach typed, erased invariant annotations to a loop:
+
+```text
+fn main() -> i64 {
+    let mut i = 0;
+    while (i < 3)
+        invariant 0 <= i && i <= 3;
+    {
+        i = i + 1;
+    }
+    i
+}
+```
+
+Save this as `annotated-loop.apl`, then run:
+
+```sh
+./target/release/apl check annotated-loop.apl
+./target/release/apl eval annotated-loop.apl
+./target/release/apl verify annotated-loop.apl
+```
+
+Checking succeeds and evaluation prints `3`. Verification returns `unsupported`
+with exit 7 before looking for a solver. The compiler checks each clause's names
+and Boolean type but does not prove or execute it. Even false or undefined
+well-typed clauses are erased. Names refer to locals visible before the condition
+runs; annotation arithmetic uses mathematical integers. See the
+[annotation specification](../spec/loop-verification.md#source-annotations-and-erasure)
+for scope and syntax. Loop-invariant verification remains planned.
+
 ## Use several source files
 
 ```sh

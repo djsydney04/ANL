@@ -4,6 +4,7 @@
    Module declarations, public functions and qualified paths: spec/modules.md.
    Contract types, scope and verification: spec/verification.md.
    Mutable locals, assignment, and while: spec/control-flow.md.
+   Erased loop annotations and proposed verification: spec/loop-verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
    The lexer uses maximal munch for operators and identifiers.
@@ -25,7 +26,8 @@ statement       = let_statement | assignment_statement | while_statement
 let_statement   = "let", [ "mut" ], identifier, [ ":", type ],
                   "=", expression, ";" ;
 assignment_statement = identifier, "=", expression, ";" ;
-while_statement = "while", "(", expression, ")", block ;
+while_statement = "while", "(", expression, ")", { invariant_clause }, block ;
+invariant_clause = "invariant", spec_expression, ";" ;
 
 expression      = disjunction ;
 disjunction     = conjunction, { "||", conjunction } ;
@@ -69,13 +71,19 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    requires and ensures are contextual only after a function result type.
    mut is contextual after let only when followed by an identifier.
    while is contextual at a statement boundary only when its matching
-   parenthesized condition is followed by a block. Existing while calls and
-   identifiers remain valid. A while statement has no trailing semicolon.
+   parenthesized condition is followed by a block or contextual invariant.
+   invariant is contextual only between a while condition and its body.
+   Existing while calls and identifiers remain valid. A while statement has
+   no trailing semicolon; each invariant clause requires one.
    Assignments require a mutable local of the same type as the right operand.
    While conditions have bool type and bodies have unit type.
    Specification integers are unbounded, with at most 4096 decimal digits per
    literal. Contract expressions cannot call functions, use blocks, or use if.
    Each contract clause must have bool type; ordinary execution erases clauses.
+   Invariant clauses use the same scalar specification expressions and literal
+   limit, resolve names at the loop head, and must have bool type. Their truth
+   and definedness are not checked; ordinary execution erases them. Verification
+   still rejects every loop, with or without annotations.
    Repeated sum/product/boolean operators associate left.
    Unary operators associate right. Repeated comparisons at the comparison
    level and repeated equalities at the equality level require parentheses:

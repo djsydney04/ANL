@@ -1,5 +1,5 @@
 use crate::diagnostic::{Diagnostic, Sources, Span};
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
@@ -247,12 +247,93 @@ pub(crate) struct Clause {
     pub(crate) span: Span,
 }
 
+// Source-only assertion metadata is retained for future loop verification. It is
+// deliberately absent from executable expressions, core interchange, and Stage A.
+#[derive(Clone, Debug)]
+pub(crate) struct LocalAssertion {
+    pub(crate) ty: SpecType,
+    pub(crate) span: Span,
+    #[allow(
+        dead_code,
+        reason = "retained source annotation; Stage A rejects every loop"
+    )]
+    pub(crate) kind: LocalAssertionKind,
+}
+
+#[allow(
+    dead_code,
+    reason = "retained source annotation; Stage A rejects every loop"
+)]
+#[derive(Clone, Debug)]
+pub(crate) enum LocalAssertionKind {
+    Integer(String),
+    Boolean(bool),
+    Unit,
+    Local(usize),
+    Unary {
+        op: UnaryOp,
+        operand: Box<LocalAssertion>,
+    },
+    Binary {
+        op: BinaryOp,
+        left: Box<LocalAssertion>,
+        right: Box<LocalAssertion>,
+    },
+}
+
+#[allow(
+    dead_code,
+    reason = "retained source annotation; Stage A rejects every loop"
+)]
+#[derive(Clone, Debug)]
+pub(crate) struct LocalClause {
+    pub(crate) expr: LocalAssertion,
+    pub(crate) span: Span,
+}
+
+/// Function-local identity in the persistent source binding table, not a local index.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct BindingId(pub(crate) usize);
+
+#[allow(
+    dead_code,
+    reason = "retained loop-head context; Stage A rejects every loop"
+)]
+#[derive(Clone, Debug)]
+pub(crate) struct HeadBinding {
+    pub(crate) parent: Option<BindingId>,
+    pub(crate) name: Option<String>,
+    pub(crate) ty: Type,
+    pub(crate) mutable: bool,
+    pub(crate) span: Span,
+}
+
+#[allow(
+    dead_code,
+    reason = "retained source annotation; Stage A rejects every loop"
+)]
+#[derive(Clone, Debug)]
+pub(crate) struct LoopAnnotation {
+    pub(crate) head: Option<BindingId>,
+    pub(crate) clauses: Vec<LocalClause>,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct FunctionContract {
     pub(crate) source_name: String,
     pub(crate) param_names: Vec<String>,
     pub(crate) requires: Vec<Clause>,
     pub(crate) ensures: Vec<Clause>,
+    #[allow(
+        dead_code,
+        reason = "retained loop-head context; Stage A rejects every loop"
+    )]
+    pub(crate) bindings: Vec<HeadBinding>,
+    #[allow(
+        dead_code,
+        reason = "retained source annotations; Stage A rejects every loop"
+    )]
+    pub(crate) loops: BTreeMap<usize, LoopAnnotation>,
 }
 
 /// A checked program produced by [`crate::compile`] or [`crate::core::import`].

@@ -3,11 +3,12 @@ use crate::{
     diagnostic::{Diagnostic, Sources, Span},
     syntax,
     types::{
-        Clause, Expr, ExprKind, Function, FunctionContract, Program, SpecExpr, SpecExprKind,
-        SpecType, Type, UnaryOp,
+        BindingId, Clause, Expr, ExprKind, Function, FunctionContract, HeadBinding, LocalAssertion,
+        LocalAssertionKind, LocalClause, LoopAnnotation, Program, SpecExpr, SpecExprKind, SpecType,
+        Type, UnaryOp,
     },
 };
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 struct Signature {
     params: Vec<Type>,
@@ -16,6 +17,7 @@ struct Signature {
     public: bool,
 }
 struct Binding {
+    id: BindingId,
     name: Option<String>,
     ty: Type,
     mutable: bool,
@@ -26,6 +28,8 @@ struct Checker {
     names: Vec<HashMap<String, Member>>,
     current_module: usize,
     next_id: usize,
+    bindings: Vec<HeadBinding>,
+    loops: BTreeMap<usize, LoopAnnotation>,
 }
 
 pub(crate) struct Module {
@@ -54,6 +58,8 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
         names: Vec::new(),
         current_module: 0,
         next_id: 0,
+        bindings: Vec::new(),
+        loops: BTreeMap::new(),
     };
     for module in &modules {
         let mut names = HashMap::new();
@@ -118,12 +124,13 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                     )
                     .related(previous, "previous parameter declared here"));
                 }
-                env.push(Binding {
-                    name: Some(parameter.name),
-                    ty: parameter.ty,
-                    mutable: false,
-                    span: parameter.span,
-                });
+                checker.push_binding(
+                    &mut env,
+                    Some(parameter.name),
+                    parameter.ty,
+                    false,
+                    parameter.span,
+                );
             }
             let requires = function
                 .requires
@@ -148,13 +155,20 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                     Some((&postcondition.binder, function.result)),
                 )?);
             }
+            let body = checker.expr(function.body, &mut env)?;
+            let loops = std::mem::take(&mut checker.loops);
+            let mut bindings = std::mem::take(&mut checker.bindings);
+            if loops.is_empty() {
+                bindings = Vec::new();
+            }
             contracts.push(FunctionContract {
                 source_name: function.name.clone(),
                 param_names: env.iter().filter_map(|p| p.name.clone()).collect(),
                 requires,
                 ensures,
+                bindings,
+                loops,
             });
-            let body = checker.expr(function.body, &mut env)?;
             expect_type(
                 body.ty,
                 function.result,
@@ -209,14 +223,7 @@ fn spec_expr(
     let span = expr.span;
     let (ty, kind) = match expr.kind {
         syntax::ExprKind::Integer(value) => {
-            if value.len() > 4096 {
-                return Err(Diagnostic::resource(
-                    span,
-                    "specification integer literal exceeds 4096 decimal digits",
-                ));
-            }
-            let digits = value.trim_start_matches('0');
-            let value = if digits.is_empty() { "0" } else { digits }.to_owned();
+            let value = specification_integer(value, span)?;
             (SpecType::Int, SpecExprKind::Integer(value))
         }
         syntax::ExprKind::Boolean(value) => (SpecType::Bool, SpecExprKind::Boolean(value)),
@@ -305,6 +312,119 @@ fn spec_expr(
     Ok(SpecExpr { ty, span, kind })
 }
 
+fn specification_integer(value: String, span: Span) -> Result<String, Diagnostic> {
+    if value.len() > 4096 {
+        return Err(Diagnostic::resource(
+            span,
+            "specification integer literal exceeds 4096 decimal digits",
+        ));
+    }
+    let digits = value.trim_start_matches('0');
+    Ok(if digits.is_empty() { "0" } else { digits }.to_owned())
+}
+
+fn local_clause(clause: syntax::Clause, env: &[Binding]) -> Result<LocalClause, Diagnostic> {
+    let expr = local_assertion(clause.expr, env)?;
+    if expr.ty != SpecType::Bool {
+        return Err(Diagnostic::new(
+            expr.span,
+            format!("invariant clause must have type bool, found {}", expr.ty),
+        ));
+    }
+    Ok(LocalClause {
+        expr,
+        span: clause.span,
+    })
+}
+
+fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion, Diagnostic> {
+    let span = expr.span;
+    let (ty, kind) = match expr.kind {
+        syntax::ExprKind::Integer(value) => (
+            SpecType::Int,
+            LocalAssertionKind::Integer(specification_integer(value, span)?),
+        ),
+        syntax::ExprKind::Boolean(value) => (SpecType::Bool, LocalAssertionKind::Boolean(value)),
+        syntax::ExprKind::Unit => (SpecType::Unit, LocalAssertionKind::Unit),
+        syntax::ExprKind::Name(name) => {
+            let position = env.iter().rposition(|binding| binding.name.as_ref() == Some(&name))
+                .ok_or_else(|| Diagnostic::new(span, format!(
+                    "undefined invariant name `{name}`; only bindings visible at the loop head are available"
+                )))?;
+            (
+                env[position].ty.into(),
+                LocalAssertionKind::Local(env.len() - position - 1),
+            )
+        }
+        syntax::ExprKind::Group(inner) => return local_assertion(*inner, env),
+        syntax::ExprKind::Unary { op, operand } => {
+            let operand = local_assertion(*operand, env)?;
+            let ty = SpecType::from(op.input());
+            if operand.ty != ty {
+                return Err(Diagnostic::new(
+                    operand.span,
+                    format!(
+                        "specification operator {} requires {ty}, found {}",
+                        op.as_str(),
+                        operand.ty
+                    ),
+                ));
+            }
+            (
+                ty,
+                LocalAssertionKind::Unary {
+                    op,
+                    operand: Box::new(operand),
+                },
+            )
+        }
+        syntax::ExprKind::Binary { op, left, right } => {
+            let left = local_assertion(*left, env)?;
+            let right = local_assertion(*right, env)?;
+            let ty = op
+                .result(left.ty.scalar_type(), right.ty.scalar_type())
+                .ok_or_else(|| {
+                    Diagnostic::new(
+                        span,
+                        format!(
+                            "specification operator {} does not accept {} and {}",
+                            op.as_str(),
+                            left.ty,
+                            right.ty
+                        ),
+                    )
+                })?;
+            (
+                ty.into(),
+                LocalAssertionKind::Binary {
+                    op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                },
+            )
+        }
+        syntax::ExprKind::Call { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "function calls are not allowed in invariant expressions",
+            ));
+        }
+        syntax::ExprKind::Block { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "blocks and local declarations are not allowed in invariant expressions",
+            ));
+        }
+        syntax::ExprKind::If { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "conditional expressions are not allowed in invariants; use Boolean guards",
+            ));
+        }
+    };
+    Ok(LocalAssertion { ty, span, kind })
+}
+
 fn expect_type(
     actual: Type,
     expected: Type,
@@ -323,6 +443,31 @@ fn expect_type(
 }
 
 impl Checker {
+    fn push_binding(
+        &mut self,
+        env: &mut Vec<Binding>,
+        name: Option<String>,
+        ty: Type,
+        mutable: bool,
+        span: Span,
+    ) {
+        let id = BindingId(self.bindings.len());
+        self.bindings.push(HeadBinding {
+            parent: env.last().map(|binding| binding.id),
+            name: name.clone(),
+            ty,
+            mutable,
+            span,
+        });
+        env.push(Binding {
+            id,
+            name,
+            ty,
+            mutable,
+            span,
+        });
+    }
+
     fn function(&self, name: &str, span: Span) -> Result<usize, Diagnostic> {
         let mut parts = name.split("::").peekable();
         let mut module = self.current_module;
@@ -468,12 +613,7 @@ impl Checker {
                                     "local type declared here",
                                 )?;
                             }
-                            env.push(Binding {
-                                name: Some(name),
-                                ty: value.ty,
-                                mutable,
-                                span,
-                            });
+                            self.push_binding(env, Some(name), value.ty, mutable, span);
                             initializers.push((value, mutable));
                         }
                         syntax::Statement::Assign { name, span, value } => {
@@ -516,19 +656,20 @@ impl Checker {
                                 expression_span,
                                 depth,
                             )?;
-                            env.push(Binding {
-                                name: None,
-                                ty: Type::Unit,
-                                mutable: false,
-                                span: expression_span,
-                            });
+                            self.push_binding(env, None, Type::Unit, false, expression_span);
                             initializers.push((value, false));
                         }
                         syntax::Statement::While {
                             condition,
+                            invariants,
                             body,
                             span,
                         } => {
+                            let head = env.last().map(|binding| binding.id);
+                            let clauses = invariants
+                                .into_iter()
+                                .map(|clause| local_clause(clause, env))
+                                .collect::<Result<Vec<_>, _>>()?;
                             let condition = self.expr(condition, env)?;
                             expect_type(
                                 condition.ty,
@@ -555,22 +696,14 @@ impl Checker {
                                 span,
                                 depth,
                             )?;
-                            env.push(Binding {
-                                name: None,
-                                ty: Type::Unit,
-                                mutable: false,
-                                span,
-                            });
+                            self.loops
+                                .insert(value.id, LoopAnnotation { head, clauses });
+                            self.push_binding(env, None, Type::Unit, false, span);
                             initializers.push((value, false));
                         }
                         syntax::Statement::Discard(value) => {
                             let value = self.expr(value, env)?;
-                            env.push(Binding {
-                                name: None,
-                                ty: value.ty,
-                                mutable: false,
-                                span: value.span,
-                            });
+                            self.push_binding(env, None, value.ty, false, value.span);
                             initializers.push((value, false));
                         }
                     }
@@ -759,5 +892,182 @@ impl Checker {
             }
         };
         self.node(ty, kind, span, depth)
+    }
+}
+
+#[cfg(test)]
+mod annotation_tests {
+    use super::*;
+
+    fn locals(expr: &LocalAssertion, result: &mut Vec<usize>) {
+        match &expr.kind {
+            LocalAssertionKind::Local(index) => result.push(*index),
+            LocalAssertionKind::Unary { operand, .. } => locals(operand, result),
+            LocalAssertionKind::Binary { left, right, .. } => {
+                locals(left, result);
+                locals(right, result);
+            }
+            _ => {}
+        }
+    }
+
+    fn head<'a>(
+        contract: &'a FunctionContract,
+        annotation: &LoopAnnotation,
+    ) -> Vec<(Option<&'a str>, Type, bool)> {
+        let mut result = Vec::new();
+        let mut next = annotation.head;
+        while let Some(id) = next {
+            let binding = &contract.bindings[id.0];
+            result.push((binding.name.as_deref(), binding.ty, binding.mutable));
+            assert!(binding.parent.is_none_or(|parent| parent.0 < id.0));
+            next = binding.parent;
+        }
+        result
+    }
+
+    #[test]
+    fn loop_heads_count_discard_cells_and_restore_shadowed_parent_chains() {
+        let source = "fn f(p:i64)->i64 {let mut x=p;9;x=x+1;
+            while(false) invariant x>=p; {
+                let before=x;7;while(false) invariant before==x; {}
+            }
+            {let x=true;while(false) invariant x; {}};
+            while(false) invariant x>=p; {}
+            x}";
+        let program = crate::compile(source).unwrap();
+        let contract = &program.contracts.as_ref().unwrap()[0];
+        let mut loops: Vec<_> = contract.loops.values().collect();
+        loops.sort_by_key(|annotation| annotation.clauses[0].span.start);
+        let expected_indices = [vec![2, 3], vec![1, 4], vec![0], vec![4, 5]];
+        for (annotation, expected) in loops.iter().zip(expected_indices) {
+            let mut indices = Vec::new();
+            locals(&annotation.clauses[0].expr, &mut indices);
+            assert_eq!(indices, expected);
+            assert!(
+                source[annotation.clauses[0].span.start..annotation.clauses[0].span.end]
+                    .starts_with("invariant ")
+            );
+        }
+        use Type::{Bool, I64, Unit};
+        let p = (Some("p"), I64, false);
+        let x = (Some("x"), I64, true);
+        let unit = (None, Unit, false);
+        let integer = (None, I64, false);
+        assert_eq!(head(contract, loops[0]), vec![unit, integer, x, p]);
+        assert_eq!(
+            head(contract, loops[1]),
+            vec![integer, (Some("before"), I64, false), unit, integer, x, p]
+        );
+        assert_eq!(
+            head(contract, loops[2]),
+            vec![(Some("x"), Bool, false), unit, unit, integer, x, p]
+        );
+        assert_eq!(
+            head(contract, loops[3]),
+            vec![unit, unit, unit, integer, x, p]
+        );
+        let x_binding = &contract.bindings[1];
+        assert_eq!(&source[x_binding.span.start..x_binding.span.end], "x");
+    }
+
+    fn while_ids(expr: &Expr, result: &mut Vec<usize>) {
+        match &expr.kind {
+            ExprKind::While { condition, body } => {
+                result.push(expr.id);
+                while_ids(condition, result);
+                while_ids(body, result);
+            }
+            ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
+                while_ids(value, result);
+                while_ids(body, result);
+            }
+            ExprKind::Assign { value, .. } => while_ids(value, result),
+            ExprKind::Unary { operand, .. } => while_ids(operand, result),
+            ExprKind::Binary { left, right, .. } => {
+                while_ids(left, result);
+                while_ids(right, result);
+            }
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                while_ids(condition, result);
+                while_ids(then_branch, result);
+                while_ids(else_branch, result);
+            }
+            ExprKind::Call { arguments, .. } => {
+                for argument in arguments {
+                    while_ids(argument, result);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn metadata_covers_nested_condition_body_and_argument_loops_without_changing_ids() {
+        let source = "fn take(x:unit)->bool {false}
+            fn main()->i64 {let mut x=0;
+            while ({while(false) invariant x==0; {} false}) invariant x==0; {
+                take({while(false) invariant x==0; {}});
+                while(false) {}
+            } 42}";
+        let annotated = crate::compile(source).unwrap();
+        let bare = crate::compile(&source.replace(" invariant x==0;", "")).unwrap();
+        assert_eq!(annotated.functions.len(), bare.functions.len());
+        for (index, function) in annotated.functions.iter().enumerate() {
+            let mut ids = Vec::new();
+            while_ids(&function.body, &mut ids);
+            let mut bare_ids = Vec::new();
+            while_ids(&bare.functions[index].body, &mut bare_ids);
+            assert_eq!(ids, bare_ids);
+            ids.sort();
+            let contract = &annotated.contracts.as_ref().unwrap()[index];
+            let plain_contract = &bare.contracts.as_ref().unwrap()[index];
+            assert_eq!(ids, contract.loops.keys().copied().collect::<Vec<_>>());
+            assert_eq!(contract.bindings.len(), plain_contract.bindings.len());
+            for (a, b) in contract.bindings.iter().zip(&plain_contract.bindings) {
+                assert_eq!(
+                    (a.parent, &a.name, a.ty, a.mutable),
+                    (b.parent, &b.name, b.ty, b.mutable)
+                );
+            }
+            for (id, annotation) in &contract.loops {
+                assert_eq!(annotation.head, plain_contract.loops[id].head);
+            }
+        }
+        let contracts = annotated.contracts.as_ref().unwrap();
+        assert!(contracts[0].bindings.is_empty());
+        assert!(contracts[0].loops.is_empty());
+        assert_eq!(contracts[1].loops.len(), 4);
+        assert_eq!(
+            contracts[1]
+                .loops
+                .values()
+                .filter(|a| a.clauses.is_empty())
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn persistent_context_table_grows_once_per_binding_not_once_per_head() {
+        let params = (0..80)
+            .map(|i| format!("p{i}:i64"))
+            .collect::<Vec<_>>()
+            .join(",");
+        let loops = "while(false) invariant p0==p79; {}".repeat(70);
+        let program = crate::compile(&format!("fn many({params})->unit {{{loops}}}")).unwrap();
+        let contract = &program.contracts.as_ref().unwrap()[0];
+        assert_eq!(contract.bindings.len(), 150); // 80 params + 70 discarded loop results.
+        assert_eq!(contract.loops.len(), 70);
+        for (i, annotation) in contract.loops.values().enumerate() {
+            assert_eq!(annotation.head, Some(BindingId(79 + i)));
+            let mut indices = Vec::new();
+            locals(&annotation.clauses[0].expr, &mut indices);
+            assert_eq!(indices, vec![79 + i, i]);
+        }
     }
 }

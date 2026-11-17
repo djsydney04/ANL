@@ -85,6 +85,13 @@ including unused functions and unselected branches. This preflight runs before
 compiler hashing, solver discovery, or query creation. The diagnostic identifies
 the unsupported construct. A library does not need `main`. An empty program reports that nothing was requested.
 
+Loops may carry typed `invariant` clauses, but annotations do not enable loop
+verification. Ordinary checking validates their names and Boolean types, then
+erases them; it proves neither truth nor definedness. Every annotated or
+unannotated loop keeps the same unsupported result and report revision. The
+[annotation specification](../spec/loop-verification.md#source-annotations-and-erasure)
+describes the source syntax and its separation from the proposed invariant rule.
+
 Calls check argument evaluation and callee preconditions, then analyze the actual
 callee body. The verifier does not assume a callee's postconditions as axioms.
 Branches, short-circuit operands, discarded expressions, and lexical scopes retain

@@ -248,6 +248,26 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
         ),
         ("fn main()->i64 {while (false) {} 42}", "while"),
         (
+            "fn main()->i64 {while(false) invariant true; {} 42}",
+            "while",
+        ),
+        (
+            "fn main()->i64 {while(false) invariant false; invariant 1/0==0; {} 42}",
+            "while",
+        ),
+        (
+            "fn main()->i64 {if true {42}else{while(true) invariant true; {} 0}}",
+            "while",
+        ),
+        (
+            "fn main()->i64 {42} fn unused()->unit {while(true) invariant true; {}}",
+            "while",
+        ),
+        (
+            "fn main()->i64 {while({while(false) invariant true; {} false}) invariant true; {} 42}",
+            "while",
+        ),
+        (
             "fn main()->i64 {if true {42}else{while (true) {} 0}}",
             "while",
         ),
@@ -280,7 +300,10 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
         assert!(!marker.exists(), "unsupported program started a solver");
     }
     let path = fixture.file("main.apl", "mod helper; fn main()->i64 {42}");
-    fixture.file("helper.apl", "fn unused()->unit {while (false) {}}");
+    fixture.file(
+        "helper.apl",
+        "fn unused()->unit {while (false) invariant false; invariant 1/0==0; {}}",
+    );
     let (output, report) = verify(&path, &solver, 30_000);
     assert_eq!(output.status.code(), Some(7), "{report}");
     assert_eq!(report["status"], "unsupported");
@@ -291,6 +314,62 @@ fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solve
     assert_eq!(report["sources"].as_array().unwrap().len(), 2);
     assert!(report["obligations"].as_array().unwrap().is_empty());
     assert!(!marker.exists());
+}
+
+#[test]
+#[cfg(unix)]
+fn invalid_invariants_keep_the_source_error_envelope_without_solver_discovery() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new();
+    let marker = fixture.0.join("invoked");
+    let solver = fixture.file(
+        "solver",
+        &format!(
+            "#!/bin/sh\nprintf invoked > '{}'\nexit 99\n",
+            marker.display()
+        ),
+    );
+    fs::set_permissions(&solver, fs::Permissions::from_mode(0o755)).unwrap();
+    for (source, message, code) in [
+        (
+            "fn main()->i64 {while(false) invariant 1; {}42}".to_owned(),
+            "must have type bool",
+            1,
+        ),
+        (
+            "fn main()->i64 {42} fn unused()->unit {while(false) invariant unknown; {}}".to_owned(),
+            "undefined invariant name",
+            1,
+        ),
+        (
+            "fn main()->i64 {while(false) invariant true {}42}".to_owned(),
+            "; after invariant clause",
+            1,
+        ),
+        (
+            format!(
+                "fn main()->i64 {{while(false) invariant {}==0; {{}}42}}",
+                "9".repeat(4097)
+            ),
+            "4096 decimal digits",
+            3,
+        ),
+    ] {
+        let path = fixture.file("main.apl", &source);
+        let (output, report) = verify(&path, &solver, 30_000);
+        status(&output, &report, code, "error");
+        assert!(report["semantic_revision"].is_null(), "{report}");
+        assert!(report.get("verification_revision").is_none(), "{report}");
+        assert_eq!(report["type_checked"], false);
+        assert!(report["compiler"].is_null());
+        assert!(report["solver"].is_null());
+        assert!(report["obligations"].as_array().unwrap().is_empty());
+        assert!(
+            report["message"].as_str().unwrap().contains(message),
+            "{report}"
+        );
+        assert!(!marker.exists(), "ill-typed annotation started a solver");
+    }
 }
 
 #[cfg(unix)]

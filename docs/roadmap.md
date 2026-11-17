@@ -108,16 +108,18 @@ source call-graph checking, sufficient expansion bounds for acyclic programs,
 equivalence with a separate syntax-inlining pass, named-condition decomposition,
 and Rust/SMT/solver bridges remain open, including correspondence between the
 state model and production forward analysis. The production verifier rejects
-loops and recursion before tool discovery. Assertions, recursive and
+loops and recursion before tool discovery. Source `invariant` clauses are accepted
+and type-checked at the loop head, then erased; their truth and definedness are
+not established. Assertions, recursive and
 loop-invariant verification, ghost code, and heap properties remain future work.
 
 Complete M3 acceptance includes true and false properties, counterexamples where
 supported,
 unknown/timeouts, missing/crashed tools, arithmetic faults, unsatisfied call
 preconditions, inconsistent specifications, and proof-regression CI. Expand to
-loop invariants, ghost code and state specifications when their language features
-exist. Bind verification artifacts to the exact program, semantics and tool
-versions. Report the implemented trust level for each result.
+invariant verification, ghost code and state specifications with their required
+semantics and proof coverage. Bind verification artifacts to the exact program,
+semantics and tool versions. Report the implemented trust level for each result.
 
 ## M4: practical systems language
 

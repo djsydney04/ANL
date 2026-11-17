@@ -54,6 +54,10 @@ No serialized representation is trusted merely because it declares itself typed.
 
 The current Rust boundaries are internal `syntax`, `modules`, `resolve`, and `mir`, plus `types`, `core`, `eval`, `diagnostic`, `codegen`, and `verify`. Checked Program contents are opaque to external mutation and construction; source compilation and core import establish their invariants. The verifier consumes retained typed contract metadata; core import does not recreate it.
 
+Source loop annotations use separate head-local assertions and per-function
+binding/loop metadata. Ordinary lowering erases these annotations; all loops
+remain unsupported by verification.
+
 `compile_file(path)` loads the bounded canonical file graph and checks all bodies.
 `compile(source)` performs no filesystem reads and rejects file imports. Each file
 has a private namespace with explicit public declarations; the [module rules](../../spec/modules.md)

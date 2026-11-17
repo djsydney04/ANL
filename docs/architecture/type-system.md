@@ -41,6 +41,9 @@ Calls may refer to later function declarations. Arity and each argument type mus
 names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
 type-checked and erased during ordinary execution. Their optional verifier accepts
 loop-free mutable scalar code with acyclic calls; loops and recursion are unsupported.
+Loop `invariant` clauses are checked as Boolean mathematical scalar expressions
+in the scope before the condition runs, then erased. Their truth and definedness
+are not established by type checking.
 Early `return`, `break`, `continue`, `for`, user-defined data,
 allocation, references, generics, I/O, concurrency, and source-level unsafe code
 remain unsupported; they remain full-language delivery requirements.

@@ -409,8 +409,9 @@ and soundness proof. The next section records the supporting foundation only.
 These 32 additional theorems preserve all preceding 134 statements. They provide
 frame, fresh-symbol, and annotation infrastructure. There is no concrete loop VCG
 or theorem deriving finite-prefix trap freedom from invariant obligations yet.
-The production verifier continues to reject loops. No source invariant parser,
-resolver, checker, or metadata adapter is established by these results.
+The production verifier continues to reject loops. Source invariant parsing,
+resolution, checking, and erased metadata are implemented separately; these
+model results do not prove those frontend or adapter components correct.
 
 `Frozen Γ before after` records equal binding shape and equality of every immutable
 cell. `FirstReturn fs suffix start value final` follows actual `LocalState.Step`

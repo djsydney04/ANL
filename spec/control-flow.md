@@ -36,7 +36,8 @@ statement = let_statement | assignment_statement | while_statement
 let_statement = "let", [ "mut" ], identifier, [ ":", type ],
                 "=", expression, ";" ;
 assignment_statement = identifier, "=", expression, ";" ;
-while_statement = "while", "(", expression, ")", block ;
+while_statement = "while", "(", expression, ")", { invariant_clause }, block ;
+invariant_clause = "invariant", spec_expression, ";" ;
 ```
 
 Assignment and while are statements in this increment. A while statement ends
@@ -49,10 +50,18 @@ to explicitly discard its value.
 `mut` is contextual after `let` only when followed by a binding identifier.
 `let mut = 1;` remains an immutable binding named `mut`. `while` is contextual at
 a statement boundary only when its parenthesized condition is followed by a
-block. A token scan finds the matching closing parenthesis before parsing the
-condition. It must respect delimiter and input limits and require no speculative
+block or contextual `invariant`. A token scan finds the matching closing
+parenthesis before parsing the condition. It must respect delimiter and input limits and require no speculative
 AST parsing. Existing `fn while`, `while(x);`, and local identifiers named
 `while` remain valid. Parentheses around a loop condition are mandatory.
+
+Zero or more `invariant` clauses may appear between the condition and body.
+Each clause must be a Boolean scalar specification expression, with names
+resolved at the loop head before the condition runs. Ordinary source checking
+validates names and types, including unused code, then erases annotations.
+It does not establish their truth or definedness, and `verify` still rejects
+every loop. The [annotation rules](loop-verification.md#source-annotations-and-erasure)
+define mathematical literals, scope, and exclusions.
 
 ## Types and scope
 
@@ -246,8 +255,8 @@ establish Rust or compiler correspondence, termination, or arithmetic trap freed
 
 `apl verify` supports loop-free `let_mut` and assignment with acyclic calls.
 It rejects the complete checked program as `unsupported` when any function
-contains `while` or the call graph contains recursion. This preflight runs
-before solver discovery and query generation, including for unused functions
+contains `while`, with or without invariant clauses, or the call graph contains
+recursion. This preflight runs before solver discovery and query generation, including for unused functions
 and unselected branches. It exits 7, identifies the source construct, and emits
 no invented proof obligations. The existing pure verifier continues to accept
 its previously supported fragment. Runtime contracts remain erased in both.

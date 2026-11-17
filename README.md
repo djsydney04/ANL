@@ -10,7 +10,9 @@ structured while loops, conditionals, recursive functions, and file modules.
 `apl verify` checks arithmetic safety and contracts for loop-free scalar code,
 including mutable locals and acyclic calls, using Z3 5.3.3. Results are labeled
 `smt-trusted`.
-Ordinary compilation type-checks and erases contract annotations. The Rust CLI
+Ordinary compilation type-checks and erases function contracts and loop invariant
+annotations; it does not prove or dynamically enforce them. Loop verification
+remains unsupported. The Rust CLI
 also exports and independently validates typed core JSON. Lean proofs cover
 expression and recursive-function typing,
 safety, and finite evaluator correspondence with sufficient depth and fuel.

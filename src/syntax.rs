@@ -278,6 +278,7 @@ pub enum Statement {
     },
     While {
         condition: Expr,
+        invariants: Vec<Clause>,
         body: Expr,
         span: Span,
     },
@@ -479,11 +480,15 @@ impl Parser {
                 TokenKind::RParen => {
                     depth -= 1;
                     if depth == 0 {
-                        return self
-                            .tokens
-                            .get(self.pos + offset + 2)
-                            .map(|token| &token.kind)
-                            == Some(&TokenKind::LBrace);
+                        return matches!(
+                            self.tokens
+                                .get(self.pos + offset + 2)
+                                .map(|token| &token.kind),
+                            Some(TokenKind::LBrace)
+                        ) || matches!(
+                            self.tokens.get(self.pos + offset + 2).map(|token| &token.kind),
+                            Some(TokenKind::Ident(name)) if name == "invariant"
+                        );
                     }
                 }
                 TokenKind::Eof => break,
@@ -529,11 +534,26 @@ impl Parser {
                 self.expect(TokenKind::LParen, "( after while")?;
                 let condition = self.expression()?;
                 self.expect(TokenKind::RParen, ") after while condition")?;
+                let mut invariants = Vec::new();
+                while matches!(&self.current().kind, TokenKind::Ident(name) if name == "invariant")
+                {
+                    let clause_start = self.bump().span;
+                    let expr = self.expression()?;
+                    depth = depth.max(expr.depth + 2);
+                    let end = self
+                        .expect(TokenKind::Semi, "; after invariant clause")?
+                        .span;
+                    invariants.push(Clause {
+                        expr,
+                        span: clause_start.join(end),
+                    });
+                }
                 let body = self.block()?;
                 depth = depth.max(condition.depth.max(body.depth) + 2);
                 let span = start.join(body.span);
                 statements.push(Statement::While {
                     condition,
+                    invariants,
                     body,
                     span,
                 });
