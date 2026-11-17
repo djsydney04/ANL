@@ -7,9 +7,9 @@ formal verification.
 The current implementation checks, interprets, and compiles a scalar language with
 `i64`, `bool`, unit, immutable bindings, conditionals, named recursive functions,
 and explicit file modules. The Rust CLI also exports and independently validates
-typed core JSON. Lean proofs cover expression and recursive-function typing and
-safety, plus finite executable soundness. Reverse evaluator completeness for
-functions and Rust implementation correctness remain unproved. See the
+typed core JSON. Lean proofs cover expression and recursive-function typing,
+safety, and finite evaluator correspondence with sufficient depth and fuel.
+They do not establish termination or Rust implementation correctness. See the
 [proof inventory](formal/PROOFS.md) for exact theorem scope and assumptions.
 
 From this checkout, with Rust installed through rustup:

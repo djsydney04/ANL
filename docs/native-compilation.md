@@ -92,13 +92,12 @@ protection, and temporary cleanup. The suite runs emitted arithmetic cases under
 the undefined-behavior sanitizer when the installed toolchain supports it; an
 unavailable sanitizer is reported explicitly.
 
-The native CI build, run, trap, and linking checks passed on macOS AArch64 and
-Linux x86-64 at revision `ab8d495`; see the
-[native CI run](https://github.com/djsydney04/ANL/actions/runs/44040702654).
-That run predates the module increment. Module tests additionally exercise
-multi-file interpretation, native execution at `-O0` and `-O2`, and protection of
-transitive source inputs. These checks do not qualify an installable release or
-prove compiler correctness, memory safety for future heap features, source-to-Lean
+The native and module checks passed on macOS AArch64 and Linux x86-64 at revision
+`19d726c`; see the [CI run](https://github.com/djsydney04/ANL/actions/runs/44043755444).
+Module tests exercise multi-file interpretation, native execution at `-O0` and
+`-O2`, and protection of transitive source inputs. These checks do not qualify an
+installable release or prove compiler correctness, memory safety for future heap
+features, source-to-Lean
 correspondence, or production performance. The C compiler, linker, scalar runtime,
 host C library, and operating system remain trusted components. Source I/O, heap
 allocation, ownership checking, concurrency, FFI, and APL optimizer transforms

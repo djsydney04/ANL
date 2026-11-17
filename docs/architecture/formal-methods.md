@@ -2,12 +2,14 @@
 
 Status: formal obligations and planned verification interfaces, with an
 implemented Lean 4.36.0 scalar and recursive-function model for semantic revision
-`m1-2026-11-16`. The [proof inventory](../../formal/PROOFS.md) records 41 checked
-theorems: FM-01 through FM-04 for expressions, and function typing, safety, and
-finite executable soundness under FM-05. Reverse evaluator completeness for
-functions remains open, so FM-05 is partial. Rust correspondence, module and
-native lowering proofs, and the contract verifier remain open. The formal model,
-verifier and compiler maintain an explicit semantic revision and coverage inventory.
+`m1-2026-11-16`. The [proof inventory](../../formal/PROOFS.md) records 44 checked
+theorems, discharging FM-01 through FM-05 for the documented scalar
+expression/function model. Finite evaluator correspondence holds in both
+directions; program completeness quantifies sufficient depth and fuel. This does
+not establish termination or completeness at the CLI's fixed depth of 256. Rust
+correspondence, source/module/native lowering proofs, and the contract verifier
+remain open. The formal model, verifier and compiler maintain an explicit semantic
+revision and coverage inventory.
 
 ## Two distinct guarantees
 
@@ -79,7 +81,7 @@ Lean 4 defines untyped core syntax, the typing relation, values, transitions, an
 | FM-07 | Soundness of the initial pure-fragment verification-condition generator, including trap obligations and checked-integer bounds. |
 | FM-08 | Semantic preservation for each selected core simplification or lowering pass. Record theorem or validator scope per pass. |
 
-M1 begins with FM-01 through FM-04 for the expression core. FM-05 is separately tracked; mathematical function semantics and executable conformance tests are required even before its proof is complete. A release claim must name exactly which obligations are machine checked. A theorem about an intrinsically typed evaluator alone does not prove that an external untyped program is correctly accepted.
+FM-01 through FM-05 are discharged for the documented scalar expression/function model. A release claim must retain that scope and name exactly which obligations are machine checked. A theorem about an intrinsically typed evaluator alone does not prove that an external untyped program is correctly accepted.
 
 The expression and program models use untyped syntax, separate declarative
 typing judgments, proved inference soundness/completeness, typed intermediate
@@ -87,11 +89,12 @@ states, and fuel-free small-step relations. The program proofs cover recursive
 calls, ordered arguments, and caller-environment restoration without assuming
 termination. Non-resource results of the actual bounded `Program.eval` have
 finite relational traces; for well-typed programs these results are values of the
-expected type or defined traps, never `invalid`. Exhausted fuel or depth makes no execution
-claim. The converse—that every finite terminal program reduction is reproduced
-with sufficient depth and fuel—remains unproved. Source/core comparisons provide
-testing evidence under FM-06 and do not prove the Rust frontend, module resolution,
-or either JSON adapter.
+expected type or defined traps, never `invalid`. Conversely, every finite terminal
+program reduction from an evaluation state with empty continuation has some depth
+and fuel budgets that reproduce its exact value, trap, or invalid outcome.
+Resource exhaustion is neither a terminal result nor proof of divergence.
+Source/core comparisons provide testing evidence under FM-06 and do not prove the
+Rust frontend, module resolution, or either JSON adapter.
 
 Every exported theorem has an inventory entry containing its full name, informal claim, covered constructors, assumptions, semantic revision, proof-tool version, and checking command. A clean build must reject incomplete proofs, custom unsound axioms, or skipped checks. Inspect transitive axiom dependencies. The initial permitted Lean axiom set is at most `propext`, `Classical.choice`, and `Quot.sound`; record the actual subset used. Native-evaluation trust axioms are not accepted for the foundational theorem inventory.
 

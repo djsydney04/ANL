@@ -24,10 +24,11 @@ work in prior phases is finished.
 Current status: the scalar checker/interpreter, native C11 backend, file modules,
 strict core JSON interchange, and expression/recursive-function proofs are
 available. Follow [getting started](getting-started.md) to run the tools and the
-[proof instructions](../formal/README.md) to check the formal artifacts. Reverse
-evaluator completeness for functions remains open. The
-[52 technical release requirements](requirements.md) remain open in their full
-scope, including later language, verification, and ecosystem capabilities.
+[proof instructions](../formal/README.md) to check the formal artifacts. Finite
+evaluator correspondence is proved in both directions for the scalar function
+model, with sufficient depth and fuel. The [52 technical release requirements](requirements.md)
+remain open in their full scope, including later language, verification, and
+ecosystem capabilities.
 
 ## M0: architecture
 
@@ -59,12 +60,13 @@ closing M1.
 The Rust CLI currently checks, evaluates, exports, and imports that core.
 Source and boundary conformance tests cover valid programs, static rejection,
 arithmetic traps, recursion, scoping, and resource/I/O failures. Lean's
-[theorem inventory](../formal/PROOFS.md) records FM-01 through FM-04 for the
-expression fragment. FM-05 now includes recursive-function typing, preservation,
-progress, finite reduction safety, and soundness of non-resource results from the
-actual bounded program evaluator. Reverse completeness remains open, so FM-05 is
-partial. Rust/model correspondence remains testing evidence under FM-06. These
-model theorems do not establish Rust compiler or whole-language correctness.
+[theorem inventory](../formal/PROOFS.md) discharges FM-01 through FM-05 for the
+documented scalar expression/function model, including finite correspondence
+with the actual bounded evaluator in both directions. Program completeness
+quantifies sufficient depth and fuel; it proves neither termination nor
+completeness at the CLI's fixed depth of 256. Rust/model correspondence remains
+testing evidence under FM-06. Source, module, and backend correctness require
+separate evidence.
 
 ## M2: native compiler
 
@@ -77,8 +79,9 @@ Include multi-module command-line programs. Keep backend correctness assumptions
 explicit; use of a mature backend is not a compiler proof.
 
 The current [native compiler](native-compilation.md) validates structured MIR,
-emits checked C11, and builds host executables. The native baseline passed macOS
-AArch64 and Linux x86-64 CI at `ab8d495`. [File modules](modules.md) add private
+emits checked C11, and builds host executables. Native and module checks passed
+[macOS AArch64 and Linux x86-64 CI](https://github.com/djsydney04/ANL/actions/runs/44043755444)
+at `19d726c`. [File modules](modules.md) add private
 interfaces, qualified paths, bounded import graphs, and source diagnostics;
 the whole graph currently lowers to one translation unit. Separate-object
 compilation, source debugging, broader runtime features, and release qualification

@@ -5,8 +5,8 @@ Start with the [architecture](docs/architecture/overview.md) and
 the scalar checker/interpreter, native C11 backend, file modules, core JSON
 adapters, and a Lean model with expression and recursive-function proofs. Follow
 [getting started](docs/getting-started.md) to build and run source programs; the
-[proof inventory](formal/PROOFS.md) separates checked theorems from pending reverse
-evaluator correspondence and implementation proofs.
+[proof inventory](formal/PROOFS.md) records finite model correspondence in both
+directions and the remaining source, Rust, module, and backend proof boundaries.
 
 ## Build and check
 

@@ -82,10 +82,10 @@ The planned LLVM backend must preserve the same checks and use overflow intrinsi
 
 ## Native interface and runtime boundary
 
-The native baseline passed build, execution, trap, and linking checks on macOS
-AArch64 and Linux x86-64 at `ab8d495` ([CI run](https://github.com/djsydney04/ANL/actions/runs/44040702654)).
-The module increment requires its own platform checks. Builds target the host;
-cross-compilation and qualified installation artifacts remain pending.
+Native and module build, execution, trap, and linking checks passed on macOS
+AArch64 and Linux x86-64 at `19d726c` ([CI run](https://github.com/djsydney04/ANL/actions/runs/44043755444)).
+Builds target the host; cross-compilation and qualified installation artifacts
+remain pending.
 
 Initial internal functions have fixed scalar signatures. Unit has no meaningful payload. The native entry wrapper calls the required nullary APL `main() -> i64`, prints its full decimal result followed by a newline, and returns status 0; it must not truncate the result into the operating system exit code. Arithmetic traps report their code on stderr and exit 2. M4 ordinary I/O programs use an explicitly specified entry ABI and do not inherit this evaluation-oriented display wrapper accidentally.
 

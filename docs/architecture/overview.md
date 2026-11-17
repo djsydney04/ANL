@@ -75,8 +75,9 @@ graph, interprets or compiles the checked program, and independently validates
 imported [core JSON](../../spec/core-format.md). [Getting started](../getting-started.md)
 provides commands and executable examples. Lean's [proof inventory](../../formal/PROOFS.md)
 records expression and recursive-function typing, preservation, progress, and
-finite executable soundness. Reverse evaluator completeness for functions remains
-open. No theorem proves the Rust implementation or module lowering.
+finite evaluator correspondence in both directions with sufficient depth and
+fuel. This proves neither termination nor completeness at fixed CLI limits.
+No theorem proves the Rust implementation or source/module/native lowering.
 
 ## Compiler and formal-methods architecture
 

@@ -131,10 +131,10 @@ Native tests require a host C11 compiler. The black-box suite runs the actual CL
 and generated executables against independent expected values and trap kinds. It
 covers source and interchange rejection, whole-program checking, arithmetic,
 sequencing, scopes, recursion, short-circuiting, module visibility, source
-protection, and bounded resource failures. The native baseline passed
-[Linux and macOS CI](https://github.com/djsydney04/ANL/actions/runs/44040702654)
-at revision `ab8d495`; later changes require their own checks. This is development
-evidence, not installation or release qualification.
+protection, and bounded resource failures. Native and module checks passed
+[Linux and macOS CI](https://github.com/djsydney04/ANL/actions/runs/44043755444)
+at revision `19d726c`. This is development evidence, not installation or release
+qualification.
 
 `apl dump-core FILE` exports checked source into the versioned JSON format, and
 `apl eval-core FILE [--fuel N]` independently validates a core artifact and emits

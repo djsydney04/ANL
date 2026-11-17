@@ -4,8 +4,9 @@ Status: evidence ledger for scalar semantic revision `m1-2026-11-16`, with the
 wider language still planned. Rust source checking, interpretation, modules,
 native compilation, and strict core import/export have executable conformance
 coverage. Lean's expression and recursive-function models have kernel-checked
-theorems. Reverse evaluator completeness for functions, Rust and module/backend
-correctness proofs, the contract verifier, and a qualified release remain open.
+theorems, including finite evaluator correspondence with sufficient depth and
+fuel. Rust and source/module/backend correctness proofs, the contract verifier,
+and a qualified release remain open.
 Architecture review alone cannot change a component to verified.
 
 Current evidence is available in the [source conformance tests](../../tests/conformance.rs),
@@ -30,14 +31,14 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Language definitions and theorem statements | Whether checked mathematics describes intended APL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
 | Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the expression and program inventory is checked by clean builds, transitive axiom audit, and kernel replay. Actual dependencies are recorded in the inventory. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
-| Formal evaluator compilation and JSON reader | Executed reference results | Executable tests compare values, traps, and input rejection. Expression evaluator correspondence is proved in both directions; non-resource program-evaluator results have proved relational traces and typed safety. Reverse program completeness remains FM-05 work. Running compiled Lean still trusts its compilation and runtime, and the JSON adapter is tested rather than proved. |
+| Formal evaluator compilation and JSON reader | Executed reference results | Executable tests compare values, traps, and input rejection. Finite expression and program evaluator correspondence is proved in both directions; program completeness quantifies sufficient depth and fuel. Typed program results cannot be invalid. Neither termination nor completeness at fixed CLI limits is established. Running compiled Lean still trusts its compilation and runtime, and the JSON adapter is tested rather than proved. |
 | Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs and file modules, including scope, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
 | Verification IR construction and VCG | Whether a discharged formula implies the requested source property | Initially unimplemented; trusted once built until a relevant correctness theorem exists. Each unsupported feature must be rejected. |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Pin versions, retain queries, check process status, distinguish unknown and errors. A solver result is trusted until an adequate certificate is independently checked. |
 | Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR, with tested scope, ordering, branches, and traps. These validators do not prove translation correctness. APL optimization passes remain unimplemented. |
-| C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. The native baseline passed macOS AArch64 and Linux x86-64 CI; compiler, linker, and host behavior remain trusted. LLVM is planned. |
+| C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. Native and module checks passed macOS AArch64 and Linux x86-64 CI at `19d726c`; compiler, linker, and host behavior remain trusted. LLVM is planned. |
 | Runtime and allocator | Cleanup, layout, I/O, concurrency, and memory safety | Scalar arithmetic/trap/output helpers are implemented and tested. Heap allocation, resource cleanup, source I/O, and concurrency runtimes remain unimplemented; they require contracts, sanitizers, and independent unsafe-code review. |
 | Unsafe APL and foreign libraries | Any safe abstraction that depends on them | Explicit contracts, versioned dependencies, and reviewed wrappers. Foreign violations can invalidate dependent safety claims. |
 | OS and hardware | Execution, scheduling, memory, I/O, and clock assumptions | Explicit platform support and integration tests. A language proof does not verify these components. |
@@ -51,10 +52,10 @@ The baseline scope follows the distinction in Lean's proof-validation guidance a
 `designed` means an accepted specification exists. `implemented` means reachable code exists. `tested` means named tests passed for identified inputs. `type-checked` means the checker accepted a program under a stated language version. `dynamically-checked` describes runtime enforcement on actual executions. `solver-verified` means the supported obligation was discharged under the recorded solver and encoding assumptions. `kernel-checked` identifies an actual theorem and its audited dependencies. `translation-validated` identifies a particular compilation and a validator whose soundness scope is recorded.
 
 Do not collapse these labels into a generic green check. The named Lean
-expression and recursive-function theorems carry the kernel-checked label.
-Reverse program-evaluator completeness (the remaining FM-05 gap), Rust/model
-correspondence proofs (FM-06), VCG soundness (FM-07), and lowering proofs (FM-08)
-remain open. Module visibility is checked by Rust before flattening to scalar
+expression and recursive-function theorems discharge FM-01 through FM-05 for that
+model. Completeness requires sufficient depth and fuel; it does not prove
+termination or completeness at fixed CLI limits. Rust/model correspondence proofs
+(FM-06), VCG soundness (FM-07), and lowering proofs (FM-08) remain open. Module visibility is checked by Rust before flattening to scalar
 core; the model's function theorems do not prove that source-level boundary.
 
 ## Proof integrity policy
