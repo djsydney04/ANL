@@ -300,9 +300,9 @@ theorem analyze_counter
         cases heq
         exact Nat.le_refl _
 
--- This is a concrete syntax prototype, not an accepted verification theorem.
--- It lacks a global support/allocation proof, exact named-query partitions,
--- generator-to-EvalSpec induction, resource-count policy, and production bridge.
+-- Companion modules prove support bounds, actual-machine soundness, typed
+-- contracts, and exact mathematical check partition. Global allocation-event
+-- history, production correspondence, and resource policies remain outside them.
 
 end APL.LoopVCG
 
