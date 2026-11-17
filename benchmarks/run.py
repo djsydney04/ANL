@@ -130,7 +130,7 @@ def run(args: argparse.Namespace) -> dict:
     for _ in range(args.samples):
         result = invoke([str(binary), "--version"], args.timeout)
         validate(result, {"exit": 0}, "version control")
-        if not result["stdout"].startswith("apl "):
+        if not result["stdout"].startswith(("anl ", "apl ")):
             raise SemanticFailure(f"unexpected version response: {result}")
         startup.append(result)
     for job in jobs:
@@ -161,7 +161,7 @@ def run(args: argparse.Namespace) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--binary", type=Path, default=ROOT / "target/release/apl")
+    parser.add_argument("--binary", type=Path, default=ROOT / "target/release/anl")
     parser.add_argument("--manifest", type=Path, default=ROOT / "benchmarks/cases/manifest.json")
     parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/results/latest.json")
     parser.add_argument("--warmup", type=int, default=2)

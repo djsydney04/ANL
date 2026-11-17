@@ -2,10 +2,10 @@
 
 ## Initial interpreter CLI baseline
 
-This harness records the wall-clock time a user waits for `apl check` or
-`apl eval`: process launch, source-file reading, parsing, checking, and optional
+This harness records the wall-clock time a user waits for `anl check` or
+`anl eval`: process launch, source-file reading, parsing, checking, and optional
 interpretation. It measures the release CLI, not native generated code. There is
-no earlier APL compiler baseline and no speedup or cross-language performance
+no earlier compiler baseline for that initial experiment and no speedup or cross-language performance
 claim.
 
 ```sh
@@ -14,7 +14,10 @@ python3 -m unittest discover -s benchmarks -p 'test_*.py'
 python3 benchmarks/run.py --warmup 2 --samples 7 --output benchmarks/results/local.json
 ```
 
-Python 3 and a POSIX host are required. `--binary` selects another release binary;
+Python 3 and a POSIX host are required. The current default executable is
+`target/release/anl`; `--binary` can select the historical `apl` executable when
+replaying an older checkout. Historical fixture bytes and recorded results retain
+their original names. `--binary` selects another release binary;
 `--manifest` selects another explicit case list. The harness refuses fewer than
 five samples or one warmup. Each command has a ten-second timeout by default.
 
@@ -128,3 +131,13 @@ The self-contained [loop harness](loop_verification.py) and
 SMT, model, source/tool identity and runtime gates. The report includes commands
 for `gate` and `time`, deliberate new-host identity recording, unchanged original
 raw evidence, a source/harness snapshot, and limits of the loaded-host results.
+
+## Flat-product representation measurements
+
+The [ANL flat-product report](results/flat-products-macos-arm64.md) retains all
+ten official paired runs at the pre-rename semantic checkpoint, including
+scalar review flags and the retained-singleton memory cost. Its
+[self-contained controller](flat_products.py) checks frozen inputs, source/tool
+identities, outputs, exported bytes and native sizes. Historical reproduction
+commands use the `apl` executables built from the recorded commits; these results
+do not identify the later renamed `anl` binary.

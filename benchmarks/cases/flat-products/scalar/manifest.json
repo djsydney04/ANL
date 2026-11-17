@@ -1,0 +1,150 @@
+{
+  "schema": "apl-private-scalar-regression-v1",
+  "warmups": 2,
+  "samples": 7,
+  "timeout_seconds": 120,
+  "cases": [
+    {
+      "name": "constant-control",
+      "file": "fixtures/native-control.apl",
+      "inputs": [
+        "fixtures/native-control.apl"
+      ],
+      "expected": "42\n",
+      "fuel": 100000,
+      "state": false,
+      "reason": "Process/startup control, not computational throughput.",
+      "core_schema": "apl-core-v0",
+      "semantic_revision": "m1-2026-11-16"
+    },
+    {
+      "name": "branching-recursion",
+      "file": "fixtures/fibonacci.apl",
+      "inputs": [
+        "fixtures/fibonacci.apl"
+      ],
+      "expected": "2584\n",
+      "fuel": 1000000,
+      "state": false,
+      "reason": "Recursive argument/value copies and branch evaluation. Fibonacci(18) = 2584.",
+      "core_schema": "apl-core-v0",
+      "semantic_revision": "m1-2026-11-16"
+    },
+    {
+      "name": "arithmetic-loop",
+      "file": "fixtures/local-state-park-miller-1m.apl",
+      "inputs": [
+        "fixtures/local-state-park-miller-1m.apl"
+      ],
+      "expected": "1263606197\n",
+      "fuel": 1000000000,
+      "state": true,
+      "reason": "One million checked arithmetic updates. Independent modular-power oracle.",
+      "core_schema": "apl-core-v1",
+      "semantic_revision": "local-state-2026-11-17"
+    },
+    {
+      "name": "many-functions",
+      "file": "fixtures/many-functions.apl",
+      "inputs": [
+        "fixtures/many-functions.apl"
+      ],
+      "expected": "202\n",
+      "fuel": 100000,
+      "state": false,
+      "reason": "Existing 200-function single-file checker/lowering size control.",
+      "core_schema": "apl-core-v0",
+      "semantic_revision": "m1-2026-11-16"
+    },
+    {
+      "name": "calls-locals-branches",
+      "file": "fixtures/calls-locals.apl",
+      "inputs": [
+        "fixtures/calls-locals.apl"
+      ],
+      "expected": "2555000\n",
+      "fuel": 1000000000,
+      "state": true,
+      "reason": "Repeated 16-argument snapshots, immutable locals, mutable loop state and alternating branches; closed-form expected result.",
+      "core_schema": "apl-core-v1",
+      "semantic_revision": "local-state-2026-11-17"
+    },
+    {
+      "name": "module-graph-32x32",
+      "file": "fixtures/module-graph/main.apl",
+      "inputs": [
+        "fixtures/module-graph/main.apl",
+        "fixtures/module-graph/m00.apl",
+        "fixtures/module-graph/m01.apl",
+        "fixtures/module-graph/m02.apl",
+        "fixtures/module-graph/m03.apl",
+        "fixtures/module-graph/m04.apl",
+        "fixtures/module-graph/m05.apl",
+        "fixtures/module-graph/m06.apl",
+        "fixtures/module-graph/m07.apl",
+        "fixtures/module-graph/m08.apl",
+        "fixtures/module-graph/m09.apl",
+        "fixtures/module-graph/m10.apl",
+        "fixtures/module-graph/m11.apl",
+        "fixtures/module-graph/m12.apl",
+        "fixtures/module-graph/m13.apl",
+        "fixtures/module-graph/m14.apl",
+        "fixtures/module-graph/m15.apl",
+        "fixtures/module-graph/m16.apl",
+        "fixtures/module-graph/m17.apl",
+        "fixtures/module-graph/m18.apl",
+        "fixtures/module-graph/m19.apl",
+        "fixtures/module-graph/m20.apl",
+        "fixtures/module-graph/m21.apl",
+        "fixtures/module-graph/m22.apl",
+        "fixtures/module-graph/m23.apl",
+        "fixtures/module-graph/m24.apl",
+        "fixtures/module-graph/m25.apl",
+        "fixtures/module-graph/m26.apl",
+        "fixtures/module-graph/m27.apl",
+        "fixtures/module-graph/m28.apl",
+        "fixtures/module-graph/m29.apl",
+        "fixtures/module-graph/m30.apl",
+        "fixtures/module-graph/m31.apl"
+      ],
+      "expected": "15904\n",
+      "fuel": 100000,
+      "state": false,
+      "reason": "Whole-graph signatures/body checking, 33 source files and 1,025 total functions. Expected 32*sum(0..31)+32 = 15904.",
+      "core_schema": "apl-core-v0",
+      "semantic_revision": "m1-2026-11-16"
+    }
+  ],
+  "negative_gates": [
+    {
+      "name": "overflow",
+      "file": "fixtures/overflow.apl",
+      "check_exit": 0,
+      "eval_exit": 2,
+      "trap": "arithmetic_overflow"
+    },
+    {
+      "name": "division-by-zero",
+      "file": "fixtures/division-by-zero.apl",
+      "check_exit": 0,
+      "eval_exit": 2,
+      "trap": "division_by_zero"
+    },
+    {
+      "name": "invalid-unused",
+      "file": "fixtures/invalid-unused.apl",
+      "check_exit": 1,
+      "eval_exit": 1,
+      "trap": null
+    }
+  ],
+  "gates": {
+    "wall_median_ratio": 1.1,
+    "rss_median_ratio": 1.15,
+    "scalar_core_bytes_identical": true,
+    "scalar_c_bytes_identical": true,
+    "native_object_size_ratio": 1.0,
+    "native_executable_size_ratio": 1.0
+  },
+  "expression_gates": []
+}

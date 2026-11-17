@@ -1,0 +1,138 @@
+{
+  "schema": "anl-flat-products-official-run-index-v1",
+  "runs": [
+    {
+      "id": "scalar-paired-e0bbf593-01",
+      "suite": "scalar-initial",
+      "original_report_sha256": "14da44ce8ee2c12c3f9597503ed41c1b526f1638de61929fec242cd5c5227a5d",
+      "published_report_sha256": "4d5d4724adfe92d5ab8e9dfdad93e6841a0df043bfabb5a2a059964c4c3d9b3a",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "review_required",
+      "review_items": [
+        "arithmetic-loop/emit-c/wall_ns",
+        "arithmetic-loop/eval/wall_ns",
+        "calls-locals-branches/eval/wall_ns"
+      ]
+    },
+    {
+      "id": "scalar-paired-e0bbf593-02",
+      "suite": "scalar-initial",
+      "original_report_sha256": "3f13ad1a3a0413fc1f699529be37dab33797071e3a79b423379e3c333537e10a",
+      "published_report_sha256": "1283980474c623346bec0679fa324fe638ebfe694debb6439d1d465248b6d6d7",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "review_required",
+      "review_items": [
+        "arithmetic-loop/eval/wall_ns",
+        "calls-locals-branches/eval/wall_ns"
+      ]
+    },
+    {
+      "id": "scalar-optimized-db18624e-01",
+      "suite": "scalar-optimized",
+      "original_report_sha256": "309a4b3722f5e60081a91f3074680d9ee44dfcffff1a305af507cca2860a0b62",
+      "published_report_sha256": "65e17e2d06f2ca8051d1dd78164c36e39460ff968b1c10c924408a0c072d194a",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "within_frozen_review_thresholds",
+      "review_items": []
+    },
+    {
+      "id": "scalar-optimized-db18624e-02",
+      "suite": "scalar-optimized",
+      "original_report_sha256": "bb10b673aaf40bfdb0821344e2bef37191238351b6aa1ed41b53acaf27287055",
+      "published_report_sha256": "2592ae1be34cf3735a2dc28ea9c9f222f2195115b5473a6b89c56fe810535b97",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "review_required",
+      "review_items": [
+        "branching-recursion/dump-core/wall_ns",
+        "arithmetic-loop/emit-c/wall_ns",
+        "calls-locals-branches/emit-c/wall_ns"
+      ]
+    },
+    {
+      "id": "scalar-optimized-db18624e-03",
+      "suite": "scalar-optimized",
+      "original_report_sha256": "37fb4efe9b643994e8b05da577abfaf951e25a4f6dfe52ef4ebfe5c15b929893",
+      "published_report_sha256": "2dc338dbbafda6b4b98091ef492a46c40f6cdf75fb37ff7be4a06a0f57d4c7e9",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "within_frozen_review_thresholds",
+      "review_items": []
+    },
+    {
+      "id": "scalar-optimized-db18624e-04",
+      "suite": "scalar-optimized",
+      "original_report_sha256": "780dde9a0d66e729039ddcdf20fbb4ee91b41c667fe952d99573db3eaa072641",
+      "published_report_sha256": "55e9b1181b536428745f29bd27a8507c8c8973d8b8573befea4078c846e78da5",
+      "semantic_invocations": 144,
+      "timed_jobs": 24,
+      "warmup_invocations": 96,
+      "sample_invocations": 336,
+      "performance_verdict": "review_required",
+      "review_items": [
+        "arithmetic-loop/emit-c/wall_ns"
+      ]
+    },
+    {
+      "id": "tuples-optimized-db18624e-01",
+      "suite": "tuples",
+      "original_report_sha256": "58470f0cc7e249ce2a564e7b13d7b1883e3515fb90647da595c7972051653de9",
+      "published_report_sha256": "fd5631d96f6a62a86e4f725cacb42f2f2c1f494e1b4428e1cf8b589b1832c62a",
+      "semantic_invocations": 108,
+      "timed_jobs": 12,
+      "warmup_invocations": 48,
+      "sample_invocations": 168,
+      "performance_verdict": "measurement_only_no_acceptance_threshold",
+      "review_items": []
+    },
+    {
+      "id": "tuples-optimized-db18624e-02",
+      "suite": "tuples",
+      "original_report_sha256": "2ba7ab3d395b52c700c256dec4d98ffa07ce97c8c27781b89df4f4dd3ff5a6ab",
+      "published_report_sha256": "f865c28e12235b2f947b9a4b5b4dc247e189e9534aac1e62d7ce11859064b839",
+      "semantic_invocations": 108,
+      "timed_jobs": 12,
+      "warmup_invocations": 48,
+      "sample_invocations": 168,
+      "performance_verdict": "measurement_only_no_acceptance_threshold",
+      "review_items": []
+    },
+    {
+      "id": "retained-optimized-db18624e-01",
+      "suite": "retained",
+      "original_report_sha256": "747624b48b6f996f54531ecbf79c1af2c94e79572b9a401621f3b398582db07b",
+      "published_report_sha256": "2f39a0190ae786a605cc653ec50d1e1089341e5edc038c53405c934c684afd44",
+      "semantic_invocations": 52,
+      "timed_jobs": 8,
+      "warmup_invocations": 32,
+      "sample_invocations": 112,
+      "performance_verdict": "measurement_only_no_acceptance_threshold",
+      "review_items": []
+    },
+    {
+      "id": "retained-optimized-db18624e-02",
+      "suite": "retained",
+      "original_report_sha256": "d494d92d0b7c7ab8f4f8f2868ac5e4dfb29417d3d3d1a92b14efdb6c2c7a863e",
+      "published_report_sha256": "16c4f6d9461e2eb39d2b71beb0f424578b5d017b7c3f58183b2a6ef999f203ff",
+      "semantic_invocations": 52,
+      "timed_jobs": 8,
+      "warmup_invocations": 32,
+      "sample_invocations": 112,
+      "performance_verdict": "measurement_only_no_acceptance_threshold",
+      "review_items": []
+    }
+  ]
+}

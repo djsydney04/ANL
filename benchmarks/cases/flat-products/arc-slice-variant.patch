@@ -1,0 +1,229 @@
+--- a/src/eval.rs
++++ b/src/eval.rs
+@@ -35,89 +35,41 @@
+ /// ```compile_fail,E0451
+ /// let tuple = apl::eval::TupleValue { fields: std::sync::Arc::from([]) };
+ /// ```
+-#[derive(Clone, PartialEq, Eq)]
++#[derive(Clone, Debug, PartialEq, Eq)]
+ pub struct TupleValue {
+-    fields: Arc<TuplePayload>,
+-}
+-#[derive(Debug, PartialEq, Eq)]
+-struct TuplePayload {
+-    fields: [ScalarValue; MAX_TUPLE_FIELDS],
+-    len: u8,
+-}
+-impl fmt::Debug for TupleValue {
+-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+-        f.debug_struct("TupleValue")
+-            .field("fields", &self.fields())
+-            .finish()
+-    }
++    fields: Arc<[ScalarValue]>,
+ }
+ impl TupleValue {
+     pub fn new(fields: &[ScalarValue]) -> Result<Self, TupleError> {
+         if !(1..=MAX_TUPLE_FIELDS).contains(&fields.len()) {
+             return Err(TupleError);
+         }
+-        let mut payload = TuplePayload {
+-            fields: [ScalarValue::Unit; MAX_TUPLE_FIELDS],
+-            len: fields.len() as u8,
+-        };
+-        payload.fields[..fields.len()].copy_from_slice(fields);
+         Ok(Self {
+-            fields: Arc::new(payload),
++            fields: fields.into(),
+         })
+     }
+     pub fn fields(&self) -> &[ScalarValue] {
+-        &self.fields.fields[..usize::from(self.fields.len)]
++        &self.fields
+     }
+     pub fn shape(&self) -> TupleShape {
+         let mut fields = [ScalarType::Unit; MAX_TUPLE_FIELDS];
+-        for (i, value) in self.fields().iter().enumerate() {
++        for (i, value) in self.fields.iter().enumerate() {
+             fields[i] = value.ty();
+         }
+-        TupleShape::new(&fields[..self.fields().len()]).expect("validated tuple width")
++        TupleShape::new(&fields[..self.fields.len()]).expect("validated tuple width")
+     }
+ }
+ 
+ /// Executable values. Flat-product support changes this host type from Copy to
+ /// Clone; `ty` borrows, and tuple clones share an immutable validated payload.
+-#[derive(Debug, PartialEq, Eq)]
++#[derive(Clone, Debug, PartialEq, Eq)]
+ pub enum Value {
+     Integer(i64),
+     Boolean(bool),
+     Unit,
+     Tuple(TupleValue),
+ }
+-impl Clone for Value {
+-    #[inline(always)]
+-    fn clone(&self) -> Self {
+-        match self {
+-            Self::Integer(n) => Self::Integer(*n),
+-            Self::Boolean(b) => Self::Boolean(*b),
+-            Self::Unit => Self::Unit,
+-            Self::Tuple(value) => Self::Tuple(value.clone()),
+-        }
+-    }
+-}
+ impl Value {
+-    #[inline]
+-    fn has_type(&self, expected: &Type) -> bool {
+-        match (self, expected) {
+-            (Self::Integer(_), Type::I64)
+-            | (Self::Boolean(_), Type::Bool)
+-            | (Self::Unit, Type::Unit) => true,
+-            (Self::Tuple(value), Type::Tuple(shape)) => value.shape() == *shape,
+-            _ => false,
+-        }
+-    }
+-    #[inline]
+-    fn same_type(&self, other: &Self) -> bool {
+-        match (self, other) {
+-            (Self::Integer(_), Self::Integer(_))
+-            | (Self::Boolean(_), Self::Boolean(_))
+-            | (Self::Unit, Self::Unit) => true,
+-            (Self::Tuple(a), Self::Tuple(b)) => a.shape() == b.shape(),
+-            _ => false,
+-        }
+-    }
+     pub fn ty(&self) -> Type {
+         match self {
+             Self::Integer(_) => Type::I64,
+@@ -296,7 +248,7 @@
+                     .checked_sub(index.checked_add(1).ok_or(EvalError::InvalidIr)?)
+                     .ok_or(EvalError::InvalidIr)?;
+                 let target = env.get_mut(position).ok_or(EvalError::InvalidIr)?;
+-                if !target.same_type(&value) {
++                if target.ty() != value.ty() {
+                     return Err(EvalError::InvalidIr);
+                 }
+                 *target = value;
+@@ -366,7 +318,7 @@
+                 let mut values = Vec::with_capacity(arguments.len());
+                 for (argument, expected) in arguments.iter().zip(&function.params) {
+                     let value = self.expr(argument, env, next)?;
+-                    if !value.has_type(expected) {
++                    if value.ty() != *expected {
+                         return Err(EvalError::InvalidIr);
+                     }
+                     values.push(value);
+@@ -376,7 +328,7 @@
+                 result?
+             }
+         };
+-        if !value.has_type(&expr.ty) {
++        if value.ty() != expr.ty {
+             return Err(EvalError::InvalidIr);
+         }
+         Ok(value)
+@@ -389,8 +341,8 @@
+         span,
+     };
+     match (op, left, right) {
+-        (BinaryOp::Eq, a, b) if a.same_type(&b) => Ok(Value::Boolean(a == b)),
+-        (BinaryOp::Ne, a, b) if a.same_type(&b) => Ok(Value::Boolean(a != b)),
++        (BinaryOp::Eq, a, b) if a.ty() == b.ty() => Ok(Value::Boolean(a == b)),
++        (BinaryOp::Ne, a, b) if a.ty() == b.ty() => Ok(Value::Boolean(a != b)),
+         (BinaryOp::And, Value::Boolean(a), Value::Boolean(b)) => Ok(Value::Boolean(a && b)),
+         (BinaryOp::Or, Value::Boolean(a), Value::Boolean(b)) => Ok(Value::Boolean(a || b)),
+         (op, Value::Integer(a), Value::Integer(b)) => {
+@@ -429,91 +381,6 @@
+ #[cfg(test)]
+ mod product_budget_tests {
+     use super::*;
+-
+-    #[test]
+-    fn scalar_and_tuple_type_checks_preserve_exact_shape_validation() {
+-        let tuple = |fields: &[ScalarValue]| Value::Tuple(TupleValue::new(fields).unwrap());
+-        let values = [
+-            Value::Integer(i64::MIN),
+-            Value::Integer(i64::MAX),
+-            Value::Boolean(false),
+-            Value::Boolean(true),
+-            Value::Unit,
+-            tuple(&[ScalarValue::Integer(1)]),
+-            tuple(&[ScalarValue::Integer(2)]),
+-            tuple(&[ScalarValue::Boolean(true)]),
+-            tuple(&[ScalarValue::Unit]),
+-            tuple(&[ScalarValue::Integer(1), ScalarValue::Boolean(false)]),
+-            tuple(&[ScalarValue::Boolean(false), ScalarValue::Integer(1)]),
+-            tuple(&[ScalarValue::Integer(1), ScalarValue::Boolean(true)]),
+-            tuple(&[ScalarValue::Unit; MAX_TUPLE_FIELDS]),
+-        ];
+-        for value in &values {
+-            for other in &values {
+-                let equal_types = value.ty() == other.ty();
+-                assert_eq!(value.has_type(&other.ty()), equal_types);
+-                assert_eq!(value.same_type(other), equal_types);
+-                for (op, expected) in [
+-                    (BinaryOp::Eq, value == other),
+-                    (BinaryOp::Ne, value != other),
+-                ] {
+-                    let result = binary(op, value.clone(), other.clone(), Span::default());
+-                    assert_eq!(
+-                        result,
+-                        if equal_types {
+-                            Ok(Value::Boolean(expected))
+-                        } else {
+-                            Err(EvalError::InvalidIr)
+-                        }
+-                    );
+-                }
+-            }
+-        }
+-        for width in 1..=MAX_TUPLE_FIELDS {
+-            let fields: Vec<_> = (0..width)
+-                .map(|i| match i % 3 {
+-                    0 => ScalarValue::Integer(i as i64),
+-                    1 => ScalarValue::Boolean(true),
+-                    _ => ScalarValue::Unit,
+-                })
+-                .collect();
+-            let tuple = TupleValue::new(&fields).unwrap();
+-            assert_eq!(tuple.fields(), fields);
+-            assert_eq!(
+-                tuple.shape().fields(),
+-                fields.iter().map(|v| v.ty()).collect::<Vec<_>>()
+-            );
+-            assert_eq!(tuple.clone(), tuple);
+-            let value = Value::Tuple(tuple.clone());
+-            assert!(value.has_type(&value.ty()));
+-            assert!(value.same_type(&value.clone()));
+-            for other_width in 1..=MAX_TUPLE_FIELDS {
+-                if other_width != width {
+-                    let other = Value::Tuple(
+-                        TupleValue::new(&vec![ScalarValue::Unit; other_width]).unwrap(),
+-                    );
+-                    assert!(!value.has_type(&other.ty()));
+-                    assert!(!value.same_type(&other));
+-                }
+-            }
+-            for field in 0..width {
+-                let mut changed = fields.clone();
+-                changed[field] = match changed[field] {
+-                    ScalarValue::Integer(_) => ScalarValue::Boolean(false),
+-                    ScalarValue::Boolean(_) => ScalarValue::Unit,
+-                    ScalarValue::Unit => ScalarValue::Integer(0),
+-                };
+-                let other = Value::Tuple(TupleValue::new(&changed).unwrap());
+-                assert!(!value.has_type(&other.ty()));
+-                assert!(!value.same_type(&other));
+-            }
+-            assert_eq!(
+-                format!("{tuple:?}"),
+-                format!("TupleValue {{ fields: {fields:?} }}")
+-            );
+-        }
+-    }
+-
+     fn evaluator(program: &Program) -> Evaluator<'_> {
+         Evaluator {
+             program,

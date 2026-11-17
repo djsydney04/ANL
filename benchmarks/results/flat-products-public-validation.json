@@ -1,0 +1,83 @@
+{
+  "schema": "anl-flat-products-publication-validation-v1",
+  "semantic_checkpoint": "45790f05f769af8bc3e31c82bcca0e98f1e2eb21",
+  "status": "independent_semantic_replay_and_review_passed",
+  "checks": {
+    "focused_integrity_tests": 5,
+    "existing_basic_runner_tests": 2,
+    "all_real_source_inventories_validated": [
+      "pretuple",
+      "arc_slice",
+      "fixed_payload"
+    ],
+    "exact_fixture_files": 52,
+    "variant_patch_applied_to_temporary_fixed_source_and_matched_arc_source": true,
+    "measured_executor_and_round_loop_match_historical_controllers": true,
+    "documentation_links_valid": true,
+    "path_privacy_scan_passed": true,
+    "historical_audit": {
+      "status": "all_official_records_valid",
+      "runs": 10,
+      "measured_child_invocations": 2576,
+      "unique_output_blobs": 57,
+      "strict_typed_outcome_records": 104,
+      "strict_core_export_records": 96,
+      "workloads_invoked": 0,
+      "timings_recorded": 0
+    },
+    "public_cli_identity_configurations_passed": 4,
+    "current_renamed_checkout_rejected_before_workloads": true,
+    "sdk_path_alias_resolves_to_same_recorded_sdk": true,
+    "type_sensitive_json_and_duplicate_key_rejection": true,
+    "independent_relocated_semantic_replay": {
+      "reviewed_manifest_sha256": "df5c8eae8a5681834898a382311424c6a3b463a8f86c75c371b62105f8ff4462",
+      "package_copied_outside_checkout": true,
+      "suites": [
+        {
+          "suite": "scalar-optimized",
+          "semantic_invocations": 144,
+          "native_size_checks": 12,
+          "report_sha256": "f1f6ec8cfb36f65531935fb67ee2398d952bbfc5a7366efe2107e20270e09065"
+        },
+        {
+          "suite": "tuples",
+          "semantic_invocations": 108,
+          "native_size_checks": 8,
+          "report_sha256": "5681ae21a58505ec6d40c0e6337a9a4f939b0238178396dc1b8ce60aa02577da"
+        },
+        {
+          "suite": "retained",
+          "semantic_invocations": 52,
+          "native_size_checks": 4,
+          "report_sha256": "4ffd4f5b95222b81200a3eccabad9fc93c5e437ff294f89b4ee6da208686e587"
+        }
+      ],
+      "semantic_invocations": 304,
+      "invocation_categories": {
+        "compiler_cli_invocations": 160,
+        "native_c_compile_invocations": 48,
+        "native_link_invocations": 48,
+        "native_execution_invocations": 48
+      },
+      "published_evidence": "flat-products-public-gates.json.gz",
+      "published_evidence_sha256": "f55eacd1bc0011a8c83128738fdcb8f3f645096f9abae477f6902e409902d66e",
+      "timing_samples": 0,
+      "cargo_builds": 0
+    }
+  },
+  "commands": [
+    "python3 -m unittest discover -s benchmarks -p test_flat_products.py",
+    "python3 -m unittest discover -s benchmarks -p test_run.py",
+    "python3 benchmarks/flat_products.py audit",
+    "python3 benchmarks/flat_products.py self-test"
+  ],
+  "new_compiler_invocations": 160,
+  "new_native_compilations": 48,
+  "new_timing_samples": 0,
+  "limits": [
+    "Independent semantic replay is validation evidence, not additional timing observations.",
+    "No new Rust build or new-host performance result is claimed.",
+    "The current renamed source and binary are not the measured semantic-checkpoint identities."
+  ],
+  "new_native_links": 48
+}

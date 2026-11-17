@@ -1,0 +1,62 @@
+{
+  "schema": "apl-private-retained-singleton-comparison-v2",
+  "warmups": 2,
+  "samples": 7,
+  "timeout_seconds": 120,
+  "cases": [
+    {
+      "name": "retained-singletons",
+      "file": "fixtures/retained-singletons.apl",
+      "inputs": [
+        "fixtures/retained-singletons.apl"
+      ],
+      "expected": "257\n",
+      "fuel": 1000000,
+      "state": false,
+      "measure": true,
+      "iterations": 63,
+      "constructed_fields": 16384,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": 65538,
+      "exact_fuel": 65539,
+      "core_schema": "apl-core-v2",
+      "semantic_revision": "flat-products-2026-11-17",
+      "retained_call_frames": 64,
+      "arguments_per_frame": 257,
+      "max_eval_depth_index": 130
+    },
+    {
+      "name": "scalar-control",
+      "file": "fixtures/scalar-control.apl",
+      "inputs": [
+        "fixtures/scalar-control.apl"
+      ],
+      "expected": "257\n",
+      "fuel": 1000000,
+      "state": false,
+      "measure": true,
+      "iterations": 63,
+      "constructed_fields": 0,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": 49152,
+      "exact_fuel": 49153,
+      "core_schema": "apl-core-v0",
+      "semantic_revision": "m1-2026-11-16",
+      "retained_call_frames": 64,
+      "arguments_per_frame": 257,
+      "max_eval_depth_index": 129
+    }
+  ],
+  "negative_gates": [],
+  "expression_gates": [],
+  "gates": {
+    "wall_median_ratio": null,
+    "rss_median_ratio": null,
+    "performance_policy": "observation_only_no_acceptance_threshold",
+    "feature_core_bytes_identical": true,
+    "feature_c_bytes_identical": true,
+    "native_sizes": "report_and_investigate_growth"
+  }
+}

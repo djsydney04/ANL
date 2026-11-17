@@ -1,0 +1,160 @@
+{
+  "schema": "apl-private-tuple-comparison-v1",
+  "warmups": 2,
+  "samples": 7,
+  "timeout_seconds": 120,
+  "cases": [
+    {
+      "name": "pair-api-control",
+      "file": "fixtures/pair-api.apl",
+      "inputs": [
+        "fixtures/pair-api.apl"
+      ],
+      "expected": "43\n",
+      "fuel": 1000000000,
+      "state": false,
+      "measure": true,
+      "iterations": 0,
+      "constructed_fields": 2,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": null,
+      "core_schema": "apl-core-v2",
+      "semantic_revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "pair-calls-state-200k",
+      "file": "fixtures/pair-calls-state.apl",
+      "inputs": [
+        "fixtures/pair-calls-state.apl"
+      ],
+      "expected": "20000500001\n",
+      "fuel": 1000000000,
+      "state": true,
+      "measure": true,
+      "iterations": 200000,
+      "constructed_fields": 400002,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": 100,
+      "incorrect_capacity_eight_charge": 1600008,
+      "core_schema": "apl-core-v2",
+      "semantic_revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "mixed-eight-state-100k",
+      "file": "fixtures/mixed-eight-state.apl",
+      "inputs": [
+        "fixtures/mixed-eight-state.apl"
+      ],
+      "expected": "1100006\n",
+      "fuel": 1000000000,
+      "state": true,
+      "measure": true,
+      "iterations": 100000,
+      "constructed_fields": 800008,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": 100,
+      "core_schema": "apl-core-v2",
+      "semantic_revision": "flat-products-2026-11-17"
+    },
+    {
+      "name": "argument-snapshots-gate",
+      "file": "fixtures/argument-snapshots.apl",
+      "inputs": [
+        "fixtures/argument-snapshots.apl"
+      ],
+      "expected": "42\n",
+      "fuel": 1000000000,
+      "state": true,
+      "measure": false,
+      "iterations": 0,
+      "constructed_fields": 6,
+      "charged_field_limit": 1048576,
+      "active_slots_upper_limit": 65536,
+      "low_fuel_gate": null,
+      "core_schema": "apl-core-v2",
+      "semantic_revision": "flat-products-2026-11-17"
+    }
+  ],
+  "negative_gates": [
+    {
+      "name": "projection-trap",
+      "file": "fixtures/projection-trap.apl",
+      "check_exit": 0,
+      "eval_exit": 2,
+      "trap": "division_by_zero"
+    },
+    {
+      "name": "first-field-trap",
+      "file": "fixtures/first-field-trap.apl",
+      "check_exit": 0,
+      "eval_exit": 2,
+      "trap": "arithmetic_overflow"
+    },
+    {
+      "name": "nested-rejection",
+      "file": "fixtures/nested-rejection.apl",
+      "check_exit": 1,
+      "eval_exit": 1,
+      "trap": null
+    }
+  ],
+  "expression_gates": [
+    {
+      "name": "pair-typed-outcome",
+      "file": "fixtures/pair-expression.json",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64",
+            "i64"
+          ]
+        },
+        "value": [
+          "42",
+          "1"
+        ]
+      }
+    },
+    {
+      "name": "mixed-eight-typed-outcome",
+      "file": "fixtures/mixed-eight-expression.json",
+      "expected": {
+        "outcome": "value",
+        "type": {
+          "tuple": [
+            "i64",
+            "bool",
+            "unit",
+            "i64",
+            "bool",
+            "unit",
+            "i64",
+            "i64"
+          ]
+        },
+        "value": [
+          "0",
+          true,
+          null,
+          "1",
+          false,
+          null,
+          "2",
+          "3"
+        ]
+      }
+    }
+  ],
+  "gates": {
+    "wall_median_ratio": null,
+    "rss_median_ratio": null,
+    "performance_policy": "observation_only_no_acceptance_threshold",
+    "feature_core_bytes_identical": true,
+    "feature_c_bytes_identical": true,
+    "native_sizes": "report_and_investigate_growth"
+  }
+}
