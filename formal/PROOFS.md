@@ -400,9 +400,84 @@ forward analysis, its correspondence to this CPS generator, named-query grouping
 source-contract correspondence, SMT translation, and solver evidence remain
 unproved. Production loop-free mutable-code verification reports `smt-trusted`
 results separately from these model theorems and retains
-`termination_proved: false`. Loop-invariant reasoning,
-fresh head symbols, and partial correctness of possibly divergent loops require
-separate definitions and proofs.
+`termination_proved: false`. Loop-invariant reasoning
+and partial correctness of possibly divergent loops require a separate generator
+and soundness proof. The next section records the supporting foundation only.
+
+## Invariant-loop foundations
+
+These 32 additional theorems preserve all preceding 134 statements. They provide
+frame, fresh-symbol, and annotation infrastructure. There is no concrete loop VCG
+or theorem deriving finite-prefix trap freedom from invariant obligations yet.
+The production verifier continues to reject loops. No source invariant parser,
+resolver, checker, or metadata adapter is established by these results.
+
+`Frozen Γ before after` records equal binding shape and equality of every immutable
+cell. `FirstReturn fs suffix start value final` follows actual `LocalState.Step`
+transitions and stops before consuming a return to `suffix`. It does not permit
+arbitrary traces merely because their initial and final continuations are equal.
+
+| Theorem in `APL.LocalState` | Quantified statement and assumptions |
+| --- | --- |
+| `frozen_refl` | A typed environment is frozen relative to itself. |
+| `frozen_trans` | Immutable agreement and binding shape compose through an intermediate environment. |
+| `update_frozen` | A typed environment, a mutable target of the replacement type, and successful update preserve every immutable cell. |
+| `evaluation_frame` | A well-typed function table, typed term and entry environment, and finite evaluation from empty continuation to empty-continuation value imply immutable agreement, unchanged environment typing, and the declared result type. No termination or VCG premise. |
+| `first_return_steps` | A first-return prefix is an actual finite machine reduction. |
+| `first_return_isolated` | A first return from an expression to its outer continuation yields an isolated reduction of that expression with empty continuation and the same result/environment. No typing premise. |
+| `first_return_frame` | Under function, term and environment typing, a first-return prefix preserves immutable cells and environment/result types. |
+
+`Below`, `SymbolsBelow`, and `FormulaBelow` bound the variable identities in symbolic
+artifacts. `AgreeBelow n M N` requires model equality at every identity below `n`.
+`freshEnv` retains immutable cells, emits literal unit for mutable unit cells, and
+allocates one distinct identity for every mutable numeric or Boolean cell.
+
+| Theorem in `APL.LoopVCG` | Quantified statement and assumptions |
+| --- | --- |
+| `eval_agree` | A symbolic term supported below a bound evaluates equally in models agreeing below that bound. |
+| `below_mono`, `symbols_below_mono` | Increasing the bound preserves symbolic term/environment support. |
+| `denotes_agree`, `env_agree` | Bounded denotations and related symbolic/runtime environments survive model agreement below the bound. |
+| `formula_agree` | A bounded formula has equivalent independent truth in models agreeing below its support bound. |
+| `overwrite_agrees` | Replacing one model value preserves agreement at every smaller identity. |
+| `fresh_covers` | Successful allocation, bounded input symbols representing an entry environment, and any typed actual head frozen relative to that entry imply some model extension representing the fresh head while preserving every earlier identity. |
+| `fresh_bounded` | Successful allocation from bounded inputs never decreases the counter and returns symbols below the final counter. |
+| `fresh_shape` | Successful allocation advances by exactly the number of mutable nonunit cells and emits exactly the consecutive fresh-identity range. |
+| `fresh_distinct` | Fresh identities are unique and lie between the input and output counters. |
+| `fresh_disjoint` | Two successful allocations, the second starting at the first's output counter, have disjoint fresh identities. |
+| `group_exact` | The generated conjunction of a supplied check list holds exactly when every recorded guard implies its required formula. This does not prove completeness of the list or named-query partition. |
+| `represented_type` | A denoting runtime value of the selected scalar type satisfies its symbolic type/range guard. |
+| `head_domain_sound` | A generated head-domain formula holds for related symbolic and typed runtime environments. |
+| `fresh_head_coverage` | Successful head generation and the coverage premises above yield a nondecreasing counter, bounded output symbols, and an earlier-symbol-preserving model extension representing any such actual head and satisfying its domain. |
+
+The arbitrary-head theorem quantifies every typed actual environment preserving
+immutable cells. Different dynamic iterations may use different model extensions;
+no chosen abstract head is asserted reachable. Global allocation across a concrete
+generator's nested loops, branches, and call occurrences remains a separate proof.
+
+`LoopAnnotations.Assertion` has an independently defined evaluator over current
+locals, with index zero denoting the newest binding. It has no entry-parameter or
+result binder. Its typing describes scalar types only, not definedness or truth.
+`LoopAnnotations.HasType` is verification-ready annotated typing: every loop has
+a nonempty list of Boolean assertions. Ordinary source typing still accepts
+unannotated loops. `erase` removes only invariant metadata, including in function
+bodies and call arguments.
+
+| Theorem in `APL.LoopAnnotations` | Quantified statement and assumptions |
+| --- | --- |
+| `Assertion.eval_toSpec` | Local-assertion evaluation equals its internal specification translation, independent of the specification result slot. |
+| `Assertion.instantiate_sound` | Successful symbolic instantiation and related current-local environments imply equality with the independent local-assertion evaluator. |
+| `erase_typed` | Verification-ready annotated typing implies existing local-state typing after erasure. |
+| `erase_signatures` | Function erasure preserves the complete signature table and function indices. |
+| `erase_wellTyped` | Verification-ready annotated function typing implies a well-typed erased function table. |
+| `Term.erase_mapAnnotations`, `Function.erase_mapAnnotations`, `eraseFunctions_mapAnnotations` | Arbitrary invariant-list replacement preserves erased terms, functions, and function tables. |
+| `run_mapAnnotations` | Arbitrarily replacing all invariant lists preserves the actual erased `LocalState.run` at every identical transition budget, entry environment, and outer continuation. No annotation typing, truth, or definedness premise. |
+
+The frame examples include a typed 19-step trace that consumes and recreates an
+outer continuation while changing an immutable snapshot, demonstrating why the
+first-return restriction is necessary. Fresh-head examples check mixed permissions,
+unit allocation, and rejected shape mismatch. Annotation erasure is model-only;
+source name resolution, attachment, lowering, emitted code, and runtime fuel remain
+separate implementation boundaries.
 
 ## Axiom dependencies and trust
 
@@ -410,14 +485,15 @@ The original expression `infer_complete`, `infer_sound`, and `type_unique`
 theorems use exactly `propext` and `Quot.sound`; the other expression theorems
 use exactly `propext`. Every inventoried program theorem uses exactly `propext`
 and `Quot.sound`, except `Program.resume_typed`, which uses only `propext`.
-The VCG audit reports each theorem's transitive dependencies, which are confined
-to `propext` and `Quot.sound`. None currently uses `Classical.choice`, although the
-project policy permits it. No project axiom, incomplete proof, native-evaluation
-trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
+The VCG audit reports each theorem's transitive dependencies. Existing generator
+proofs use only `propext` and `Quot.sound`; the new `fresh_distinct` and
+`fresh_disjoint` lemmas also use the permitted `Classical.choice`. No project
+axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 134 inventoried names are included.
+Its allowable set is explicit, and all 166 inventoried names are included. The
+check script replays 26 semantic modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does

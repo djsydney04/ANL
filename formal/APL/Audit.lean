@@ -1,6 +1,9 @@
 import APL.VCGCallsExamples
 import APL.LocalStateExamples
 import APL.StateVCGExamples
+import APL.LocalStateFrame
+import APL.LoopVCGSupport
+import APL.LoopAnnotations
 import Lean
 
 open Lean Elab Command in
@@ -96,7 +99,39 @@ run_elab do
     ``APL.StateVCG.contract_steps_no_trap,
     ``APL.StateVCG.contract_steps_no_invalid,
     ``APL.StateVCG.contract_preconditions_defined,
-    ``APL.StateVCG.contract_nonvacuous]
+    ``APL.StateVCG.contract_nonvacuous,
+    ``APL.LocalState.frozen_refl,
+    ``APL.LocalState.frozen_trans,
+    ``APL.LocalState.update_frozen,
+    ``APL.LocalState.evaluation_frame,
+    ``APL.LocalState.first_return_steps,
+    ``APL.LocalState.first_return_isolated,
+    ``APL.LocalState.first_return_frame,
+    ``APL.LoopVCG.eval_agree,
+    ``APL.LoopVCG.below_mono,
+    ``APL.LoopVCG.symbols_below_mono,
+    ``APL.LoopVCG.denotes_agree,
+    ``APL.LoopVCG.env_agree,
+    ``APL.LoopVCG.formula_agree,
+    ``APL.LoopVCG.overwrite_agrees,
+    ``APL.LoopVCG.fresh_covers,
+    ``APL.LoopVCG.fresh_bounded,
+    ``APL.LoopVCG.fresh_shape,
+    ``APL.LoopVCG.fresh_distinct,
+    ``APL.LoopVCG.fresh_disjoint,
+    ``APL.LoopVCG.group_exact,
+    ``APL.LoopVCG.represented_type,
+    ``APL.LoopVCG.head_domain_sound,
+    ``APL.LoopVCG.fresh_head_coverage,
+    ``APL.LoopAnnotations.Assertion.eval_toSpec,
+    ``APL.LoopAnnotations.Assertion.instantiate_sound,
+    ``APL.LoopAnnotations.erase_typed,
+    ``APL.LoopAnnotations.erase_signatures,
+    ``APL.LoopAnnotations.erase_wellTyped,
+    ``APL.LoopAnnotations.Term.erase_mapAnnotations,
+    ``APL.LoopAnnotations.Function.erase_mapAnnotations,
+    ``APL.LoopAnnotations.eraseFunctions_mapAnnotations,
+    ``APL.LoopAnnotations.run_mapAnnotations]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

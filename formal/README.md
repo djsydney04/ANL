@@ -34,10 +34,11 @@ python3 formal/test_local_state.py --rust target/debug/apl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, checks every inventoried theorem's transitive axiom dependencies, and
-replays the model declarations through `leanchecker`. Build warnings are errors.
+syntax, audits the transitive axiom dependencies of 166 theorem names, and replays
+26 semantic modules through separate `leanchecker` processes. Build warnings are errors.
 The axiom audit fails on anything outside `propext`, `Classical.choice`, and
-`Quot.sound`. The current proofs use only `propext` and `Quot.sound`.
+`Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
+uniqueness and disjointness lemmas use `Classical.choice`.
 
 The checked toolchain was the official
 [Lean 4.36.0 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0),
@@ -197,8 +198,37 @@ mutable scalar code with acyclic calls and reports `smt-trusted` results.
 Source elaboration, graph validation, the production
 forward analysis and its correspondence to this CPS generator, named query
 grouping, SMT translation, and the solver remain outside the theorem boundary.
-Production reports retain `termination_proved: false`. Loop invariants and their
-fresh-state reasoning remain a separate increment.
+Production reports retain `termination_proved: false`. A generator and general
+soundness theorem for loop invariants remain a separate increment.
+
+## Foundations for invariant loops
+
+Three modules provide supporting model proofs for future invariant verification.
+They do not add a loop verification-condition generator or prove loop safety from
+invariant obligations, and they do not enable source invariant syntax or production
+loop verification.
+
+`LocalStateFrame` proves that a finite typed evaluation preserves immutable entry
+cells and binding types through scopes, calls, and loops. It also isolates a
+first return to an untouched outer continuation. Merely starting and ending with
+equal continuation lists is insufficient: an outer loop may have consumed and
+recreated them. None of these frame results asserts termination.
+
+`LoopVCGSupport` retains immutable head symbols, assigns distinct fresh identities
+to every mutable numeric or Boolean cell, and uses literal unit for mutable unit
+cells. Every typed concrete head agreeing on immutable values has a representing
+model extension that preserves all earlier symbols. Consecutive allocations have
+disjoint identities. The module also proves that grouping recorded guarded checks
+as a conjunction preserves each check. Global generator allocation and exact
+named-query completeness still require proofs.
+
+`LoopAnnotations` supplies pure mathematical assertions over current locals,
+newest binding first, separately from declaration-order entry/result contracts.
+Its `HasType` judgment means verification-ready annotated typing and requires
+nonempty Boolean invariant lists. Ordinary source typing continues to accept
+unannotated loops. Erasing annotation metadata preserves the actual Lean machine
+at every identical budget, even when annotations are empty, ill typed, or false;
+that erasure theorem does not establish annotation validity or source lowering.
 
 ## Model and evidence
 

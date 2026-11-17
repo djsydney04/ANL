@@ -7,3 +7,6 @@ import APL.VCGContracts
 import APL.VCGCallsExamples
 import APL.LocalStateExamples
 import APL.StateVCGExamples
+import APL.LocalStateFrame
+import APL.LoopVCGSupport
+import APL.LoopAnnotations
