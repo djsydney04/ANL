@@ -21,14 +21,13 @@ each implemented feature. M3 can progress alongside native compiler work once M1
 contracts are stable. A phase number expresses dependencies, not a claim that all
 work in prior phases is finished.
 
-## M0: accepted architecture
+## M0: architecture
 
-Deliver every item P0-01 through P0-18 in the requirement ledger. Review the
-integrated design independently. Resolve blocking contradictions in types,
-memory, evaluation, compiler IRs and verification. Record unresolved research
-questions with bounded first milestones. Push the reviewed artifacts to GitHub
-and record architectural acceptance. Then start M1 without a further permission
-checkpoint.
+Define compatible syntax, type rules, memory semantics, compiler representations
+and verification boundaries. Compare competing designs and document technical
+risks. Independent review must resolve contradictions that would prevent an
+executable implementation. The architecture is a design artifact, not proof that
+its capabilities exist.
 
 ## M1: typed executable core
 
@@ -45,9 +44,9 @@ checker. Execute independent model comparisons where the formal model overlaps
 the source language. Record call coverage separately from expression proofs.
 Do not label fuel exhaustion as a language trap or as evidence of divergence.
 
-Assign frontend/type checking, interpreter/conformance, and formal foundations to
-separate owners after agreeing their shared types. Independently review these
-contracts and implementations before closing M1.
+Keep the frontend, evaluator and formal model aligned through explicit shared
+contracts. Independently review these contracts and implementations before
+closing M1.
 
 ## M2: native compiler
 
@@ -73,9 +72,10 @@ versions. Report the implemented trust level for each result.
 
 Implement the remainder of the type system, ownership/borrowing, data types,
 generics, closures, pattern matching, errors, effects, concurrency/async, I/O,
-layout and FFI. Deliver a substantive standard library including the full §18
-inventory. Every extension needs normative semantics, conformance and misuse
-tests, appropriate formal coverage, integration examples and documentation.
+layout and FFI. Deliver a substantive standard library covering the
+[library requirements](requirements.md). Every extension needs normative semantics,
+conformance and misuse tests, appropriate formal coverage, integration examples
+and documentation.
 
 Acceptance includes a generic collection, parser, file-processing utility, native
 library integration, concurrent application and network service. Evaluate the
@@ -102,16 +102,18 @@ formatting idempotence, real editor interactions, debugging and clean builds.
 
 ## M7: qualified release
 
-Audit all charter requirements against the actual revision. Close release
-blockers. Build versioned installation artifacts with checksums and appropriate
+Audit all [language requirements](requirements.md) against the actual revision.
+Close release blockers. Build versioned installation artifacts with checksums and appropriate
 integrity mechanisms. Validate install/upgrade/uninstall in clean supported
 environments. Ordinary users must not require internal development dependencies.
 
 Publish the complete learning ecosystem and substantive whitepaper as source and
 a visually checked typeset PDF. Every technical claim refers to implementation,
-proof or measurement evidence. Fresh-context agents receive only published
-materials and perform every §32.5 developer journey. Correct their findings,
-revalidate the release artifacts, and record the final requirement audit.
+proof or measurement evidence. Independent developer evaluations use only
+published materials to install the release, follow a tutorial, build generic,
+concurrent, network and agent applications, verify properties, use dependencies,
+and interpret diagnostics. Correct their findings, revalidate the release
+artifacts, and record the final requirement audit.
 
 ## Risks and decision triggers
 
@@ -124,4 +126,3 @@ revalidate the release artifacts, and record the final requirement audit.
 | Ecosystem work exceeds language maturity | Tooling advertises unsupported behavior | Add commands only with working implementations; preserve full pending requirements |
 | Model proofs are mistaken for implementation proofs | Unsupported safety claims | Maintain theorem-by-theorem coverage and TCB; independent release claim audit |
 | Package/name/platform decisions remain unresolved | Distribution and onboarding blocked | Resolve before public package/release publication; retain selected ANL repo meanwhile |
-| Host capacity or session interruption | Lost execution context | Versioned assignments and exact handoffs; verify process/agent state before resuming |

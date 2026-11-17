@@ -1,42 +1,43 @@
 # Contribute to APL
 
-Start with the [current state](notes.md) and [requirements](docs/project/requirements.md).
-The repository is currently in architecture research. Compiler build and proof
-commands will be documented when their implementations exist.
+Start with the [architecture](docs/architecture/overview.md) and
+[language requirements](docs/requirements.md). The repository currently contains
+specifications. Compiler build and proof commands will be documented alongside
+their implementations.
 
 ## Propose a language change
 
-1. Identify the charter requirements and the milestone the change serves.
-2. State the behavior, competing alternatives, typing and evaluation rules.
-3. Define proof obligations, unsafe assumptions and affected compiler interfaces.
-4. Add the proposal to the architecture decision records.
-5. Obtain independent review before implementing a foundational change.
+1. Identify the language capability or defect the change addresses.
+2. Describe its behavior, competing alternatives, typing and evaluation rules.
+3. Identify affected proof obligations, assumptions and compiler interfaces.
+4. Define acceptance criteria and representative programs.
+5. Obtain independent technical review of foundational changes.
 
-## Integrate a component
+## Validate an implementation
 
-1. Agree on owned files and interfaces with the coordinator.
-2. Implement a complete user-observable increment.
-3. Add positive and negative tests that would detect a plausible wrong behavior.
-4. Run the component tests and affected integration/proof checks.
-5. Update specification, examples, trust coverage and requirement evidence.
-6. Obtain independent review of critical code and integrate a scoped commit.
+1. Implement a complete observable behavior.
+2. Add positive and negative tests that detect plausible incorrect behavior.
+3. Run affected component, integration and proof checks.
+4. Update the specification, examples, proof coverage and known limitations.
+5. Review the change and retain reproducible validation evidence.
 
-Preserve user changes and other agents' assignments. Never disable a failing
-proof or test to obtain a passing build. Report unavailable checks as unavailable.
+Never disable a failing proof or test to obtain a passing build. Report checks
+that could not run. Keep designed, implemented, tested and machine-checked
+capabilities distinct.
 
-## CI strategy
+## Continuous integration
 
-The initial architecture check will validate repository links and required
-artifacts. That check can establish document consistency only, not architecture
-quality or language correctness. Independent review supplies the technical gate.
+The planned initial documentation checks validate links and required artifacts.
+They establish document consistency, not architecture quality or language correctness.
 
-M1 adds pinned Rust formatting, lint, unit, source-conformance and interpreter
-checks plus pinned proof-checker builds. M2 adds native execution and differential
-tests on supported platform runners. Later stages add verifier regressions,
-property/fuzz testing, sanitizers, security analysis, benchmark regression
-measurement, documentation examples, installation and artifact integrity checks.
+The executable-core milestone adds pinned Rust formatting, lint, unit,
+source-conformance and interpreter checks, plus pinned proof-checker builds.
+Native compilation adds binary execution and differential tests on supported
+platforms. Later checks cover verifier regressions, property testing, fuzzing,
+sanitizers, security analysis, performance, documentation examples, installation
+and release artifact integrity.
 
-Workflow permissions should be read-only unless a particular release operation
-requires more. Pin external actions and dependencies, use lockfiles, and keep
-secrets outside logs and repository files. Repository protections remain intact.
-Release jobs must depend on all relevant checks and an explicit release audit.
+Use reproducible tool versions and lockfiles. Keep workflow permissions read-only
+unless a specific operation requires more. Keep secrets out of logs and source
+files. Release qualification requires the checks relevant to the capabilities
+being published.

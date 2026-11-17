@@ -1,0 +1,104 @@
+# Language requirements
+
+APL targets a complete systems language and development environment. The
+[language charter](charter.md) defines its purpose and the [roadmap](roadmap.md)
+orders delivery. This specification lists the capabilities and evidence needed
+for a release. All capabilities below remain planned until an implementation and
+its validation are recorded.
+
+Evidence categories are distinct. **Designed** means a specification exists.
+**Implemented** means executable code exists. **Tested** identifies passing checks.
+**Machine-checked** names the theorem, formal model, tool version and assumptions.
+**Released** requires qualified installation artifacts. None implies another.
+
+## Language and execution
+
+All entries below are **planned**, unless an evidence record explicitly updates
+the entry. The milestone column identifies an initial delivery target. Later
+milestones remain required for the complete language.
+
+| ID | Required capabilities | Target milestone | Required evidence |
+| --- | --- | --- | --- |
+| L01 | Strong static typing, sound inference, rejection of invalid operations, explicit conversions | M1–M4 | Normative judgments, negative cases, inference conformance, scoped soundness proofs |
+| L02 | Numeric, boolean, character, string types | M1–M4 | Boundary/literal/encoding tests and documented arithmetic semantics |
+| L03 | Arrays, slices, tuples, records, collections | M4 | Construction, access, bounds, layout and lifetime tests |
+| L04 | ADTs, tagged unions, exhaustive patterns | M4 | Exhaustiveness algorithm, rejection tests, lowering conformance |
+| L05 | Generic functions/data, higher-order functions, closures, functional abstractions | M4 | Instantiation/inference tests, captured-resource tests, real generic data structure |
+| L06 | Module/interface boundaries, explicit errors and propagation | M2–M4 | Multi-module binaries, visibility, error propagation and ABI tests |
+| L07 | Mutability, aliasing, stack/heap ownership, resource lifetimes, borrowing, safe cleanup | M4 | Negative lifetime/alias tests, memory model, cleanup tests, safety coverage ledger |
+| L08 | HM, bidirectional, parametric polymorphism, traits, linear/affine, regions/lifetimes, refinements, dependent types, effects, capabilities, typestate, sessions, higher-kinded types evaluated | M0 | Comparison with soundness, expression, complexity, inference, verification, compile/runtime performance and usability consequences |
+| L09 | Pure functions, recursion, immutable bindings, mutable state, loops and structured control flow | M1–M4 | Evaluation-order and trap tests, state/loop semantics, recursive programs |
+| L10 | Explicit unsafe, layout, pointers, buffers, native interoperability; GC not mandatory | M4 | Unsafe contracts, layout tests, C ABI programs, sanitizer/security review |
+| L11 | Native threads, async, futures/tasks, structured scopes, channels, message passing, actors if justified | M4 | Executable concurrent examples, task lifetime and channel safety tests |
+| L12 | Synchronization, atomics, executors, schedulers, cancellation, timeout, parallel computation | M4 | Memory model, race rejection, scheduler/cancellation stress, resource cleanup |
+| L13 | Distinct guarantees for race freedom, deadlock, starvation and protocol correctness | M4 | Explicit theorem assumptions, counterexamples to guarantees not provided |
+| L14 | OS/files/network/process/thread access, binary data, serialization, native linking/platform operations | M4 | CLI, network server, process and FFI examples on supported platforms |
+
+## Formal methods and compiler
+
+| ID | Required capabilities | Target milestone | Required evidence |
+| --- | --- | --- | --- |
+| F01 | Grammar, judgments, operational, memory, ownership, effects, error and concurrency semantics | M1–M4 | Versioned formal model corresponding to implemented features |
+| F02 | Mechanized soundness for defined core, scope distinguished from whole implementation | M1 onward | Pinned checker logs, theorem statements, absence of admitted target theorems, bridge limitations |
+| F03 | Preconditions, postconditions, invariants, loop invariants, assertions, refinements | M3–M4 | VC generator plus positive, false and unknown examples including overflow |
+| F04 | Ghost/proof-only code, state transitions, protocol contracts, data-structure properties | M3–M5 | Erasure rules, specification soundness tests, machine-checked examples |
+| F05 | Type-checked, verified, dynamic, tested, unverified, failed, unknown/timeout distinguished | M3 | CLI statuses and artifacts; missing solver, crash and timeout fail-closed tests |
+| F06 | IR semantics, transformation proofs, lowering preservation, validation, verified subsets, checkable artifacts | M2 onward | Pass-specific proof/validation evidence and pipeline coverage matrix |
+| F07 | Differential/property tests complement proof; explicit backend, parser, type checker, VCG, solver, runtime, unsafe, FFI and OS trust | every phase | Independent reference comparisons and maintained trust ledger |
+| C01 | Lexer/parser/AST, name/module resolution, inference/checking, diagnostics | M1–M2 | Positive and negative source tests with source locations |
+| C02 | Ownership/effect analyses, verification integration, validated IRs, lowering, optimization, debug info | M2–M4 | IR validators, pass invariants, semantic comparison and debugger sessions |
+| C03 | Native code generation, linking, executable programs | M2 | Build and run real native binaries, inspect platform format, compare model outcomes |
+| C04 | LLVM, MLIR, Cranelift and relevant alternatives evaluated | M0 | Sourced backend tradeoff record and selected strategy |
+| C05 | Independent reference interpreter or executable formal model | M1 | Model comparison, divergent mutations caught, call/trap semantics |
+| C06 | Folding, inlining, dead-code/escape/loop/allocation analysis, specialization, layout, interprocedural/LTO evaluated | M4–M6 | Optimization decision records and semantic preservation regression tests |
+| C07 | Compile time, runtime, binary size, memory and verification latency against C/Rust/C++/OCaml where suitable | M6 | Reproducible benchmark sources, environment, raw measurements and honest regressions |
+
+## Runtime, library and agents
+
+| ID | Required capabilities | Target milestone | Required evidence |
+| --- | --- | --- | --- |
+| R01 | Initialization, allocation, resources, errors/panics, I/O, OS/FFI | M2–M4 | ABI and lifecycle tests, documented mandatory/optional components |
+| R02 | Concurrency, async, observability, agent workflow support | M4–M5 | Real applications, traces, failure and cancellation tests |
+| S01 | Primitive utilities, text, strings, collections, iterators | M4 | Documented public APIs, property/boundary tests, examples |
+| S02 | Filesystem, paths, I/O, networking, time, processes | M4 | Platform tests and external-developer examples |
+| S03 | Concurrency, synchronization, async and errors | M4 | Resource/race and error recovery tests |
+| S04 | Formatting, parsing, serialization, tests, logging/tracing | M4–M6 | Compatibility corpus, malformed-input tests, generated API docs |
+| S05 | Safe wrappers for established cryptography | M4–M7 | Audited FFI/provider boundaries, known-answer tests, no invented cryptography |
+| A01 | Typed interfaces/tools, local state, communication, workflows, parallelism, capabilities | M5 | Typed agents, rejection of missing authority, protocol and state tests |
+| A02 | Durable execution/recovery, retries, cancellation/timeouts, traces, deterministic replay | M5 | Crash injection, replay with recorded nondeterminism, duplicate-effect policy |
+| A03 | State-machine/protocol verification, budgets, human approval, test environments | M5 | Protected-state proofs, adversarial capability tests, budget enforcement, simulated tools |
+| A04 | External model correctness remains an assumption; libraries preferred over special syntax | M0–M5 | Trust documentation, deterministic core separated from external responses |
+
+## Ecosystem and final release
+
+| ID | Required capabilities | Target milestone | Required evidence |
+| --- | --- | --- | --- |
+| T01 | Coherent CLI, scaffolding/build/run/check/verify/test/fmt/lint/doc/dependency/version workflows | M1–M6 | Actual CLI user journeys; unsupported commands cannot claim success |
+| T02 | Package management, dependency resolution and reproducible builds | M6 | Locked transitive graph, clean offline/cache builds, hash and conflict failures |
+| T03 | Formatter, linter, test runner, documentation generator | M6 | Formatting stability/semantics, actionable lint, real tests, linked API docs |
+| T04 | Language server, diagnostics, completion, debugger and editor integration | M6 | LSP protocol tests, editor and native-debugger exercises |
+| D01 | Supported-platform install, versioned binaries, integrity, upgrades/uninstall; signing where supported | M7 | Clean-environment install from release artifacts, checksums, tamper failures, uninstall tests |
+| D02 | Ordinary users need no internal compiler development dependencies | M7 | Independent onboarding with only published prerequisites |
+| DOC01 | Book, examples, language reference, standard-library reference, verification guide | M1–M7 | Working examples, full implemented-feature coverage and searchable API docs |
+| DOC02 | Compiler internals, agent, install, contributor, migration/interoperability guides | M1–M7 | Navigation, versioned docs, beginner walkthroughs, runnable interoperability examples |
+| W01 | Technical whitepaper covering abstract, introduction, related work, language design, typing, semantics, verification, compiler architecture/correctness, memory/concurrency, agents, performance, developer experience, limitations, conclusion, references and appendices | M7 | Versioned source and rendered professionally typeset PDF, reviewed claims and references |
+| W02 | Actual results, metatheory, implementation/proof coverage, comparisons, limitations, reproducibility | M7 | Claim-to-evidence table, raw benchmark data, proof references, independent technical review |
+| Q01 | CI builds, unit/integration/e2e/conformance/type/proof/verifier checks, fuzzing, static/security/performance/cross-platform/docs/install/release checks | all phases | Passing exact-revision checks whose coverage matches the capability |
+| Q02 | Final audit of all requirements, limits, defects, risks, supported platforms and release blockers | M7 | Requirement-by-requirement audit with no missing mandatory evidence |
+| Q03 | Independent developers install, learn, build generic/concurrent/network/agent programs, verify, use dependencies and interpret errors | M7 | Independent onboarding records using only published materials; resolved usability defects |
+## Release acceptance
+
+Every required capability needs evidence that exercises its promised behavior and
+documents its assumptions. A passing subset cannot establish complete-language
+support. Deferred capabilities remain open until implemented and validated.
+
+Reproducible builds, source review, clear subsystem contracts, security evaluation,
+regression checks, and versioned specifications accompany each release. Any
+change to semantics must update the corresponding model, proof obligations,
+compiler behavior, conformance tests and documentation.
+
+The final audit covers the complete language, compiler, verification system,
+runtime, standard library, agent libraries, tooling, installation, documentation
+and whitepaper. It records unsupported features, known defects, security risks,
+performance limitations and supported platforms. Release-blocking gaps must be
+resolved before completion is claimed.
