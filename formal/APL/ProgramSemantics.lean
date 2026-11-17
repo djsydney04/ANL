@@ -50,4 +50,12 @@ inductive Step (fs : Functions) : State → State → Prop where
   | invoke : fs[f]? = some fn → Step fs (.invoke f values k) (.eval fn.body values k)
   | invalidFunction : fs[f]? = none → Step fs (.invoke f values k) .invalid
 
+inductive Terminal : State → Prop where
+  | value : Terminal (.ret v [])
+  | trap : Terminal (.trap kind)
+
+inductive Steps (fs : Functions) : State → State → Prop where
+  | refl : Steps fs s s
+  | head : Step fs s s' → Steps fs s' last → Steps fs s last
+
 end APL.Program

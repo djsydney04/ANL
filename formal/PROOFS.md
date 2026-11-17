@@ -56,17 +56,58 @@ code or assumed compiler correctness.
 | `APL.steps_preserve` | A finite sequence of relation steps preserves the initial state type. |
 | `APL.run_safety` | A successful run from a typed state returns a typed terminal state. |
 
+## Recursive program guarantees
+
+`Program.HasType sigs Γ e t` and `Program.ArgsTyped sigs Γ es ts` are mutually
+inductive declarative judgments over untyped program syntax. `signatures fs`
+projects the parameter and result types from the actual function table.
+`WellTyped fs` requires every function body to have its declared result type
+under its reversed parameter context and the complete signature table. It does
+not assume safe execution, termination, or any property of the Rust checker.
+
+Program state typing includes evaluation, value return, invocation and trap
+states. Every continuation frame is typed. An argument frame checks the saved
+caller environment, remaining expressions, the reverse prefix of evaluated
+arguments, and the selected function signature. Invocation passes only the
+reversed argument values into the callee; caller environments remain in their
+continuation frames. The result type of every frame matches the next frame.
+
+The following theorems extend FM-01 through FM-03 and the checker guarantees to
+forward and mutually recursive functions. All operators, short circuits, traps,
+locals, lets, conditionals, argument transitions and call transitions are covered.
+No proof assumes termination. FM-04's program evaluator correspondence remains
+open, so the complete FM-05 obligation is still not discharged.
+
+| Theorem | Quantified statement and assumptions |
+| --- | --- |
+| `APL.Program.infer_complete` | `HasType sigs Γ e t` implies `infer sigs Γ e = some t`, including ordered argument checking. |
+| `APL.Program.infer_sound` | `infer sigs Γ e = some t` implies `HasType sigs Γ e t`. This proves the total Lean program checker, not the JSON reader or Rust checker. |
+| `APL.Program.type_unique` | Two declarative typings of the same term under the same signatures and local context have equal result types. |
+| `APL.Program.signatures_lookup` | Looking up a function in `fs` successfully finds its parameter/result pair in `signatures fs`. |
+| `APL.Program.signatures_lookup_inv` | A successful signature lookup identifies an actual function at the same index with exactly those parameter/result types. |
+| `APL.Program.checked_functions` | If `Program.infer` accepts every body with its declared result under the actual table's signatures and reversed parameters, then `WellTyped fs`. This is the precise checker-to-table bridge; the wire reader's construction of that table is not proved. |
+| `APL.Program.resume_typed` | A typed primitive outcome and typed continuation yield a typed program state; arithmetic traps remain permitted. |
+| `APL.Program.preservation` | `WellTyped fs`, `s.Typed (signatures fs) t`, and `Step fs s s'` imply `s'.Typed (signatures fs) t`. Covers all 22 transition constructors. |
+| `APL.Program.progress` | `s.Typed (signatures fs) t` implies `Terminal s` or a successor under `Step fs`. Body typing is not needed for this single-step theorem; preservation requires it. |
+| `APL.Program.steps_preserve` | `WellTyped fs`, a typed initial state and any finite `Program.Steps fs` derivation imply a final state of the same type. |
+| `APL.Program.safety` | Under those same assumptions, the reached state has the initial type and is terminal or has a successor. Applies to every finite prefix even when execution diverges. |
+| `APL.Program.no_invalid` | No finite reduction from a typed state under `WellTyped fs` reaches `Program.State.invalid`. |
+| `APL.Program.closed_safety` | A closed declaratively typed term under `WellTyped fs`, any finite reduction from empty environment/continuation, and absence of a next step imply a value of the declared type with empty continuation or one of the defined traps. Does not assert that a finite terminal reduction exists. |
+| `APL.Program.entry_typed` | An actual zero-parameter function gives a typed initial invocation state with its declared result type. |
+| `APL.Program.entry_safety` | `WellTyped fs`, a zero-parameter entry lookup and any finite reduction from that invocation imply a typed terminal state or a next step. |
+
 ## Axiom dependencies and trust
 
-The transitive dependencies of `infer_complete`, `infer_sound`, and `type_unique`
-are exactly `propext` and `Quot.sound`. Each remaining inventoried theorem uses
-exactly `propext`. None currently uses `Classical.choice`, although the project
-policy permits it. No project axiom, incomplete proof, native-evaluation trust
+The original expression `infer_complete`, `infer_sound`, and `type_unique`
+theorems use exactly `propext` and `Quot.sound`; the other expression theorems
+use exactly `propext`. Every inventoried program theorem uses exactly `propext`
+and `Quot.sound`, except `Program.resume_typed`, which uses only `propext`.
+None currently uses `Classical.choice`, although the project policy permits it. No project axiom, incomplete proof, native-evaluation trust
 axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 21 inventoried names are included.
+Its allowable set is explicit, and all 36 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -74,11 +115,13 @@ not establish that the formal definitions match every intended APL rule.
 
 ## Explicit gaps
 
-FM-05 is not discharged. `APL.Program.Step` specifies fuel-free recursive-call
-transitions, and the executable program evaluator is tested, but preservation,
-progress, and evaluator correspondence for global function environments and
-calls are unproved. The expression syntax intentionally has no call constructor;
-program terms use a separate type to make that boundary visible.
+FM-05 is partly discharged. Declarative program typing, checker soundness and
+completeness, type uniqueness, preservation, progress and finite reduction safety
+are checked for global functions and recursive calls. Correspondence between the
+actual bounded `APL.Program.eval` and `APL.Program.Step` is unproved in either
+direction. No theorem here concludes executable program safety from relation
+safety. The expression syntax intentionally has no call constructor; program
+terms use a separate type to make that boundary visible.
 
 FM-06 is differential and negative testing evidence only. The Lean expression
 checker's soundness theorem does not prove the Rust frontend, checker, serializer,

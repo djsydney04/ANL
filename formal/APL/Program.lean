@@ -22,7 +22,7 @@ abbrev Functions := Array Function
 abbrev Signature := List Ty × Ty
 abbrev Signatures := Array Signature
 
-partial def infer (fs : Signatures) (Γ : Ctx) : Term → Option Ty
+def infer (fs : Signatures) (Γ : Ctx) : Term → Option Ty
   | .lit v => some v.type
   | .local i => Γ[i]?
   | .letE a b => do let u ← infer fs Γ a; infer fs (u :: Γ) b

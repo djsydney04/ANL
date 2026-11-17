@@ -1,12 +1,14 @@
 # APL formal core
 
 This directory implements the `m1-2026-11-16` scalar expression model in Lean
-4.36.0. It includes untyped syntax, declarative typing, an independently checked
-inference function, a small-step evaluation machine, and proofs of type
-uniqueness, preservation, progress, and finite evaluator correspondence.
+4.36.0. It includes untyped syntax, declarative typing, independently checked
+inference functions, and small-step evaluation machines. Type uniqueness,
+preservation and progress cover scalar expressions and recursive global
+functions. Finite evaluator correspondence is proved for scalar expressions.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
-lets, all scalar unary and binary operators, and conditionals. It is the first
+lets, all scalar unary and binary operators, conditionals, and forward or mutually
+recursive function calls. It is the first
 mechanized slice of APL. It does not replace the complete-language roadmap.
 
 ## Build and check
@@ -79,8 +81,10 @@ supports named and mutually recursive calls. It charges one unit immediately
 before evaluating each expression, with a global decreasing budget and a
 256-expression nesting bound. Entry invocation is free; only evaluated arguments,
 branches and operands consume fuel. Its correspondence to
-`APL.Program.Step` is **not proved**. The expression theorems do not certify
-recursive programs. Program execution is covered by conformance tests.
+`APL.Program.Step` is **not proved**. The program relation has its own checked
+preservation and progress proofs for well-typed function tables; these do not yet
+certify the executable program evaluator. Program execution is also covered by
+conformance tests.
 
 The CLI bounds files at 1,048,576 bytes, JSON nesting at 256, expression trees at
 128, and indices at 4,294,967,295. These limits and exhausted fuel report
@@ -99,11 +103,20 @@ language behavior; they do not establish divergence or type safety.
   of correspondence with the bounded executable machine.
 - `APL/ProgramSemantics.lean` extends the mathematical small-step vocabulary with
   global functions and ordered arguments. Its relation has no fuel argument;
-  infinite reduction represents divergence. Its safety and evaluator
-  correspondence proofs remain FM-05 work.
+  infinite reduction represents divergence.
+- `APL/ProgramTyping.lean` defines declarative program and argument typing,
+  well-typed function tables, captured environments and continuation frames. It
+  proves soundness and completeness of `Program.infer`, including calls, and
+  uniqueness of inferred types. Function bodies are checked against the complete
+  signature table, so forward and mutual recursion require no unfolding of calls.
+- `APL/ProgramSafety.lean` proves preservation and progress for every program
+  transition, finite reduction safety, exclusion of invalid states, and entry
+  safety. No termination assumption is made. Kernel-checked examples cover mutual
+  recursion, heterogeneous argument order, bad arity and unknown function IDs.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
-  and strict interchange. These adapters and executable compilation remain
-  trusted and tested components.
+  and strict interchange. The total program inference function is proved against
+  declarative typing; the JSON adapter, program evaluator correspondence, and
+  executable compilation remain trusted or tested boundaries.
 - `APL/Smoke.lean` contains kernel-reduced arithmetic, trap, short-circuit,
   scoping, and typing examples. `test.py` drives the actual executables against
   specified expected outcomes and a separate Python integer oracle, including
