@@ -84,40 +84,41 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     };
     let path = Path::new(&args[1]);
     let filename = path.to_string_lossy();
-    let file = File::open(path).map_err(|error| format!("cannot read {filename}: {error}"))?;
-    let mut bytes = Vec::new();
-    file.take(MAX_SOURCE_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("cannot read {filename}: {error}"))?;
-    if bytes.len() > MAX_SOURCE_BYTES {
-        if command == "eval-core" {
+    let source = if command == "eval-core" {
+        let file = File::open(path).map_err(|error| format!("cannot read {filename}: {error}"))?;
+        let mut bytes = Vec::new();
+        file.take(MAX_SOURCE_BYTES as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|error| format!("cannot read {filename}: {error}"))?;
+        if bytes.len() > MAX_SOURCE_BYTES {
             output("{\"outcome\":\"resource_limit\"}")?;
+            diagnostic(format_args!(
+                "{filename}:1:1: resource_limit: input exceeds 1048576 bytes"
+            ))?;
+            return Ok(3);
         }
-        diagnostic(format_args!(
-            "{filename}:1:1: resource_limit: input exceeds 1048576 bytes"
-        ))?;
-        return Ok(3);
-    }
-    let source = match String::from_utf8(bytes) {
-        Ok(text) => text,
-        Err(error) => {
-            if command == "eval-core" {
+        match String::from_utf8(bytes) {
+            Ok(text) => text,
+            Err(error) => {
                 output("{\"outcome\":\"invalid_ir\"}")?;
+                let offset = error.utf8_error().valid_up_to();
+                let valid = std::str::from_utf8(&error.as_bytes()[..offset]).unwrap_or("");
+                diagnostic(
+                    Diagnostic::new(
+                        Span {
+                            source_id: 0,
+                            start: offset,
+                            end: offset,
+                        },
+                        "input is not valid UTF-8",
+                    )
+                    .render(&filename, valid),
+                )?;
+                return Ok(1);
             }
-            let offset = error.utf8_error().valid_up_to();
-            let valid = std::str::from_utf8(&error.as_bytes()[..offset]).unwrap_or("");
-            diagnostic(
-                Diagnostic::new(
-                    Span {
-                        start: offset,
-                        end: offset,
-                    },
-                    "input is not valid UTF-8",
-                )
-                .render(&filename, valid),
-            )?;
-            return Ok(1);
         }
+    } else {
+        String::new()
     };
     if command == "eval-core" {
         let artifact = match core::import(&source) {
@@ -134,13 +135,19 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         };
         let result = eval::evaluate(&artifact.program, artifact.entry, fuel);
         output(core::outcome(&result))?;
-        return report_execution(result, &filename, &source);
+        return report_execution(result, &filename, &source, None);
     }
-    let program = match apl::compile(&source) {
+    let program = match apl::compile_file(path) {
         Ok(program) => program,
         Err(error) => {
             diagnostic(error.render(&filename, &source))?;
-            return Ok(if error.resource_limit { 3 } else { 1 });
+            return Ok(if error.infrastructure {
+                4
+            } else if error.resource_limit {
+                3
+            } else {
+                1
+            });
         }
     };
     if command == "check" {
@@ -184,21 +191,30 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if let Ok(value) = &result {
         output(value)?;
     }
-    report_execution(result, &filename, &source)
+    report_execution(result, &filename, &source, Some(&program))
 }
 fn report_execution(
     result: Result<eval::Value, EvalError>,
     filename: &str,
     source: &str,
+    program: Option<&apl::types::Program>,
 ) -> Result<u8, CliError> {
+    let render = |error: Diagnostic| {
+        let error = if let Some(program) = program {
+            program.source_diagnostic(error)
+        } else {
+            error
+        };
+        error.render(filename, source)
+    };
     Ok(match result {
         Ok(_) => 0,
         Err(EvalError::Trap { kind, span }) => {
-            diagnostic(Diagnostic::new(span, kind.as_str()).render(filename, source))?;
+            diagnostic(render(Diagnostic::new(span, kind.as_str())))?;
             2
         }
         Err(EvalError::ResourceLimit { reason, span }) => {
-            diagnostic(Diagnostic::resource(span, reason).render(filename, source))?;
+            diagnostic(render(Diagnostic::resource(span, reason)))?;
             3
         }
         Err(EvalError::InvalidIr) => {

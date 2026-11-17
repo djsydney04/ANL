@@ -141,7 +141,7 @@ fn emit_block(block: &Block, text: &mut String, indent: usize) {
 /// Compile with the host C toolchain and publish only a successfully linked binary.
 /// `CC`, when present, is one executable path, never a shell command or flag list.
 pub fn build(program: &Program, entry: usize, source: &Path, output: &Path) -> Result<(), String> {
-    protect_source(source, output)?;
+    protect_sources(program, source, output)?;
     let c = emit_c(program, entry)?;
     let parent = output
         .parent()
@@ -177,7 +177,7 @@ pub fn build(program: &Program, entry: usize, source: &Path, output: &Path) -> R
         return Err("C compiler reported success without producing an executable".into());
     }
     // Recheck after the external compiler completes before replacing an output.
-    protect_source(source, &destination)?;
+    protect_sources(program, source, &destination)?;
     fs::rename(&binary, &destination).map_err(|error| {
         format!(
             "cannot publish executable {}: {error}",
@@ -197,6 +197,21 @@ pub fn run(program: &Program, entry: usize, source: &Path) -> Result<u8, String>
         .map_err(|error| format!("cannot run native executable: {error}"))?;
     status.code().and_then(|code| u8::try_from(code).ok())
         .ok_or_else(|| format!("native executable terminated by the host ({status}); native execution has no interpreter fuel or stack limit"))
+}
+
+fn protect_sources(program: &Program, source: &Path, output: &Path) -> Result<(), String> {
+    protect_source(source, output)?;
+    for input in program.sources.iter() {
+        protect_source(&input.path, output)?;
+        #[cfg(unix)]
+        if let Ok(metadata) = fs::metadata(output) {
+            use std::os::unix::fs::MetadataExt;
+            if input.identity == (metadata.dev(), metadata.ino()) {
+                return Err("output would overwrite the source input".into());
+            }
+        }
+    }
+    Ok(())
 }
 
 fn protect_source(source: &Path, output: &Path) -> Result<(), String> {

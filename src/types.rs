@@ -1,4 +1,4 @@
-use crate::diagnostic::Span;
+use crate::diagnostic::{Diagnostic, Sources, Span};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -181,9 +181,16 @@ pub struct Function {
 #[derive(Clone, Debug)]
 pub struct Program {
     pub(crate) functions: Vec<Function>,
+    pub(crate) sources: Sources,
 }
 
 impl Program {
+    /// Attach this program's immutable source map to a diagnostic, including
+    /// evaluator traps. Programs imported from core JSON have no source map.
+    pub fn source_diagnostic(&self, diagnostic: Diagnostic) -> Diagnostic {
+        diagnostic.with_sources(self.sources.clone())
+    }
+
     pub fn entry(&self) -> Result<usize, crate::diagnostic::Diagnostic> {
         let id = self
             .functions
@@ -197,10 +204,10 @@ impl Program {
             })?;
         let main = &self.functions[id];
         if !main.params.is_empty() || main.result != Type::I64 {
-            return Err(crate::diagnostic::Diagnostic::new(
+            return Err(self.source_diagnostic(crate::diagnostic::Diagnostic::new(
                 main.span,
                 "executable entry must have signature fn main() -> i64",
-            ));
+            )));
         }
         Ok(id)
     }

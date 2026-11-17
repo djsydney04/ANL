@@ -1,6 +1,6 @@
 use crate::{
     MAX_DEPTH,
-    diagnostic::{Diagnostic, Span},
+    diagnostic::{Diagnostic, Sources, Span},
     syntax,
     types::{Expr, ExprKind, Function, Program, Type, UnaryOp},
 };
@@ -10,6 +10,7 @@ struct Signature {
     params: Vec<Type>,
     result: Type,
     span: Span,
+    public: bool,
 }
 struct Binding {
     name: Option<String>,
@@ -18,71 +19,132 @@ struct Binding {
 }
 struct Checker {
     signatures: Vec<Signature>,
-    names: HashMap<String, usize>,
+    names: Vec<HashMap<String, Member>>,
+    current_module: usize,
     next_id: usize,
 }
 
-pub fn check(functions: Vec<syntax::Function>) -> Result<Program, Diagnostic> {
+pub(crate) struct Module {
+    pub functions: Vec<syntax::Function>,
+    pub imports: Vec<Import>,
+}
+pub(crate) struct Import {
+    pub name: String,
+    pub target: usize,
+    pub public: bool,
+    pub span: Span,
+}
+#[derive(Clone, Copy)]
+enum Member {
+    Function(usize),
+    Module {
+        target: usize,
+        public: bool,
+        span: Span,
+    },
+}
+
+pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnostic> {
     let mut checker = Checker {
         signatures: Vec::new(),
-        names: HashMap::new(),
+        names: Vec::new(),
+        current_module: 0,
         next_id: 0,
     };
-    for function in &functions {
-        if let Some(id) = checker
-            .names
-            .insert(function.name.clone(), checker.signatures.len())
-        {
-            return Err(Diagnostic::new(
-                function.span,
-                format!("duplicate function `{}`", function.name),
-            )
-            .related(
-                checker.signatures[id].span,
-                "previous function declared here",
-            ));
-        }
-        checker.signatures.push(Signature {
-            params: function.params.iter().map(|p| p.ty).collect(),
-            result: function.result,
-            span: function.span,
-        });
-    }
-    let mut checked = Vec::with_capacity(functions.len());
-    for function in functions {
-        let mut env = Vec::new();
-        let mut parameter_names = HashMap::new();
-        for parameter in function.params {
-            if let Some(previous) = parameter_names.insert(parameter.name.clone(), parameter.span) {
+    for module in &modules {
+        let mut names = HashMap::new();
+        for function in &module.functions {
+            if let Some(Member::Function(id)) = names.insert(
+                function.name.clone(),
+                Member::Function(checker.signatures.len()),
+            ) {
                 return Err(Diagnostic::new(
-                    parameter.span,
-                    format!("duplicate parameter `{}`", parameter.name),
+                    function.span,
+                    format!("duplicate function `{}`", function.name),
                 )
-                .related(previous, "previous parameter declared here"));
+                .related(
+                    checker.signatures[id].span,
+                    "previous function declared here",
+                ));
             }
-            env.push(Binding {
-                name: Some(parameter.name),
-                ty: parameter.ty,
-                span: parameter.span,
+            checker.signatures.push(Signature {
+                params: function.params.iter().map(|p| p.ty).collect(),
+                result: function.result,
+                span: function.span,
+                public: function.public,
             });
         }
-        let body = checker.expr(function.body, &mut env)?;
-        expect_type(
-            body.ty,
-            function.result,
-            body.span,
-            function.result_span,
-            "function result declared here",
-        )?;
-        checked.push(Function {
-            name: function.name,
-            params: env.iter().map(|p| p.ty).collect(),
-            result: function.result,
-            body,
-            span: function.span,
-        });
+        for import in &module.imports {
+            if let Some(previous) = names.insert(
+                import.name.clone(),
+                Member::Module {
+                    target: import.target,
+                    public: import.public,
+                    span: import.span,
+                },
+            ) {
+                let span = match previous {
+                    Member::Function(id) => checker.signatures[id].span,
+                    Member::Module { span, .. } => span,
+                };
+                return Err(Diagnostic::new(
+                    import.span,
+                    format!("duplicate name `{}` in module namespace", import.name),
+                )
+                .related(span, "previous declaration here"));
+            }
+        }
+        checker.names.push(names);
     }
-    Ok(Program { functions: checked })
+    let modular = modules.len() > 1;
+    let mut checked = Vec::with_capacity(checker.signatures.len());
+    for (module_id, module) in modules.into_iter().enumerate() {
+        checker.current_module = module_id;
+        for function in module.functions {
+            let mut env = Vec::new();
+            let mut parameter_names = HashMap::new();
+            for parameter in function.params {
+                if let Some(previous) =
+                    parameter_names.insert(parameter.name.clone(), parameter.span)
+                {
+                    return Err(Diagnostic::new(
+                        parameter.span,
+                        format!("duplicate parameter `{}`", parameter.name),
+                    )
+                    .related(previous, "previous parameter declared here"));
+                }
+                env.push(Binding {
+                    name: Some(parameter.name),
+                    ty: parameter.ty,
+                    span: parameter.span,
+                });
+            }
+            let body = checker.expr(function.body, &mut env)?;
+            expect_type(
+                body.ty,
+                function.result,
+                body.span,
+                function.result_span,
+                "function result declared here",
+            )?;
+            let name = if modular && !(module_id == 0 && function.name == "main") {
+                format!("__apl_m{module_id}_{}", function.name)
+            } else {
+                function.name
+            };
+            checked.push(Function {
+                name,
+                params: env.iter().map(|p| p.ty).collect(),
+                result: function.result,
+                body,
+                span: function.span,
+            });
+        }
+    }
+    Ok(Program {
+        functions: checked,
+        sources,
+    })
 }
 
 fn expect_type(
@@ -103,6 +165,69 @@ fn expect_type(
 }
 
 impl Checker {
+    fn function(&self, name: &str, span: Span) -> Result<usize, Diagnostic> {
+        let mut parts = name.split("::").peekable();
+        let mut module = self.current_module;
+        let mut first = true;
+        while let Some(part) = parts.next() {
+            let member = self.names[module].get(part).copied();
+            if parts.peek().is_some() {
+                match member {
+                    Some(Member::Module {
+                        target,
+                        public,
+                        span: declaration,
+                    }) => {
+                        if !first && !public {
+                            return Err(Diagnostic::new(
+                                span,
+                                format!("module `{part}` is private in path `{name}`"),
+                            )
+                            .related(
+                                declaration,
+                                "private module declared here; export it with pub mod",
+                            ));
+                        }
+                        module = target;
+                        first = false;
+                    }
+                    _ => {
+                        return Err(Diagnostic::new(
+                            span,
+                            format!("undefined module `{part}` in path `{name}`"),
+                        ));
+                    }
+                }
+            } else {
+                return match member {
+                    Some(Member::Function(id)) => {
+                        let signature = &self.signatures[id];
+                        if module != self.current_module && !signature.public {
+                            Err(
+                                Diagnostic::new(span, format!("function `{name}` is private"))
+                                    .related(
+                                        signature.span,
+                                        "private function declared here; export it with pub fn",
+                                    ),
+                            )
+                        } else {
+                            Ok(id)
+                        }
+                    }
+                    Some(Member::Module { .. }) => Err(Diagnostic::new(
+                        span,
+                        format!("module `{name}` is not a function or scalar value"),
+                    )),
+                    None => Err(Diagnostic::new(
+                        span,
+                        format!("undefined function `{name}`"),
+                    )),
+                };
+            }
+        }
+        unreachable!("a source name always has at least one segment")
+    }
+
     fn node(
         &mut self,
         ty: Type,
@@ -143,7 +268,9 @@ impl Checker {
                     .rposition(|binding| binding.name.as_ref() == Some(&name));
                 if let Some(index) = index {
                     (env[index].ty, ExprKind::Local(env.len() - index - 1), 1)
-                } else if self.names.contains_key(&name) {
+                } else if name.contains("::") || self.names[self.current_module].contains_key(&name)
+                {
+                    self.function(&name, span)?;
                     return Err(Diagnostic::new(
                         span,
                         format!("function `{name}` cannot be used as a scalar value"),
@@ -207,6 +334,7 @@ impl Checker {
                         Type::Unit,
                         ExprKind::Unit,
                         Span {
+                            source_id: span.source_id,
                             start: span.end.saturating_sub(1),
                             end: span.end,
                         },
@@ -338,10 +466,7 @@ impl Checker {
                     )
                     .related(binding.span, "local declared here"));
                 }
-                let function = *self
-                    .names
-                    .get(&name)
-                    .ok_or_else(|| Diagnostic::new(span, format!("undefined function `{name}`")))?;
+                let function = self.function(&name, span)?;
                 let signature = &self.signatures[function];
                 if arguments.len() != signature.params.len() {
                     return Err(Diagnostic::new(

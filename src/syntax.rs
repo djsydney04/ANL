@@ -21,6 +21,7 @@ enum TokenKind {
     RBrace,
     Comma,
     Colon,
+    PathSep,
     Semi,
     Assign,
     Arrow,
@@ -58,10 +59,13 @@ pub fn identifier(name: &str) -> bool {
         )
 }
 
-fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
+fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err(Diagnostic::resource(
-            Span::default(),
+            Span {
+                source_id,
+                ..Span::default()
+            },
             "source exceeds 1048576 bytes",
         ));
     }
@@ -113,6 +117,7 @@ fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
                 Some(b">=") => Some(TokenKind::Ge),
                 Some(b"&&") => Some(TokenKind::And),
                 Some(b"||") => Some(TokenKind::Or),
+                Some(b"::") => Some(TokenKind::PathSep),
                 _ => None,
             };
             if let Some(kind) = pair_kind {
@@ -141,6 +146,7 @@ fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
                         let ch = source[start..].chars().next().unwrap();
                         return Err(Diagnostic::new(
                             Span {
+                                source_id,
                                 start,
                                 end: start + ch.len_utf8(),
                             },
@@ -152,18 +158,30 @@ fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
         };
         tokens.push(Token {
             kind,
-            span: Span { start, end: i },
+            span: Span {
+                source_id,
+                start,
+                end: i,
+            },
         });
         if tokens.len() > MAX_TOKENS {
             return Err(Diagnostic::resource(
-                Span { start, end: i },
+                Span {
+                    source_id,
+                    start,
+                    end: i,
+                },
                 "token limit exceeded",
             ));
         }
     }
     tokens.push(Token {
         kind: TokenKind::Eof,
-        span: Span { start: i, end: i },
+        span: Span {
+            source_id,
+            start: i,
+            end: i,
+        },
     });
     Ok(tokens)
 }
@@ -171,11 +189,23 @@ fn lex(source: &str) -> Result<Vec<Token>, Diagnostic> {
 #[derive(Debug)]
 pub struct Function {
     pub name: String,
+    pub public: bool,
     pub span: Span,
     pub params: Vec<Parameter>,
     pub result: Type,
     pub result_span: Span,
     pub body: Expr,
+}
+#[derive(Debug)]
+pub struct Module {
+    pub name: String,
+    pub public: bool,
+    pub span: Span,
+}
+#[derive(Debug)]
+pub struct File {
+    pub functions: Vec<Function>,
+    pub modules: Vec<Module>,
 }
 #[derive(Debug)]
 pub struct Parameter {
@@ -230,9 +260,9 @@ pub enum Statement {
     Discard(Expr),
 }
 
-pub fn parse(source: &str) -> Result<Vec<Function>, Diagnostic> {
+pub fn parse(source: &str, source_id: usize) -> Result<File, Diagnostic> {
     Parser {
-        tokens: lex(source)?,
+        tokens: lex(source, source_id)?,
         pos: 0,
         recursion: 0,
     }
@@ -313,9 +343,30 @@ impl Parser {
         }
         Ok(Expr { kind, span, depth })
     }
-    fn program(mut self) -> Result<Vec<Function>, Diagnostic> {
+    fn program(mut self) -> Result<File, Diagnostic> {
         let mut functions = Vec::new();
+        let mut modules = Vec::new();
         while !self.at(&TokenKind::Eof) {
+            let public = if matches!(&self.current().kind, TokenKind::Ident(name) if name == "pub")
+            {
+                self.bump();
+                true
+            } else {
+                false
+            };
+            if matches!(&self.current().kind, TokenKind::Ident(name) if name == "mod") {
+                let start = self.bump().span;
+                let (name, _) = self.name()?;
+                let end = self
+                    .expect(TokenKind::Semi, "; after module declaration")?
+                    .span;
+                modules.push(Module {
+                    name,
+                    public,
+                    span: start.join(end),
+                });
+                continue;
+            }
             let start = self.expect(TokenKind::Fn, "fn")?.span;
             let (name, _) = self.name()?;
             self.expect(TokenKind::LParen, "(")?;
@@ -337,6 +388,7 @@ impl Parser {
             let body = self.block()?;
             functions.push(Function {
                 name,
+                public,
                 span: start.join(body.span),
                 params,
                 result,
@@ -344,7 +396,7 @@ impl Parser {
                 body,
             });
         }
-        Ok(functions)
+        Ok(File { functions, modules })
     }
     fn block(&mut self) -> Result<Expr, Diagnostic> {
         self.enter()?;
@@ -503,7 +555,22 @@ impl Parser {
                     )
                 }
             }
-            TokenKind::Ident(name) => {
+            TokenKind::Ident(mut name) => {
+                let mut name_span = token.span;
+                let mut segments = 1;
+                while self.eat(&TokenKind::PathSep) {
+                    segments += 1;
+                    if segments > crate::MAX_MODULE_DEPTH {
+                        return Err(Diagnostic::resource(
+                            token.span,
+                            "module path exceeds 32 segments",
+                        ));
+                    }
+                    let (part, span) = self.name()?;
+                    name.push_str("::");
+                    name.push_str(&part);
+                    name_span = name_span.join(span);
+                }
                 if self.eat(&TokenKind::LParen) {
                     let mut arguments = Vec::new();
                     let mut depth = 1;
@@ -524,7 +591,7 @@ impl Parser {
                         depth,
                     )
                 } else {
-                    (ExprKind::Name(name), token.span, 1)
+                    (ExprKind::Name(name), name_span, 1)
                 }
             }
             TokenKind::If => {

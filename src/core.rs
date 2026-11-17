@@ -153,6 +153,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         let body = importer.expr(&root["expression"], &mut Vec::new(), 0)?;
         return Ok(Artifact {
             program: Program {
+                sources: Default::default(),
                 functions: vec![Function {
                     name: "expression".into(),
                     params: Vec::new(),
@@ -205,7 +206,10 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         });
     }
     Ok(Artifact {
-        program: Program { functions: checked },
+        program: Program {
+            functions: checked,
+            sources: Default::default(),
+        },
         entry,
     })
 }
