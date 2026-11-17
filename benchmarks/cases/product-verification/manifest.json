@@ -1,0 +1,1199 @@
+{
+  "schema": "anl-product-verification-benchmark-v1",
+  "expectations": "Specified by source arithmetic and invariant/identity contracts before compiler invocation.",
+  "warmups": 2,
+  "samples": 7,
+  "pair_seed": 20261117,
+  "scalar_pair_schedule": [
+    {
+      "case": "scalar-pure",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "AB",
+        "AB",
+        "BA",
+        "BA",
+        "AB",
+        "AB",
+        "BA"
+      ]
+    },
+    {
+      "case": "scalar-state",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "AB",
+        "BA",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-loop",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-bindings-2",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "BA",
+        "AB",
+        "BA"
+      ]
+    },
+    {
+      "case": "scalar-loops-2",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "AB",
+        "AB",
+        "BA",
+        "BA",
+        "BA",
+        "AB",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-calls-2",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "AB",
+        "BA",
+        "BA"
+      ]
+    },
+    {
+      "case": "scalar-bindings-8",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "BA",
+        "AB",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-loops-8",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "BA",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-calls-8",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "AB",
+        "AB",
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "BA"
+      ]
+    },
+    {
+      "case": "scalar-bindings-16",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "BA",
+        "BA",
+        "AB",
+        "AB",
+        "BA",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-loops-16",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "BA",
+        "AB",
+        "BA",
+        "AB",
+        "AB",
+        "AB"
+      ]
+    },
+    {
+      "case": "scalar-calls-16",
+      "warmups": [
+        "AB",
+        "BA"
+      ],
+      "samples": [
+        "BA",
+        "AB",
+        "AB",
+        "AB",
+        "BA",
+        "BA",
+        "BA"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "name": "scalar-pure",
+      "file": "cases/scalar-pure.anl",
+      "group": "scalar",
+      "family": "control-pure",
+      "scale": 1,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-pure.anl",
+        "exit": 0,
+        "stdout": "10\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "10"
+        }
+      },
+      "source_sha256": "a994beb239de09d4523691f4c6b2935afce9d814a1d80e6a0fcd51947e15b9fd"
+    },
+    {
+      "name": "scalar-state",
+      "file": "cases/scalar-state.anl",
+      "group": "scalar",
+      "family": "control-state",
+      "scale": 1,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-state.anl",
+        "exit": 0,
+        "stdout": "302\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "302"
+        }
+      },
+      "source_sha256": "9b8669ef30b961500cdcb73a332e04997a3244a4ff8d16480be6bdba8cec657e"
+    },
+    {
+      "name": "scalar-loop",
+      "file": "cases/scalar-loop.anl",
+      "group": "scalar",
+      "family": "control-loop",
+      "scale": 1,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-loop.anl",
+        "exit": 0,
+        "stdout": "4\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "4"
+        }
+      },
+      "source_sha256": "6b1381226c83e00e795314345b473e54a66939ed8501cf09a2bbe0cf4f439deb"
+    },
+    {
+      "name": "scalar-bindings-2",
+      "file": "cases/scalar-bindings-2.anl",
+      "group": "scalar",
+      "family": "bindings",
+      "scale": 2,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-bindings-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "source_sha256": "2b1c2b08cc889034b2c9b85a4924d3b2846e47b12f1b2ca16baf146d966d050f"
+    },
+    {
+      "name": "scalar-loops-2",
+      "file": "cases/scalar-loops-2.anl",
+      "group": "scalar",
+      "family": "loops",
+      "scale": 2,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-loops-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "source_sha256": "2b1c2b08cc889034b2c9b85a4924d3b2846e47b12f1b2ca16baf146d966d050f"
+    },
+    {
+      "name": "scalar-calls-2",
+      "file": "cases/scalar-calls-2.anl",
+      "group": "scalar",
+      "family": "calls",
+      "scale": 2,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-calls-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 2,
+      "source_sha256": "94dc2e19298924898c4307d87392ab06dc254bca2b85e2aa643f3efc36d65e6a"
+    },
+    {
+      "name": "scalar-bindings-8",
+      "file": "cases/scalar-bindings-8.anl",
+      "group": "scalar",
+      "family": "bindings",
+      "scale": 8,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-bindings-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "source_sha256": "4be2dd4b6f941f7fab453e29e881b47e9ab6ff14532f7b62dc9f9f8e19a93886"
+    },
+    {
+      "name": "scalar-loops-8",
+      "file": "cases/scalar-loops-8.anl",
+      "group": "scalar",
+      "family": "loops",
+      "scale": 8,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-loops-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 8,
+      "source_calls": 0,
+      "source_sha256": "e3de8bb32d7d37f70558342984fa3492ab817c1a3758e649e498e4791a6983ae"
+    },
+    {
+      "name": "scalar-calls-8",
+      "file": "cases/scalar-calls-8.anl",
+      "group": "scalar",
+      "family": "calls",
+      "scale": 8,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-calls-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 8,
+      "source_sha256": "d87f17d35e57661d553e6d9d8f42709cf9f8ba9408ce9849794706573b5dae90"
+    },
+    {
+      "name": "scalar-bindings-16",
+      "file": "cases/scalar-bindings-16.anl",
+      "group": "scalar",
+      "family": "bindings",
+      "scale": 16,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-bindings-16.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 16,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "source_sha256": "dc537ce98a426beda3b995b2165424f5c4c767a0a85de08518274a037759e7c8"
+    },
+    {
+      "name": "scalar-loops-16",
+      "file": "cases/scalar-loops-16.anl",
+      "group": "scalar",
+      "family": "loops",
+      "scale": 16,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-loops-16.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 16,
+      "source_calls": 0,
+      "source_sha256": "98f4406836fa0aec8518861fba8d46a538873711c452455bb33c8aedc8a9b544"
+    },
+    {
+      "name": "scalar-calls-16",
+      "file": "cases/scalar-calls-16.anl",
+      "group": "scalar",
+      "family": "calls",
+      "scale": 16,
+      "width": 0,
+      "fields": [],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/scalar-calls-16.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 16,
+      "source_sha256": "f0a9e9ed5d76e5fbad736f2b0bd034bdb4bdce9b37d63d11791be7eb518a6f64"
+    },
+    {
+      "name": "product-identity-w1",
+      "file": "cases/product-identity-w1.anl",
+      "group": "product",
+      "family": "identity",
+      "scale": 1,
+      "width": 1,
+      "fields": [
+        "i64"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-identity-w1.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "parameter_leaf_slots": 1,
+      "source_sha256": "f0ac69dc04f96e22191a7effd8ed5358d171738b5e9159924f57562c6508f6ed"
+    },
+    {
+      "name": "product-copy-calls-w1-2",
+      "file": "cases/product-copy-calls-w1-2.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 2,
+      "width": 1,
+      "fields": [
+        "i64"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w1-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 1,
+      "source_calls": 2,
+      "parameter_leaf_slots": 1,
+      "no_head_symbols": false,
+      "source_sha256": "af744eab41722d818a07f56f47ea285d5d15643948da5f340bcd12f16f64a30b"
+    },
+    {
+      "name": "product-loops-w1-2",
+      "file": "cases/product-loops-w1-2.anl",
+      "group": "product",
+      "family": "loops",
+      "scale": 2,
+      "width": 1,
+      "fields": [
+        "i64"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w1-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "58601dd1e642441469f7d89b1b545faaf9271a8cb0ce02d94638c835ac4dfeed"
+    },
+    {
+      "name": "product-copy-calls-w1-8",
+      "file": "cases/product-copy-calls-w1-8.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 8,
+      "width": 1,
+      "fields": [
+        "i64"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w1-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 1,
+      "source_calls": 8,
+      "parameter_leaf_slots": 1,
+      "no_head_symbols": false,
+      "source_sha256": "38405a68283d7bda711cf164ec92845139faac8461b867d3d0bf86aae4a3f9d4"
+    },
+    {
+      "name": "product-loops-w1-8",
+      "file": "cases/product-loops-w1-8.anl",
+      "group": "observation",
+      "family": "loops",
+      "scale": 8,
+      "width": 1,
+      "fields": [
+        "i64"
+      ],
+      "status": "unknown",
+      "exit": 6,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w1-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 8,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "a76fb0bb73657308036fbc9c8abf1bd3cd86d6ce60f47b1bf07e0d7f7d991261",
+      "message_contains": "symbolic work",
+      "semantic_claim": "Every false loop leaves the listed constant tuple values unchanged; complete contract is true. Fixed rendering work ceiling prevents completion.",
+      "amendment": "AMENDMENT-v2.md"
+    },
+    {
+      "name": "product-identity-w2",
+      "file": "cases/product-identity-w2.anl",
+      "group": "product",
+      "family": "identity",
+      "scale": 1,
+      "width": 2,
+      "fields": [
+        "i64",
+        "bool"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-identity-w2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "parameter_leaf_slots": 2,
+      "source_sha256": "6d13fe5a0c7748c06af50d7f10c4eb6ebd7a79ec8df70499e16b0e3d39b4d7d6"
+    },
+    {
+      "name": "product-copy-calls-w2-2",
+      "file": "cases/product-copy-calls-w2-2.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 2,
+      "width": 2,
+      "fields": [
+        "i64",
+        "bool"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w2-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 1,
+      "source_calls": 2,
+      "parameter_leaf_slots": 2,
+      "no_head_symbols": false,
+      "source_sha256": "62d7918ad2dcfca13161cce79df008741de07b9da2af997c83c8e063713d3239"
+    },
+    {
+      "name": "product-loops-w2-2",
+      "file": "cases/product-loops-w2-2.anl",
+      "group": "product",
+      "family": "loops",
+      "scale": 2,
+      "width": 2,
+      "fields": [
+        "i64",
+        "bool"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w2-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "fe26486c750952307c1bad0ba37a413b26bc42825fd2aa08c746d1a803329c22"
+    },
+    {
+      "name": "product-copy-calls-w2-8",
+      "file": "cases/product-copy-calls-w2-8.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 8,
+      "width": 2,
+      "fields": [
+        "i64",
+        "bool"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w2-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 1,
+      "source_calls": 8,
+      "parameter_leaf_slots": 2,
+      "no_head_symbols": false,
+      "source_sha256": "51b673fbcd11464a3122c02d5ee5acf014cdc6e70c3f19e662f7277ec14e72ed"
+    },
+    {
+      "name": "product-loops-w2-8",
+      "file": "cases/product-loops-w2-8.anl",
+      "group": "observation",
+      "family": "loops",
+      "scale": 8,
+      "width": 2,
+      "fields": [
+        "i64",
+        "bool"
+      ],
+      "status": "unknown",
+      "exit": 6,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w2-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 8,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "a4f8de01dd8ac3230db6cd16637aa46efd61e84baa124f88df6ab04ab0ce870f",
+      "message_contains": "symbolic work",
+      "semantic_claim": "Every false loop leaves the listed constant tuple values unchanged; complete contract is true. Fixed rendering work ceiling prevents completion.",
+      "amendment": "AMENDMENT-v2.md"
+    },
+    {
+      "name": "product-identity-w8",
+      "file": "cases/product-identity-w8.anl",
+      "group": "product",
+      "family": "identity",
+      "scale": 1,
+      "width": 8,
+      "fields": [
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-identity-w8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "parameter_leaf_slots": 8,
+      "source_sha256": "7202c835481c687a8a77ffa2686fff4c86094bc3b8d7d1b61d8a9b804fd39459"
+    },
+    {
+      "name": "product-copy-calls-w8-2",
+      "file": "cases/product-copy-calls-w8-2.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 2,
+      "width": 8,
+      "fields": [
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w8-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 1,
+      "source_calls": 2,
+      "parameter_leaf_slots": 8,
+      "no_head_symbols": false,
+      "source_sha256": "693140131490f8631b96db2893d7e3388411b4fbe767b3edb88e15138ea553a5"
+    },
+    {
+      "name": "product-loops-w8-2",
+      "file": "cases/product-loops-w8-2.anl",
+      "group": "product",
+      "family": "loops",
+      "scale": 2,
+      "width": 8,
+      "fields": [
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w8-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "24402849882cd065bf0f5e6d017bae67150d14ffab3c34c1afd6b1f311be38f9"
+    },
+    {
+      "name": "product-copy-calls-w8-8",
+      "file": "cases/product-copy-calls-w8-8.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 8,
+      "width": 8,
+      "fields": [
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-w8-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 1,
+      "source_calls": 8,
+      "parameter_leaf_slots": 8,
+      "no_head_symbols": false,
+      "source_sha256": "0bbb3c22e1e44785bfcb6644d66bf36f4dfda9c8855bfbc418ed72676804b0d6"
+    },
+    {
+      "name": "product-loops-w8-8",
+      "file": "cases/product-loops-w8-8.anl",
+      "group": "observation",
+      "family": "loops",
+      "scale": 8,
+      "width": 8,
+      "fields": [
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "bool",
+        "unit",
+        "i64",
+        "unit"
+      ],
+      "status": "unknown",
+      "exit": 6,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-w8-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 8,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": false,
+      "source_sha256": "72bf432088fba96a840f829806f062f79c65135dea2fe59989d4e1ff0e7f466f",
+      "message_contains": "symbolic work",
+      "semantic_claim": "Every false loop leaves the listed constant tuple values unchanged; complete contract is true. Fixed rendering work ceiling prevents completion.",
+      "amendment": "AMENDMENT-v2.md"
+    },
+    {
+      "name": "product-copy-calls-unit8-2",
+      "file": "cases/product-copy-calls-unit8-2.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 2,
+      "width": 8,
+      "fields": [
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-unit8-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 1,
+      "source_calls": 2,
+      "parameter_leaf_slots": 8,
+      "no_head_symbols": true,
+      "source_sha256": "5de17c07bc4ebd51e5f371cc5797ff6027211e5ae6fbfd0a0f3e0e519c06ab3b"
+    },
+    {
+      "name": "product-loops-unit8-2",
+      "file": "cases/product-loops-unit8-2.anl",
+      "group": "product",
+      "family": "loops",
+      "scale": 2,
+      "width": 8,
+      "fields": [
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-unit8-2.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 2,
+      "source_loop_sites": 2,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": true,
+      "source_sha256": "5fdd6a7a579330878d22ea776bd70e1f4a0d3200087f571d6d2d3e4715ddc78d"
+    },
+    {
+      "name": "product-copy-calls-unit8-8",
+      "file": "cases/product-copy-calls-unit8-8.anl",
+      "group": "product",
+      "family": "copy-calls",
+      "scale": 8,
+      "width": 8,
+      "fields": [
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit"
+      ],
+      "status": "verified",
+      "exit": 0,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-copy-calls-unit8-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 1,
+      "source_calls": 8,
+      "parameter_leaf_slots": 8,
+      "no_head_symbols": true,
+      "source_sha256": "28734ef3cdc6153ade80a934d50ee20eec48b74ffca234bf7f0e2a0220584b92"
+    },
+    {
+      "name": "product-loops-unit8-8",
+      "file": "cases/product-loops-unit8-8.anl",
+      "group": "observation",
+      "family": "loops",
+      "scale": 8,
+      "width": 8,
+      "fields": [
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit",
+        "unit"
+      ],
+      "status": "unknown",
+      "exit": 6,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-loops-unit8-8.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "visible_bindings": 8,
+      "source_loop_sites": 8,
+      "source_calls": 0,
+      "parameter_leaf_slots": 0,
+      "no_head_symbols": true,
+      "source_sha256": "f5b59e1c865d2a9c4ca95dd63b1c5323623f22745ea9065cbbd1536ccb99444c",
+      "message_contains": "symbolic work",
+      "semantic_claim": "Every false loop leaves the listed constant tuple values unchanged; complete contract is true. Fixed rendering work ceiling prevents completion.",
+      "amendment": "AMENDMENT-v2.md"
+    },
+    {
+      "name": "product-field-trap",
+      "file": "cases/product-field-trap.anl",
+      "group": "semantic-only",
+      "family": "trap",
+      "scale": 1,
+      "width": 2,
+      "fields": [
+        "i64",
+        "i64"
+      ],
+      "status": "failed",
+      "exit": 5,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-field-trap.anl",
+        "exit": 2,
+        "diagnostic": "division_by_zero",
+        "typed": {
+          "outcome": "trap",
+          "trap": "division_by_zero"
+        }
+      },
+      "failed_kind": "body_safe",
+      "source_sha256": "a97d9eb8056ade30be268c6803de3a03f7ca28d8805286d054afa1a7d179aa50"
+    },
+    {
+      "name": "product-render-work-limit",
+      "file": "cases/product-render-work-limit.anl",
+      "group": "observation",
+      "family": "query-render",
+      "scale": 80,
+      "width": 2,
+      "fields": [
+        "i64",
+        "i64"
+      ],
+      "status": "unknown",
+      "exit": 6,
+      "semantic_basis": "Integer constants are small and unchanged by false loops; identity calls preserve every field.",
+      "runtime": {
+        "file": "runtime/product-render-work-limit.anl",
+        "exit": 0,
+        "stdout": "7\n",
+        "typed": {
+          "outcome": "value",
+          "type": "i64",
+          "value": "7"
+        }
+      },
+      "message_contains": "symbolic work",
+      "semantic_claim": "All 80 postconditions are true. Unknown denotes the fixed work budget, not semantic refutation.",
+      "semantic_basis_override": "Each tuple contains the returned 7 and the same distinct integer in both operands.",
+      "source_sha256": "c1ca301b9e001edc9cb81a8276facb7869a954d5f5abd1eb6c929fe682b948e3"
+    }
+  ]
+}

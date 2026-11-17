@@ -1,0 +1,26 @@
+fn keep(x:i64)->i64
+{let mut y=x;
+while(false)
+{} y}
+fn main()->i64
+{let mut x0=7;
+let mut x1=8;
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+x0=keep(x0);
+while(false)
+{}
+x0}

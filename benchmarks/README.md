@@ -141,3 +141,20 @@ scalar review flags and the retained-singleton memory cost. Its
 identities, outputs, exported bytes and native sizes. Historical reproduction
 commands use the `apl` executables built from the recorded commits; these results
 do not identify the later renamed `anl` binary.
+
+
+## Tuple-verification coverage and latency
+
+The [ANL tuple-verification report](results/product-verification-macos-arm64.md)
+records 351 validated processes: paired scalar comparisons and absolute costs
+for 15 newly supported tuple workloads. Five resource-limit outcomes and one
+expected evaluation trap remain in the mandatory 33-case semantic gate.
+Background host activity, all timing ranges and the 40-to-64-byte internal
+representation limitation remain explicit; performance attribution is
+inconclusive.
+
+The standalone [runner](product_verification.py) audits the exact archived
+observations without invoking a compiler. Its `gate` and `time` commands accept
+explicit compiler, solver and source paths, validate pinned source inputs and
+record new host identities. The report includes build/replay commands and the
+complete raw measurement and preflight archives.

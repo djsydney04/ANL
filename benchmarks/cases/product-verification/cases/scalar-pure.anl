@@ -1,0 +1,7 @@
+fn affine(x:i64)->i64
+requires -100<=x && x<=100;
+ensures (r) r==3*x+7;
+{3*x+7}
+fn main()->i64
+ensures (r) r==10;
+{affine(1)}

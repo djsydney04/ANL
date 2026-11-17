@@ -1,0 +1,17 @@
+{
+  "arithmetic_safety": true,
+  "fragment": "invariant_flat_products_acyclic",
+  "functions": "all_loaded",
+  "model_proof": "APL.ProductFlow.contract_queries_sound",
+  "native_correctness": false,
+  "partial_correctness": true,
+  "proof_gaps": [
+    "Rust generation",
+    "source annotation correspondence",
+    "SMT encoding and solver answers",
+    "native execution",
+    "termination",
+    "generation completeness under production budgets"
+  ],
+  "termination_proved": false
+}

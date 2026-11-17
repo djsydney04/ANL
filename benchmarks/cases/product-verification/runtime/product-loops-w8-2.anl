@@ -1,0 +1,8 @@
+fn main()->i64
+{let mut p0=(7,true,(),10,false,(),13,());
+let mut p1=(8,false,(),11,true,(),14,());
+while(false)
+{}
+while(false)
+{}
+if p0==(7,true,(),10,false,(),13,()) && p1==(8,false,(),11,true,(),14,()) {7} else {0}}

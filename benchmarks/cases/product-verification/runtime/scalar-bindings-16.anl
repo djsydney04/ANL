@@ -1,0 +1,22 @@
+fn main()->i64
+{let mut x0=7;
+let mut x1=8;
+let mut x2=9;
+let mut x3=10;
+let mut x4=11;
+let mut x5=12;
+let mut x6=13;
+let mut x7=14;
+let mut x8=15;
+let mut x9=16;
+let mut x10=17;
+let mut x11=18;
+let mut x12=19;
+let mut x13=20;
+let mut x14=21;
+let mut x15=22;
+while(false)
+{}
+while(false)
+{}
+x0}

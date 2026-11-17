@@ -1,0 +1,22 @@
+fn keep(p:(i64,))->(i64,)
+{p}
+fn main()->i64
+{let mut p0=(7,);
+let mut p1=(8,);
+let mut p2=(9,);
+let mut p3=(10,);
+let mut p4=(11,);
+let mut p5=(12,);
+let mut p6=(13,);
+let mut p7=(14,);
+p0=keep(p0);
+p1=keep(p1);
+p2=keep(p2);
+p3=keep(p3);
+p4=keep(p4);
+p5=keep(p5);
+p6=keep(p6);
+p7=keep(p7);
+while(false)
+{}
+if p0==(7,) && p1==(8,) && p2==(9,) && p3==(10,) && p4==(11,) && p5==(12,) && p6==(13,) && p7==(14,) {7} else {0}}

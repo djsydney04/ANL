@@ -1,0 +1,26 @@
+fn main()->i64
+{let mut p0=(7,);
+let mut p1=(8,);
+let mut p2=(9,);
+let mut p3=(10,);
+let mut p4=(11,);
+let mut p5=(12,);
+let mut p6=(13,);
+let mut p7=(14,);
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+while(false)
+{}
+if p0==(7,) && p1==(8,) && p2==(9,) && p3==(10,) && p4==(11,) && p5==(12,) && p6==(13,) && p7==(14,) {7} else {0}}

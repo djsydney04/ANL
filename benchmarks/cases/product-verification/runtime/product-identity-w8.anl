@@ -1,0 +1,4 @@
+fn keep(p:(i64,bool,unit,i64,bool,unit,i64,unit))->(i64,bool,unit,i64,bool,unit,i64,unit)
+{p}
+fn main()->i64
+{keep((7,true,(),10,false,(),13,())).0}

@@ -1,0 +1,10 @@
+fn keep(p:(unit,unit,unit,unit,unit,unit,unit,unit))->(unit,unit,unit,unit,unit,unit,unit,unit)
+{p}
+fn main()->i64
+{let mut p0=((),(),(),(),(),(),(),());
+let mut p1=((),(),(),(),(),(),(),());
+p0=keep(p0);
+p1=keep(p1);
+while(false)
+{}
+if p0==((),(),(),(),(),(),(),()) && p1==((),(),(),(),(),(),(),()) {7} else {0}}

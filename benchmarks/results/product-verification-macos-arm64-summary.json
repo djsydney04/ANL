@@ -1,0 +1,2136 @@
+{
+  "verdict": "inconclusive for performance attribution; descriptive end-to-end observations only",
+  "total_processes": 351,
+  "warmups": 78,
+  "measured_samples": 273,
+  "scalar_measured_pairs": 84,
+  "product_measured_samples": 105,
+  "acceptance_failures": 0,
+  "timeouts": 0,
+  "observed_statuses": {
+    "verified": 351
+  },
+  "independently_revalidated_raw_query_digests": 4212,
+  "raw_command_files": 1053,
+  "investigation_threshold_flags": [],
+  "scalar": [
+    {
+      "case": "scalar-bindings-16",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 214125833,
+            "min": 211652959,
+            "max": 252027958
+          },
+          "candidate": {
+            "median": 214483250,
+            "min": 213664917,
+            "max": 216586708
+          },
+          "paired_ratios": [
+            0.9995228494572097,
+            1.0129416522577959,
+            1.0233105600002501,
+            0.8510295909313362,
+            0.9934557310856683,
+            1.0053311347003309,
+            1.001477131439811
+          ],
+          "median_paired_ratio": 1.001477131439811,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.18855734702500843,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 188501000,
+            "min": 188197000,
+            "max": 211393000
+          },
+          "candidate": {
+            "median": 189357000,
+            "min": 187948000,
+            "max": 192467000
+          },
+          "paired_ratios": [
+            1.0051176148941705,
+            0.9970663285605912,
+            1.0057128901065062,
+            0.896600171245027,
+            0.991419779665823,
+            1.0179938116520773,
+            1.0061637539386918
+          ],
+          "median_paired_ratio": 1.0051176148941705,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.12305505010583498,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 35192832,
+            "min": 35160064,
+            "max": 35192832
+          },
+          "candidate": {
+            "median": 35176448,
+            "min": 35160064,
+            "max": 35192832
+          },
+          "paired_ratios": [
+            1.0,
+            1.0009319664492078,
+            1.0,
+            0.999534450651769,
+            0.999534450651769,
+            0.9990689013035382,
+            1.000465983224604
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0009315323707498836,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-bindings-2",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 194162375,
+            "min": 192352625,
+            "max": 196329959
+          },
+          "candidate": {
+            "median": 194537000,
+            "min": 192453625,
+            "max": 209514166
+          },
+          "paired_ratios": [
+            1.0063742674829574,
+            1.0686547197106921,
+            0.992504557074974,
+            1.0041484123234605,
+            0.9985499398160862,
+            1.027290965626341,
+            0.9802560239927519
+          ],
+          "median_paired_ratio": 1.0041484123234605,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.08769818080879216,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 165857000,
+            "min": 165299000,
+            "max": 169544000
+          },
+          "candidate": {
+            "median": 166023000,
+            "min": 164910000,
+            "max": 182085000
+          },
+          "paired_ratios": [
+            1.0008742470923748,
+            1.0863223081328752,
+            1.0000180722891567,
+            1.0064160322192457,
+            1.0043799418024308,
+            1.0313020896243508,
+            0.9726678620299155
+          ],
+          "median_paired_ratio": 1.0043799418024308,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.10344952205417322,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 33849344,
+            "min": 33849344,
+            "max": 33882112
+          },
+          "candidate": {
+            "median": 33849344,
+            "min": 33849344,
+            "max": 33865728
+          },
+          "paired_ratios": [
+            0.9995164410058027,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.000484027105518,
+            1.000484027105518
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.000968054211035818,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-bindings-8",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 201428416,
+            "min": 198815500,
+            "max": 203766791
+          },
+          "candidate": {
+            "median": 202546334,
+            "min": 200141292,
+            "max": 226958291
+          },
+          "paired_ratios": [
+            1.0647342184085244,
+            1.0135051503008852,
+            1.1150896770311716,
+            1.0174805518924448,
+            0.995706087466825,
+            0.9903960263513317,
+            0.9895123195025435
+          ],
+          "median_paired_ratio": 1.0135051503008852,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.13239933041691093,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 175549000,
+            "min": 174962000,
+            "max": 176863000
+          },
+          "candidate": {
+            "median": 175821000,
+            "min": 175115000,
+            "max": 192238000
+          },
+          "paired_ratios": [
+            1.0331344355348868,
+            1.0008931314211598,
+            1.0869316928922386,
+            1.0045249644344652,
+            0.9997609003808515,
+            1.000874475600416,
+            0.9996411258395091
+          ],
+          "median_paired_ratio": 1.0008931314211598,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0973888215855899,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 34373632,
+            "min": 34373632,
+            "max": 34390016
+          },
+          "candidate": {
+            "median": 34373632,
+            "min": 34373632,
+            "max": 34390016
+          },
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0,
+            1.0004766444232602,
+            1.0,
+            0.9995235826584088,
+            1.0
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.00047664442326024784,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-calls-16",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 573872750,
+            "min": 558140417,
+            "max": 647203625
+          },
+          "candidate": {
+            "median": 570445000,
+            "min": 561505958,
+            "max": 719407500
+          },
+          "paired_ratios": [
+            1.0127649329505553,
+            1.0029458430638292,
+            1.2536010814244098,
+            0.9084396877412422,
+            1.023410485022468,
+            1.0042320845877397,
+            0.9640949847650278
+          ],
+          "median_paired_ratio": 1.0042320845877397,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.27680414763912387,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 421881000,
+            "min": 416089000,
+            "max": 452117000
+          },
+          "candidate": {
+            "median": 424080000,
+            "min": 417966000,
+            "max": 458676000
+          },
+          "paired_ratios": [
+            0.9999904299351629,
+            1.0157754711131513,
+            1.0747212888895137,
+            0.9595834706502963,
+            1.0104745176957484,
+            1.0147882268485284,
+            0.9329364991226706
+          ],
+          "median_paired_ratio": 1.0104745176957484,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.09599603848330504,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 34537472,
+            "min": 34537472,
+            "max": 34553856
+          },
+          "candidate": {
+            "median": 34537472,
+            "min": 34537472,
+            "max": 34537472
+          },
+          "paired_ratios": [
+            0.9995258416311048,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0004743833017077799,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-calls-2",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 254973500,
+            "min": 246699334,
+            "max": 263172750
+          },
+          "candidate": {
+            "median": 254085958,
+            "min": 251392500,
+            "max": 260490417
+          },
+          "paired_ratios": [
+            0.9965190813947332,
+            0.9636354181806437,
+            1.0351796882722841,
+            1.000226716336642,
+            0.9928650341170988,
+            1.0509927359593114,
+            0.9878795470118846
+          ],
+          "median_paired_ratio": 0.9965190813947332,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.06460834557316741,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 201745000,
+            "min": 200862000,
+            "max": 206800000
+          },
+          "candidate": {
+            "median": 202146000,
+            "min": 200175000,
+            "max": 206945000
+          },
+          "paired_ratios": [
+            1.0041008664012288,
+            0.9874944501997928,
+            1.026818497568721,
+            0.9921905222437137,
+            0.9943676798284233,
+            1.0085481574414275,
+            1.0005155022429304
+          ],
+          "median_paired_ratio": 1.0005155022429304,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.03349064537512491,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 34160640,
+            "min": 34160640,
+            "max": 34177024
+          },
+          "candidate": {
+            "median": 34160640,
+            "min": 34160640,
+            "max": 34177024
+          },
+          "paired_ratios": [
+            1.0,
+            1.0,
+            0.9995206136145733,
+            0.9995206136145733,
+            1.0004796163069545,
+            1.0,
+            1.0004796163069545
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.00047961630695443646,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-calls-8",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 370925208,
+            "min": 365498167,
+            "max": 377255625
+          },
+          "candidate": {
+            "median": 373512125,
+            "min": 366859083,
+            "max": 401179750
+          },
+          "paired_ratios": [
+            0.9794739828702211,
+            1.0142582679363221,
+            0.9921515418093501,
+            1.0035848647452712,
+            1.0770111709548564,
+            1.0219261236404504,
+            1.0002707409790894
+          ],
+          "median_paired_ratio": 1.0035848647452712,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.09188635308693124,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 281879000,
+            "min": 280855000,
+            "max": 288077000
+          },
+          "candidate": {
+            "median": 282125000,
+            "min": 281627000,
+            "max": 309941000
+          },
+          "paired_ratios": [
+            0.9991059993827138,
+            1.0275290097529721,
+            0.9866459314697112,
+            1.0006704528927026,
+            1.1016990722638893,
+            0.9989536187057505,
+            1.0045219063217674
+          ],
+          "median_paired_ratio": 1.0006704528927026,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.10035976960567125,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 34177024,
+            "min": 34177024,
+            "max": 34193408
+          },
+          "candidate": {
+            "median": 34177024,
+            "min": 34177024,
+            "max": 34193408
+          },
+          "paired_ratios": [
+            1.0004793863854267,
+            1.0,
+            1.0,
+            0.9995208433157643,
+            1.0004793863854267,
+            1.0,
+            1.0004793863854267
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.00047938638542665386,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-loop",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 179981875,
+            "min": 174910459,
+            "max": 183327916
+          },
+          "candidate": {
+            "median": 177815167,
+            "min": 174059208,
+            "max": 188266500
+          },
+          "paired_ratios": [
+            0.9951332184200603,
+            1.036307017300649,
+            1.0050383491017123,
+            0.9918504259548574,
+            0.9913074852987401,
+            0.969929571446173,
+            0.996393620190922
+          ],
+          "median_paired_ratio": 0.9951332184200603,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0798992135468399,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 159028000,
+            "min": 155964000,
+            "max": 162950000
+          },
+          "candidate": {
+            "median": 159463000,
+            "min": 156631000,
+            "max": 164238000
+          },
+          "paired_ratios": [
+            1.004276627939781,
+            1.0361757431989098,
+            1.0069170209019795,
+            1.0119870647703368,
+            0.9965879181861423,
+            0.9786007977907334,
+            0.9844005237234241
+          ],
+          "median_paired_ratio": 1.004276627939781,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.047703856066924614,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 35602432,
+            "min": 35586048,
+            "max": 35602432
+          },
+          "candidate": {
+            "median": 35602432,
+            "min": 35586048,
+            "max": 35602432
+          },
+          "paired_ratios": [
+            1.0004604051565378,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            0.9995398067188219,
+            1.0
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0004601932811780948,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-loops-16",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 552415500,
+            "min": 549125208,
+            "max": 580023542
+          },
+          "candidate": {
+            "median": 555292125,
+            "min": 544430500,
+            "max": 562057208
+          },
+          "paired_ratios": [
+            0.9780582926592584,
+            1.0205160404874365,
+            0.9967308799086773,
+            1.0003305935477915,
+            0.9386351769839025,
+            1.009225388682554,
+            1.0001769594129442
+          ],
+          "median_paired_ratio": 1.0001769594129442,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.055933140905713184,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 441062000,
+            "min": 436704000,
+            "max": 463482000
+          },
+          "candidate": {
+            "median": 443149000,
+            "min": 439529000,
+            "max": 448641000
+          },
+          "paired_ratios": [
+            0.9735536719700884,
+            1.003763643206624,
+            1.0020817093245835,
+            1.0091085112765552,
+            0.9486258366020687,
+            1.0064689125815198,
+            1.0129351528034927
+          ],
+          "median_paired_ratio": 1.003763643206624,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.060712552883721564,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 35192832,
+            "min": 35192832,
+            "max": 35209216
+          },
+          "candidate": {
+            "median": 35192832,
+            "min": 35192832,
+            "max": 35209216
+          },
+          "paired_ratios": [
+            1.0,
+            0.9995346672871103,
+            1.0,
+            0.9995346672871103,
+            1.0,
+            1.0,
+            1.0004655493482308
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0004655493482309125,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-loops-2",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 194707875,
+            "min": 191170500,
+            "max": 203354334
+          },
+          "candidate": {
+            "median": 194096584,
+            "min": 191888458,
+            "max": 195464458
+          },
+          "paired_ratios": [
+            1.0071312793551694,
+            0.9929344464363596,
+            0.9544747839010896,
+            1.021310385232031,
+            1.0036228541574805,
+            0.9765980164260382,
+            0.9855197587668193
+          ],
+          "median_paired_ratio": 0.9929344464363596,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.06257494207668796,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 165662000,
+            "min": 165506000,
+            "max": 167434000
+          },
+          "candidate": {
+            "median": 165890000,
+            "min": 165514000,
+            "max": 166842000
+          },
+          "paired_ratios": [
+            0.9914294587718145,
+            1.0016790988433546,
+            1.0018554881014574,
+            1.0050813867775186,
+            0.9999397227245328,
+            0.9991066146732503,
+            1.0020356264836818
+          ],
+          "median_paired_ratio": 1.0016790988433546,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.011638154797117021,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 33849344,
+            "min": 33832960,
+            "max": 33865728
+          },
+          "candidate": {
+            "median": 33849344,
+            "min": 33849344,
+            "max": 33882112
+          },
+          "paired_ratios": [
+            1.0,
+            0.9995162070633768,
+            1.0,
+            1.0004842615012106,
+            1.0009680542110357,
+            1.001452784503632,
+            1.0
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.000968054211035818,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-loops-8",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 326507916,
+            "min": 319840416,
+            "max": 332383791
+          },
+          "candidate": {
+            "median": 325710458,
+            "min": 323830417,
+            "max": 326469167
+          },
+          "paired_ratios": [
+            0.9864379677005478,
+            0.9894930989491825,
+            1.00145340360429,
+            1.0158708085222101,
+            0.9812732805613857,
+            0.9985660133275298,
+            0.9983183091047645
+          ],
+          "median_paired_ratio": 0.9983183091047645,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.03841675618057603,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 261342000,
+            "min": 258965000,
+            "max": 266252000
+          },
+          "candidate": {
+            "median": 260938000,
+            "min": 259146000,
+            "max": 264221000
+          },
+          "paired_ratios": [
+            0.9923718882862852,
+            0.9983418900931736,
+            1.0011364419037123,
+            1.0076187901840017,
+            0.9884232294295092,
+            1.004542527388201,
+            0.9965160813991047
+          ],
+          "median_paired_ratio": 0.9983418900931736,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.02788300387997337,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 34390016,
+            "min": 34373632,
+            "max": 34406400
+          },
+          "candidate": {
+            "median": 34390016,
+            "min": 34390016,
+            "max": 34390016
+          },
+          "paired_ratios": [
+            1.0004766444232602,
+            0.9995238095238095,
+            0.9995238095238095,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0009528346831824678,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-pure",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 195613500,
+            "min": 193282625,
+            "max": 198341459
+          },
+          "candidate": {
+            "median": 195305167,
+            "min": 193700875,
+            "max": 197542042
+          },
+          "paired_ratios": [
+            0.9855985569477597,
+            0.9794468437383028,
+            0.997926574975293,
+            1.013889846539491,
+            0.9956061314786556,
+            1.0137669816274109,
+            1.0087879030640354
+          ],
+          "median_paired_ratio": 0.997926574975293,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.025861374598378947,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 167128000,
+            "min": 166194000,
+            "max": 169430000
+          },
+          "candidate": {
+            "median": 167614000,
+            "min": 166761000,
+            "max": 168385000
+          },
+          "paired_ratios": [
+            0.9842471817269669,
+            1.0007618730171957,
+            1.0075211813699678,
+            1.0064087534193045,
+            0.9944195363922541,
+            1.009232693961758,
+            1.008544231440365
+          ],
+          "median_paired_ratio": 1.0064087534193045,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.01936240486333828,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 42958848,
+            "min": 42958848,
+            "max": 42975232
+          },
+          "candidate": {
+            "median": 42958848,
+            "min": 42958848,
+            "max": 43024384
+          },
+          "paired_ratios": [
+            1.0,
+            1.0003813882532417,
+            1.0,
+            1.0011437285550895,
+            1.000762485703393,
+            1.0,
+            0.9996187571483035
+          ],
+          "median_paired_ratio": 1.0,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.0015255530129672007,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    },
+    {
+      "case": "scalar-state",
+      "metrics": {
+        "wall_ns": {
+          "baseline": {
+            "median": 157075875,
+            "min": 154762250,
+            "max": 158813000
+          },
+          "candidate": {
+            "median": 157031584,
+            "min": 155992833,
+            "max": 159422375
+          },
+          "paired_ratios": [
+            0.9914698800128171,
+            0.996653637311467,
+            1.0209634251930135,
+            1.000638769730407,
+            1.0025879212832651,
+            1.018793614075784,
+            0.9822422156876326
+          ],
+          "median_paired_ratio": 1.000638769730407,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.025788492344861996,
+          "median_ratio_effect_within_run_range": true
+        },
+        "cpu_ns": {
+          "baseline": {
+            "median": 143025000,
+            "min": 142598000,
+            "max": 145444000
+          },
+          "candidate": {
+            "median": 144071000,
+            "min": 142665000,
+            "max": 144411000
+          },
+          "paired_ratios": [
+            0.9989130961529142,
+            0.9991114282915635,
+            1.0042397955986884,
+            1.0127140633108458,
+            1.0086533412678966,
+            1.0018947736409718,
+            0.9808929897417563
+          ],
+          "median_paired_ratio": 1.0018947736409718,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.019898619122531026,
+          "median_ratio_effect_within_run_range": true
+        },
+        "peak_rss_bytes": {
+          "baseline": {
+            "median": 32604160,
+            "min": 32571392,
+            "max": 32604160
+          },
+          "candidate": {
+            "median": 32571392,
+            "min": 32571392,
+            "max": 32604160
+          },
+          "paired_ratios": [
+            0.9989949748743718,
+            0.9989949748743718,
+            1.0005027652086476,
+            1.0010060362173039,
+            0.9989949748743718,
+            0.9994972347913524,
+            0.9994974874371859
+          ],
+          "median_paired_ratio": 0.9994972347913524,
+          "investigate": false,
+          "ranges_overlap": true,
+          "maximum_relative_range": 0.001006036217303823,
+          "median_ratio_effect_within_run_range": true
+        }
+      }
+    }
+  ],
+  "product_candidate_only": [
+    {
+      "case": "product-copy-calls-unit8-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 203809125,
+            "min": 199455500,
+            "max": 205133959
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 171978000,
+            "min": 171249000,
+            "max": 172992000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 32899072,
+            "min": 32882688,
+            "max": 32931840
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-unit8-8",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 222704708,
+            "min": 219074625,
+            "max": 226426625
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 192832000,
+            "min": 192076000,
+            "max": 196058000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34766848,
+            "min": 34750464,
+            "max": 34783232
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w1-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 204780583,
+            "min": 203018292,
+            "max": 218627708
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 171985000,
+            "min": 171728000,
+            "max": 175852000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34160640,
+            "min": 34144256,
+            "max": 34160640
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w1-8",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 208726542,
+            "min": 206103125,
+            "max": 218038875
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 178170000,
+            "min": 177676000,
+            "max": 182060000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34471936,
+            "min": 34455552,
+            "max": 34504704
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w2-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 204792166,
+            "min": 203529458,
+            "max": 221145791
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 172583000,
+            "min": 171605000,
+            "max": 187143000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34144256,
+            "min": 34144256,
+            "max": 34160640
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w2-8",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 283200375,
+            "min": 282103416,
+            "max": 287080583
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 254320000,
+            "min": 252573000,
+            "max": 256125000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34619392,
+            "min": 34603008,
+            "max": 34635776
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w8-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 207965500,
+            "min": 206012125,
+            "max": 211712792
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 176396000,
+            "min": 175501000,
+            "max": 179646000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 35864576,
+            "min": 35848192,
+            "max": 35880960
+          }
+        }
+      }
+    },
+    {
+      "case": "product-copy-calls-w8-8",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 363267667,
+            "min": 348727041,
+            "max": 378532792
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 330434000,
+            "min": 317875000,
+            "max": 347532000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 35864576,
+            "min": 35864576,
+            "max": 35880960
+          }
+        }
+      }
+    },
+    {
+      "case": "product-identity-w1",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 183886375,
+            "min": 179599792,
+            "max": 190311458
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 158706000,
+            "min": 157939000,
+            "max": 164217000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34160640,
+            "min": 34144256,
+            "max": 34160640
+          }
+        }
+      }
+    },
+    {
+      "case": "product-identity-w2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 183121208,
+            "min": 182201167,
+            "max": 311537917
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 158732000,
+            "min": 158152000,
+            "max": 219727000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34160640,
+            "min": 34144256,
+            "max": 34160640
+          }
+        }
+      }
+    },
+    {
+      "case": "product-identity-w8",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 185030917,
+            "min": 181705042,
+            "max": 206634083
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 159877000,
+            "min": 158768000,
+            "max": 166268000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 35848192,
+            "min": 35848192,
+            "max": 35880960
+          }
+        }
+      }
+    },
+    {
+      "case": "product-loops-unit8-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 214854834,
+            "min": 198298250,
+            "max": 233362083
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 184245000,
+            "min": 173523000,
+            "max": 194343000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 33161216,
+            "min": 33128448,
+            "max": 33161216
+          }
+        }
+      }
+    },
+    {
+      "case": "product-loops-w1-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 196674625,
+            "min": 195493250,
+            "max": 198127625
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 168563000,
+            "min": 167456000,
+            "max": 169992000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 33931264,
+            "min": 33931264,
+            "max": 33964032
+          }
+        }
+      }
+    },
+    {
+      "case": "product-loops-w2-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 197921875,
+            "min": 195917875,
+            "max": 199933708
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 170297000,
+            "min": 169438000,
+            "max": 171909000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34111488,
+            "min": 34111488,
+            "max": 34144256
+          }
+        }
+      }
+    },
+    {
+      "case": "product-loops-w8-2",
+      "metrics": {
+        "wall_ns": {
+          "candidate": {
+            "median": 216778458,
+            "min": 205670042,
+            "max": 238954666
+          }
+        },
+        "cpu_ns": {
+          "candidate": {
+            "median": 183030000,
+            "min": 178062000,
+            "max": 188926000
+          }
+        },
+        "peak_rss_bytes": {
+          "candidate": {
+            "median": 34488320,
+            "min": 34488320,
+            "max": 34504704
+          }
+        }
+      }
+    }
+  ],
+  "work": {
+    "scalar-pure": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 38,
+      "resources": null,
+      "reported_bindings": 0,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 0,
+      "expansions": 0,
+      "allocated_heads": 0,
+      "named_checks_completed": 0,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 15606,
+      "report_bytes": 23884,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-state": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 24,
+      "resources": null,
+      "reported_bindings": 0,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 0,
+      "expansions": 0,
+      "allocated_heads": 0,
+      "named_checks_completed": 0,
+      "executed_analysis_fields": null,
+      "queries": 3,
+      "query_bytes": 7289,
+      "report_bytes": 12209,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-loop": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 38,
+      "resources": null,
+      "reported_bindings": 3,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 1,
+      "expansions": 1,
+      "allocated_heads": 1,
+      "named_checks_completed": 5,
+      "executed_analysis_fields": null,
+      "queries": 5,
+      "query_bytes": 17084,
+      "report_bytes": 30440,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-bindings-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 58,
+      "resources": null,
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 4,
+      "named_checks_completed": 5,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 39807,
+      "report_bytes": 59015,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-loops-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 58,
+      "resources": null,
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 4,
+      "named_checks_completed": 5,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 39807,
+      "report_bytes": 58790,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-calls-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 92,
+      "resources": null,
+      "reported_bindings": 8,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 4,
+      "expansions": 4,
+      "allocated_heads": 5,
+      "named_checks_completed": 12,
+      "executed_analysis_fields": null,
+      "queries": 14,
+      "query_bytes": 62725,
+      "report_bytes": 97613,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-bindings-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 214,
+      "resources": null,
+      "reported_bindings": 10,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 16,
+      "named_checks_completed": 5,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 144156,
+      "report_bytes": 174889,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-loops-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 208,
+      "resources": null,
+      "reported_bindings": 10,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 8,
+      "expansions": 1,
+      "allocated_heads": 16,
+      "named_checks_completed": 17,
+      "executed_analysis_fields": null,
+      "queries": 19,
+      "query_bytes": 399188,
+      "report_bytes": 474888,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-calls-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 212,
+      "resources": null,
+      "reported_bindings": 14,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 10,
+      "expansions": 10,
+      "allocated_heads": 11,
+      "named_checks_completed": 30,
+      "executed_analysis_fields": null,
+      "queries": 26,
+      "query_bytes": 307900,
+      "report_bytes": 390193,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-bindings-16": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 422,
+      "resources": null,
+      "reported_bindings": 18,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 32,
+      "named_checks_completed": 5,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 284589,
+      "report_bytes": 330871,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-loops-16": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 408,
+      "resources": null,
+      "reported_bindings": 18,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 16,
+      "expansions": 1,
+      "allocated_heads": 32,
+      "named_checks_completed": 33,
+      "executed_analysis_fields": null,
+      "queries": 35,
+      "query_bytes": 1455717,
+      "report_bytes": 1656897,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "scalar-calls-16": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 372,
+      "resources": null,
+      "reported_bindings": 22,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 18,
+      "expansions": 18,
+      "allocated_heads": 19,
+      "named_checks_completed": 54,
+      "executed_analysis_fields": null,
+      "queries": 42,
+      "query_bytes": 945668,
+      "report_bytes": 1116962,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-identity-w1": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 12,
+      "resources": {
+        "arena_nodes": 28,
+        "expansions": 3,
+        "head_symbols": 0,
+        "loop_occurrences": 0,
+        "pending_queries": 6,
+        "symbolic_work": 5655
+      },
+      "reported_bindings": 0,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 0,
+      "expansions": 3,
+      "allocated_heads": 0,
+      "named_checks_completed": 3,
+      "executed_analysis_fields": null,
+      "queries": 6,
+      "query_bytes": 4968,
+      "report_bytes": 17498,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w1-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 66,
+      "resources": {
+        "arena_nodes": 137,
+        "expansions": 4,
+        "head_symbols": 2,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 29050
+      },
+      "reported_bindings": 5,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 1,
+      "expansions": 4,
+      "allocated_heads": 2,
+      "named_checks_completed": 8,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 25849,
+      "report_bytes": 49228,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-loops-w1-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 83,
+      "resources": {
+        "arena_nodes": 186,
+        "expansions": 1,
+        "head_symbols": 4,
+        "loop_occurrences": 2,
+        "pending_queries": 7,
+        "symbolic_work": 53661
+      },
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 4,
+      "named_checks_completed": 7,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 49124,
+      "report_bytes": 71589,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w1-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 234,
+      "resources": {
+        "arena_nodes": 509,
+        "expansions": 10,
+        "head_symbols": 8,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 104286
+      },
+      "reported_bindings": 17,
+      "parameter_leaf_slots": 1,
+      "loop_occurrences": 1,
+      "expansions": 10,
+      "allocated_heads": 8,
+      "named_checks_completed": 20,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 92459,
+      "report_bytes": 137401,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-identity-w2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 13,
+      "resources": {
+        "arena_nodes": 32,
+        "expansions": 3,
+        "head_symbols": 0,
+        "loop_occurrences": 0,
+        "pending_queries": 6,
+        "symbolic_work": 6368
+      },
+      "reported_bindings": 0,
+      "parameter_leaf_slots": 2,
+      "loop_occurrences": 0,
+      "expansions": 3,
+      "allocated_heads": 0,
+      "named_checks_completed": 3,
+      "executed_analysis_fields": null,
+      "queries": 6,
+      "query_bytes": 5466,
+      "report_bytes": 18464,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w2-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 76,
+      "resources": {
+        "arena_nodes": 180,
+        "expansions": 4,
+        "head_symbols": 4,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 38554
+      },
+      "reported_bindings": 5,
+      "parameter_leaf_slots": 2,
+      "loop_occurrences": 1,
+      "expansions": 4,
+      "allocated_heads": 4,
+      "named_checks_completed": 8,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 33824,
+      "report_bytes": 59140,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-loops-w2-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 99,
+      "resources": {
+        "arena_nodes": 258,
+        "expansions": 1,
+        "head_symbols": 8,
+        "loop_occurrences": 2,
+        "pending_queries": 7,
+        "symbolic_work": 75690
+      },
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 8,
+      "named_checks_completed": 7,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 68304,
+      "report_bytes": 94536,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w2-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 274,
+      "resources": {
+        "arena_nodes": 672,
+        "expansions": 10,
+        "head_symbols": 16,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 141166
+      },
+      "reported_bindings": 17,
+      "parameter_leaf_slots": 2,
+      "loop_occurrences": 1,
+      "expansions": 10,
+      "allocated_heads": 16,
+      "named_checks_completed": 20,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 123214,
+      "report_bytes": 174538,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-identity-w8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 19,
+      "resources": {
+        "arena_nodes": 53,
+        "expansions": 3,
+        "head_symbols": 0,
+        "loop_occurrences": 0,
+        "pending_queries": 6,
+        "symbolic_work": 9802
+      },
+      "reported_bindings": 0,
+      "parameter_leaf_slots": 8,
+      "loop_occurrences": 0,
+      "expansions": 3,
+      "allocated_heads": 0,
+      "named_checks_completed": 3,
+      "executed_analysis_fields": null,
+      "queries": 6,
+      "query_bytes": 8077,
+      "report_bytes": 22509,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w8-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 136,
+      "resources": {
+        "arena_nodes": 367,
+        "expansions": 4,
+        "head_symbols": 10,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 76949
+      },
+      "reported_bindings": 5,
+      "parameter_leaf_slots": 8,
+      "loop_occurrences": 1,
+      "expansions": 4,
+      "allocated_heads": 10,
+      "named_checks_completed": 8,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 66601,
+      "report_bytes": 98021,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-loops-w8-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 195,
+      "resources": {
+        "arena_nodes": 554,
+        "expansions": 1,
+        "head_symbols": 20,
+        "loop_occurrences": 2,
+        "pending_queries": 7,
+        "symbolic_work": 160644
+      },
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 20,
+      "named_checks_completed": 7,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 143771,
+      "report_bytes": 181963,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-w8-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 514,
+      "resources": {
+        "arena_nodes": 1519,
+        "expansions": 10,
+        "head_symbols": 40,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 312205
+      },
+      "reported_bindings": 17,
+      "parameter_leaf_slots": 8,
+      "loop_occurrences": 1,
+      "expansions": 10,
+      "allocated_heads": 40,
+      "named_checks_completed": 20,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 271235,
+      "report_bytes": 343689,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-unit8-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 136,
+      "resources": {
+        "arena_nodes": 378,
+        "expansions": 4,
+        "head_symbols": 0,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 69526
+      },
+      "reported_bindings": 5,
+      "parameter_leaf_slots": 8,
+      "loop_occurrences": 1,
+      "expansions": 4,
+      "allocated_heads": 0,
+      "named_checks_completed": 8,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 61462,
+      "report_bytes": 84845,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-loops-unit8-2": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 195,
+      "resources": {
+        "arena_nodes": 562,
+        "expansions": 1,
+        "head_symbols": 0,
+        "loop_occurrences": 2,
+        "pending_queries": 7,
+        "symbolic_work": 142300
+      },
+      "reported_bindings": 4,
+      "parameter_leaf_slots": 0,
+      "loop_occurrences": 2,
+      "expansions": 1,
+      "allocated_heads": 0,
+      "named_checks_completed": 7,
+      "executed_analysis_fields": null,
+      "queries": 7,
+      "query_bytes": 130247,
+      "report_bytes": 152510,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    },
+    "product-copy-calls-unit8-8": {
+      "status": "verified",
+      "message": null,
+      "expanded_nodes": 514,
+      "resources": {
+        "arena_nodes": 1812,
+        "expansions": 10,
+        "head_symbols": 0,
+        "loop_occurrences": 1,
+        "pending_queries": 8,
+        "symbolic_work": 320865
+      },
+      "reported_bindings": 17,
+      "parameter_leaf_slots": 8,
+      "loop_occurrences": 1,
+      "expansions": 10,
+      "allocated_heads": 0,
+      "named_checks_completed": 20,
+      "executed_analysis_fields": null,
+      "queries": 8,
+      "query_bytes": 287511,
+      "report_bytes": 334641,
+      "accounting_note": "Null means absent in the public report; no private counters or inferred zeroes."
+    }
+  },
+  "environment": {
+    "load_average_before": [
+      4.6103515625,
+      5.42919921875,
+      5.64892578125
+    ],
+    "load_average_after": [
+      5.50341796875,
+      5.52490234375,
+      5.6552734375
+    ],
+    "logical_cpus": 10,
+    "power_before": {
+      "argv": [
+        "pmset",
+        "-g",
+        "batt"
+      ],
+      "exit": 0,
+      "stdout": "Now drawing from 'AC Power'\n",
+      "stderr": ""
+    },
+    "power_after": {
+      "argv": [
+        "pmset",
+        "-g",
+        "batt"
+      ],
+      "exit": 0,
+      "stdout": "Now drawing from 'AC Power'\n",
+      "stderr": ""
+    },
+    "thermal_before": {
+      "argv": [
+        "pmset",
+        "-g",
+        "therm"
+      ],
+      "exit": 0,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+      "stderr": ""
+    },
+    "thermal_after": {
+      "argv": [
+        "pmset",
+        "-g",
+        "therm"
+      ],
+      "exit": 0,
+      "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+      "stderr": ""
+    },
+    "largest_cpu_snapshot_before": [
+      {
+        "pid": 3337,
+        "ppid": 1,
+        "cpu_percent": 316.5,
+        "comm": "/System/Library/Frameworks/Virtualization.framework/Versions/A/XPCServices/com.apple.Virtualization.VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine"
+      },
+      {
+        "pid": 7102,
+        "ppid": 1,
+        "cpu_percent": 34.7,
+        "comm": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+      },
+      {
+        "pid": 7111,
+        "ppid": 24966,
+        "cpu_percent": 28.1,
+        "comm": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+      },
+      {
+        "pid": 700,
+        "ppid": 1,
+        "cpu_percent": 6.7,
+        "comm": "/System/Library/ExtensionKit/Extensions/WallpaperAerialsExtension.appex/Contents/MacOS/WallpaperAerialsExtension"
+      },
+      {
+        "pid": 394,
+        "ppid": 1,
+        "cpu_percent": 5.7,
+        "comm": "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer"
+      },
+      {
+        "pid": 24966,
+        "ppid": 24894,
+        "cpu_percent": 4.8,
+        "comm": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+      },
+      {
+        "pid": 69017,
+        "ppid": 1,
+        "cpu_percent": 2.7,
+        "comm": "/System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor"
+      },
+      {
+        "pid": 80134,
+        "ppid": 1,
+        "cpu_percent": 1.6,
+        "comm": "/System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService"
+      }
+    ],
+    "largest_cpu_snapshot_after": [
+      {
+        "pid": 3337,
+        "ppid": 1,
+        "cpu_percent": 319.0,
+        "comm": "/System/Library/Frameworks/Virtualization.framework/Versions/A/XPCServices/com.apple.Virtualization.VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine"
+      },
+      {
+        "pid": 7111,
+        "ppid": 24966,
+        "cpu_percent": 53.9,
+        "comm": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+      },
+      {
+        "pid": 394,
+        "ppid": 1,
+        "cpu_percent": 4.2,
+        "comm": "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer"
+      },
+      {
+        "pid": 700,
+        "ppid": 1,
+        "cpu_percent": 2.2,
+        "comm": "/System/Library/ExtensionKit/Extensions/WallpaperAerialsExtension.appex/Contents/MacOS/WallpaperAerialsExtension"
+      },
+      {
+        "pid": 80134,
+        "ppid": 1,
+        "cpu_percent": 1.0,
+        "comm": "/System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService"
+      },
+      {
+        "pid": 24894,
+        "ppid": 1,
+        "cpu_percent": 0.7,
+        "comm": "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT"
+      },
+      {
+        "pid": 69017,
+        "ppid": 1,
+        "cpu_percent": 0.7,
+        "comm": "/System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor"
+      },
+      {
+        "pid": 22641,
+        "ppid": 1,
+        "cpu_percent": 0.5,
+        "comm": "/Users/dylanmitic/.local/share/codex-review/bin/codex-review-rust-f0c58a0-formatter-5a8f3dd"
+      }
+    ]
+  },
+  "limitations": [
+    "No limiter profiling or separate investigation run was performed.",
+    "System Virtualization showed approximately 316-319% CPU in boundary snapshots; background host activity was present.",
+    "Several wall ranges overlap the observed paired median effects; single-run extrema and product outliers are retained.",
+    "Small 2/8/16 scalar families and wait4 RSS cannot isolate the internal Cell/Flow size increase from 40 to 64 bytes.",
+    "wait4 RSS is a kernel high-water statistic, not simultaneous summed process-tree RSS; unchanged readings cannot establish unchanged allocation cost.",
+    "New product capabilities have no supported historical product baseline, so no product speedup ratio is defined.",
+    "Five sealed resource observations and one expected trap remained in completed semantic preflight, outside the throughput schedule."
+  ],
+  "measurement_runs": 1,
+  "original_analysis_sha256": "c6f21ddba1b89155cbe46f793b0138ee76ffb8fdd3faeeea0404bd41392c2e7c"
+}

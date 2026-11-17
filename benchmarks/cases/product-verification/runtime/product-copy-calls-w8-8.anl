@@ -1,0 +1,22 @@
+fn keep(p:(i64,bool,unit,i64,bool,unit,i64,unit))->(i64,bool,unit,i64,bool,unit,i64,unit)
+{p}
+fn main()->i64
+{let mut p0=(7,true,(),10,false,(),13,());
+let mut p1=(8,false,(),11,true,(),14,());
+let mut p2=(9,true,(),12,false,(),15,());
+let mut p3=(10,false,(),13,true,(),16,());
+let mut p4=(11,true,(),14,false,(),17,());
+let mut p5=(12,false,(),15,true,(),18,());
+let mut p6=(13,true,(),16,false,(),19,());
+let mut p7=(14,false,(),17,true,(),20,());
+p0=keep(p0);
+p1=keep(p1);
+p2=keep(p2);
+p3=keep(p3);
+p4=keep(p4);
+p5=keep(p5);
+p6=keep(p6);
+p7=keep(p7);
+while(false)
+{}
+if p0==(7,true,(),10,false,(),13,()) && p1==(8,false,(),11,true,(),14,()) && p2==(9,true,(),12,false,(),15,()) && p3==(10,false,(),13,true,(),16,()) && p4==(11,true,(),14,false,(),17,()) && p5==(12,false,(),15,true,(),18,()) && p6==(13,true,(),16,false,(),19,()) && p7==(14,false,(),17,true,(),20,()) {7} else {0}}

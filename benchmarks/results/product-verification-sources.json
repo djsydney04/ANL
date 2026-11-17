@@ -1,0 +1,116 @@
+{
+  "schema": "anl-product-verification-source-bindings-v1",
+  "source_inputs": {
+    "baseline": {
+      "files": {
+        "src/core.rs": "e4b0fe751455661b722e885324fb1bb652280e5cb0b740f0199daadc43ab35c2",
+        "src/types.rs": "ace642e24b133d030025a7b53363e2c89025934c5976586445038bd5be82adec",
+        "src/resolve.rs": "8704ef85ca7bd53185c0738ef9b4c0d01f248783c5ade79d4ec05d1a7af19590",
+        "src/lib.rs": "38fad0e7a1a6ddc9a5aa36386e00bc528965098442e8205b796b5a68a416c929",
+        "src/bounded.rs": "c58bc6fee2c984016047d05352ae756406eb8e6c8484cde537902ec5c6be10bc",
+        "src/eval.rs": "ae25d774afafd58efe482e048dc7fd95684b6742a482ff822831210a82b95f29",
+        "src/modules.rs": "65a3e05929eb53426833bc75462d30ec08cfc821f0dd087d1330b9ee6698b3fd",
+        "src/codegen.rs": "d8a46b8b06ef9d9d80d9e230702080a3bb732629f2187594d8123f91abaadd29",
+        "src/main.rs": "a5b1dc2b01f8abf9827d6068d9f81554baed9dd644c3a302f71ba72fd06ddee8",
+        "src/syntax.rs": "534ad19e7ff7eff4837cfadd6da3ff8fc97130fd0ad8991466a91afe620a03d7",
+        "src/diagnostic.rs": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8",
+        "src/mir.rs": "c0b66b6b3c9bf7ab2098ec8b1995d191af89f026aa5f4f719a82e71a0cf5de21",
+        "src/core/wire.rs": "c828f30c8187bda0b848a5506197f967f0c0a7c065b8f62d02326d64e8d91323",
+        "src/verify/solver.rs": "73c774f3d81248b7265c0c3ee33faa9651457d37fc8c0d88f1c527ba36d3ef37",
+        "src/verify/formula.rs": "8fdddebc07999b3705c38c050d43da5d7602b73bbde4a0ed5d6738c1edbf1581",
+        "src/verify/mod.rs": "a5f3ae127f4fa3a3b3ee6060d0e44d369c60def2bdf2fe277f4100f85b60c045",
+        "src/verify/state.rs": "ae2e7b6d7540ebb7f44c5fe33eb884a76abf9228b5a6cfe7401d1c6f17952713",
+        "src/verify/loops.rs": "b6bff369cd8c900eaf99c014ee2dd165dd8b976144afd934b9943e28b7067a17",
+        "Cargo.toml": "84254652f7c65ef18adb4672266a8a7108be7ca96fbf2283e7a48aed221fa0dc",
+        "Cargo.lock": "5467c4a54d25dab5ba198c025992b0edb68c324b201845c3bbc0f7af32341305",
+        "rust-toolchain.toml": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1"
+      },
+      "source_tree_sha256": "fd694ab23c46d2a7daf157d23648bbaed800c141c78fd53bfe767207843bc8de",
+      "source_algorithm": "SHA256 of compact sorted JSON path-to-SHA256 map of complete compiler source/config inventory",
+      "build_flags": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release"
+      ],
+      "release_binary_sha256": "6f8f55e34ab24263c6d4599d1018a71a24f37e74718d037e191f635e5e5025e2",
+      "revision": "5fd9bf85708c38056b26751035df843dfe88a303"
+    },
+    "candidate": {
+      "files": {
+        "src/core.rs": "e4b0fe751455661b722e885324fb1bb652280e5cb0b740f0199daadc43ab35c2",
+        "src/types.rs": "f4deb728fbf4275614ec4d697000fa0d639a97ccc4b50bc7e2d0d2be534a7c2a",
+        "src/resolve.rs": "88f83e84b7e268f0dfdaacd87e34d0b2c7ed676d526d6a789d2ae5b8b272b3ad",
+        "src/lib.rs": "38fad0e7a1a6ddc9a5aa36386e00bc528965098442e8205b796b5a68a416c929",
+        "src/bounded.rs": "c58bc6fee2c984016047d05352ae756406eb8e6c8484cde537902ec5c6be10bc",
+        "src/eval.rs": "ae25d774afafd58efe482e048dc7fd95684b6742a482ff822831210a82b95f29",
+        "src/modules.rs": "65a3e05929eb53426833bc75462d30ec08cfc821f0dd087d1330b9ee6698b3fd",
+        "src/codegen.rs": "d8a46b8b06ef9d9d80d9e230702080a3bb732629f2187594d8123f91abaadd29",
+        "src/main.rs": "a5b1dc2b01f8abf9827d6068d9f81554baed9dd644c3a302f71ba72fd06ddee8",
+        "src/syntax.rs": "534ad19e7ff7eff4837cfadd6da3ff8fc97130fd0ad8991466a91afe620a03d7",
+        "src/diagnostic.rs": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8",
+        "src/mir.rs": "c0b66b6b3c9bf7ab2098ec8b1995d191af89f026aa5f4f719a82e71a0cf5de21",
+        "src/core/wire.rs": "c828f30c8187bda0b848a5506197f967f0c0a7c065b8f62d02326d64e8d91323",
+        "src/verify/solver.rs": "73c774f3d81248b7265c0c3ee33faa9651457d37fc8c0d88f1c527ba36d3ef37",
+        "src/verify/formula.rs": "fbc3df715d288610ce828facf12c4a50343af9a6dbc97a7ee3f9d61626eb120e",
+        "src/verify/mod.rs": "f52e60de8ea95efc85f9f1db9907b86d9cdb1295bfca6dec49b6317d9a4919a3",
+        "src/verify/state.rs": "84da8708963e47d945bb49772404bf4c036a459576dad86e9cd6e0a4b00dbb10",
+        "src/verify/loops.rs": "b0999064a3ed91ea83c43237263d7f430ed21ae6a39bdd904a450dcd171f2594",
+        "Cargo.toml": "84254652f7c65ef18adb4672266a8a7108be7ca96fbf2283e7a48aed221fa0dc",
+        "Cargo.lock": "5467c4a54d25dab5ba198c025992b0edb68c324b201845c3bbc0f7af32341305",
+        "rust-toolchain.toml": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1"
+      },
+      "source_tree_sha256": "582583662fc38bfb75b5b7d6c4b0eb8ae98bedff9b008b277323d061ab61ba07",
+      "source_algorithm": "SHA256 of compact sorted JSON path-to-SHA256 map of complete compiler source/config inventory",
+      "build_flags": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release"
+      ],
+      "release_binary_sha256": "50a16061f0acbb4cc3d1cd1da4c096bf937de5b17975e919231991974080d9dc",
+      "revision": "274e9afad46412e9087a11b58b983d7a2c061098"
+    }
+  },
+  "tools": {
+    "rustc": {
+      "path": "/Users/dylanmitic/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/rustc",
+      "sha256": "1ba7bb8e273bd64125f4048d2ecce530e0a6470e565ab1b3aecf0b82b532f7b1",
+      "version": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1"
+    },
+    "cargo": {
+      "path": "/Users/dylanmitic/.rustup/toolchains/1.99.1-aarch64-apple-darwin/bin/cargo",
+      "sha256": "6d576d8058f8ca643e8fce55b64ee3c614ba64c9da2e536bae843e6a2e1f3951",
+      "version": "cargo 1.99.1 (5f94df478 2026-08-27)\nrelease: 1.99.1\ncommit-hash: 5f94df4789f005f9a352888e8355ffc645b7ed0e\ncommit-date: 2026-08-27\nhost: aarch64-apple-darwin\nlibgit2: 1.9.6 (sys:0.21.0 vendored)\nlibcurl: 8.7.1 (sys:0.4.90+curl-8.21.0 system ssl:(SecureTransport) LibreSSL/3.3.6)\nssl: OpenSSL 3.6.3 9 Jun 2026\nos: Mac OS 26.4.1 [64-bit]"
+    },
+    "python": {
+      "path": "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/bin/python3.9",
+      "sha256": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb",
+      "version": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]"
+    },
+    "solver": {
+      "path": "/Users/dylanmitic/ANL/.tools/z3-5.3.3-arm64-osx-13.3/bin/z3",
+      "sha256": "9b3df8db3324ac2de9ebdd2841477366ecad0626656f806c2168ebf2732745a4",
+      "version": "Z3 version 5.3.3 - 64 bit - build hashcode 430d19e697e2ec9bad79ff210d41b4a7a5fcfa3e"
+    }
+  },
+  "environment": {
+    "PATH": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dylanmitic/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Users/dylanmitic/.codex/tmp/arg0-macos/codex-arg0I0BxXi:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dylanmitic/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dylanmitic/.local/bin:/Users/dylanmitic/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS",
+    "RUSTUP_TOOLCHAIN": null,
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+    "CPATH": "/usr/local/include",
+    "C_INCLUDE_PATH": null,
+    "LIBRARY_PATH": "/usr/local/lib",
+    "MACOSX_DEPLOYMENT_TARGET": null,
+    "DYLD_LIBRARY_PATH": null,
+    "DYLD_INSERT_LIBRARIES": null,
+    "OMP_NUM_THREADS": null
+  },
+  "original_45_file_source_sha256": "9cdd06bee2a391f5f417d87eadffd8f6a7099e4aae6d12d20a7124a687e87ac1",
+  "original_measurement_freeze_sha256": "0b0131db9e086e9ab0e293b6dc13dccbce7c09a5eb856f6cb6e18ccf6ae4043e",
+  "original_experiment_sha256": "1799465f18de76d499e3e3237894292b5e728ec9ebb6457ea26e3269c7c6564b",
+  "build_correspondence": "Release build attestation; baseline rebuild reproduced the recorded binary exactly. This is not a formal compiler-correctness proof.",
+  "timing": "Launch through wait4 reaping; source/tool checks, oracle processing and context capture are outside the timed interval."
+}

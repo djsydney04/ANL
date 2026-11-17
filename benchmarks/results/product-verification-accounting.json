@@ -1,0 +1,122 @@
+{
+  "result": "PASS",
+  "classification": "Synthetic waited-child CPU accounting validation, separate from language performance.",
+  "platform": "macOS-26.4.1-arm64-arm-64bit",
+  "python_sha256": "271143990bc83af0fb2404a255038f5faafb96df1584ed7f085e5018c0f33ffb",
+  "fixture_sha256": "ca0ad854c181242931bcc4f91c8cb6d67f5f8773e4ec6319adb3bf8a3d09214c",
+  "waited_descendant_cpu_included": true,
+  "record": {
+    "argv": [
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+      "/Users/dylanmitic/ANL/.git/apl-internal/product-verification-benchmark/accounting_fixture.py"
+    ],
+    "cwd": "/Users/dylanmitic/ANL",
+    "exit": 0,
+    "timeout": false,
+    "stdout_sha256": "aa12b62c01131ba182ef332acf1383c4ebb9e33deaebadcaf0c3bbbc54857334",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_bytes": 1376,
+    "stderr_bytes": 0,
+    "wall_ns": 294270375,
+    "user_cpu_ns": 278073000,
+    "system_cpu_ns": 13501000,
+    "cpu_ns": 291574000,
+    "peak_rss_bytes": 36257792,
+    "wait4_raw": {
+      "ru_idrss": 0,
+      "ru_inblock": 0,
+      "ru_isrss": 0,
+      "ru_ixrss": 0,
+      "ru_majflt": 34,
+      "ru_maxrss": 36257792,
+      "ru_minflt": 4528,
+      "ru_msgrcv": 0,
+      "ru_msgsnd": 0,
+      "ru_nivcsw": 58,
+      "ru_nsignals": 0,
+      "ru_nswap": 0,
+      "ru_nvcsw": 2,
+      "ru_oublock": 0,
+      "ru_stime": 0.013500999999999999,
+      "ru_utime": 0.278073
+    },
+    "rss_semantics": "wait4 reaped process maximum; not simultaneous summed process-tree RSS",
+    "rss_native_unit": "bytes"
+  },
+  "parent": {
+    "child_argv": [
+      "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+      "/Users/dylanmitic/ANL/.git/apl-internal/product-verification-benchmark/accounting_fixture.py",
+      "--child"
+    ],
+    "child_exit": 0,
+    "child_stdout": "{\"intended_allocation_bytes\": 25165824, \"cpu_loop_seconds\": 0.25, \"checksum\": 73718, \"self_usage\": {\"ru_idrss\": 0, \"ru_inblock\": 0, \"ru_isrss\": 0, \"ru_ixrss\": 0, \"ru_majflt\": 17, \"ru_maxrss\": 36208640, \"ru_minflt\": 2757, \"ru_msgrcv\": 0, \"ru_msgsnd\": 0, \"ru_nivcsw\": 44, \"ru_nsignals\": 0, \"ru_nswap\": 0, \"ru_nvcsw\": 0, \"ru_oublock\": 0, \"ru_stime\": 0.0073279999999999994, \"ru_utime\": 0.262092}}\n",
+    "child_stderr": "",
+    "child_wait4": {
+      "ru_idrss": 0,
+      "ru_inblock": 0,
+      "ru_isrss": 0,
+      "ru_ixrss": 0,
+      "ru_majflt": 17,
+      "ru_maxrss": 36257792,
+      "ru_minflt": 2761,
+      "ru_msgrcv": 0,
+      "ru_msgsnd": 0,
+      "ru_nivcsw": 45,
+      "ru_nsignals": 0,
+      "ru_nswap": 0,
+      "ru_nvcsw": 0,
+      "ru_oublock": 0,
+      "ru_stime": 0.007352,
+      "ru_utime": 0.26362599999999997
+    },
+    "parent_self_usage": {
+      "ru_idrss": 0,
+      "ru_inblock": 0,
+      "ru_isrss": 0,
+      "ru_ixrss": 0,
+      "ru_majflt": 17,
+      "ru_maxrss": 10977280,
+      "ru_minflt": 1589,
+      "ru_msgrcv": 0,
+      "ru_msgsnd": 0,
+      "ru_nivcsw": 13,
+      "ru_nsignals": 0,
+      "ru_nswap": 0,
+      "ru_nvcsw": 2,
+      "ru_oublock": 0,
+      "ru_stime": 0.0059499999999999996,
+      "ru_utime": 0.012946
+    },
+    "wait_behavior": "parent waited its single child with wait4 before exiting"
+  },
+  "child": {
+    "intended_allocation_bytes": 25165824,
+    "cpu_loop_seconds": 0.25,
+    "checksum": 73718,
+    "self_usage": {
+      "ru_idrss": 0,
+      "ru_inblock": 0,
+      "ru_isrss": 0,
+      "ru_ixrss": 0,
+      "ru_majflt": 17,
+      "ru_maxrss": 36208640,
+      "ru_minflt": 2757,
+      "ru_msgrcv": 0,
+      "ru_msgsnd": 0,
+      "ru_nivcsw": 44,
+      "ru_nsignals": 0,
+      "ru_nswap": 0,
+      "ru_nvcsw": 0,
+      "ru_oublock": 0,
+      "ru_stime": 0.0073279999999999994,
+      "ru_utime": 0.262092
+    }
+  },
+  "limitations": [
+    "CPU inclusion validated for a single waited child on this host. Unwaited or escaped descendants are not established.",
+    "The production solver must be synchronously waited by ANL.",
+    "Peak RSS is the kernel wait4 high-water statistic, not the simultaneous sum across a process tree.",
+    "The fixture cannot prove arbitrary tree-depth behavior or future operating-system semantics."
+  ]
+}

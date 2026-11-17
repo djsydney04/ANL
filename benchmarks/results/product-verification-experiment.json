@@ -1,0 +1,60 @@
+{
+  "schema": "anl-product-verification-experiment-v1",
+  "original_experiment_sha256": "1799465f18de76d499e3e3237894292b5e728ec9ebb6457ea26e3269c7c6564b",
+  "extraction": "Technical configuration extracted from the original record. Raw observations are preserved separately without rewriting.",
+  "source_bindings": "product-verification-sources.json",
+  "source_bindings_sha256": "a236974b6b3e024a9189445e7cdb00232d9b3c693681e7a2a97ee8acf76e63c1",
+  "manifest_sha256": "3d6302d10515e124b7c1db212a72253c7d9b8d38cf7df0f132264c74dc62ad38",
+  "scope_sha256": "2b4cc637a970d727dad3a5fa64210a0553e26fb65c0e374918493594ebe3e33a",
+  "recorded_host": {
+    "system": "Darwin",
+    "release": "25.4.0",
+    "machine": "arm64",
+    "logical_cpus": 10
+  },
+  "recorded_environment": {
+    "PATH": "/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dylanmitic/.local/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Users/dylanmitic/.codex/tmp/arg0-macos/codex-arg0I0BxXi:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/dylanmitic/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/dylanmitic/.local/bin:/Users/dylanmitic/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS",
+    "RUSTUP_TOOLCHAIN": null,
+    "RUSTFLAGS": null,
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "SDKROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk",
+    "CPATH": "/usr/local/include",
+    "C_INCLUDE_PATH": null,
+    "LIBRARY_PATH": "/usr/local/lib",
+    "MACOSX_DEPLOYMENT_TARGET": null,
+    "DYLD_LIBRARY_PATH": null,
+    "DYLD_INSERT_LIBRARIES": null,
+    "OMP_NUM_THREADS": null
+  },
+  "rounds": {
+    "warmups": 2,
+    "samples": 7,
+    "scalar_pairs": 84,
+    "scalar_AB": 42,
+    "scalar_BA": 42,
+    "product_samples": 105,
+    "total_processes": 351
+  },
+  "timing": {
+    "wall": "perf_counter_ns immediately before Popen through wait4 return",
+    "cpu": "wait4 user plus system CPU; one synchronously waited child checked separately",
+    "rss": "wait4 maximum resident set; bytes on Darwin, KiB converted to bytes on Linux; not summed tree RSS",
+    "execute_function_sha256": "2772601fccb64966b11584452eba2536a7aec73dfb74710f1e27b91784cfb9dc"
+  },
+  "limits": {
+    "solver_timeout_ms": 30000,
+    "process_timeout_s": 45,
+    "stdout_or_stderr_bytes": 67108864,
+    "symbolic_work": 1000000,
+    "arena_nodes": 100000,
+    "head_symbols": 4096,
+    "pending_queries": 1024
+  },
+  "investigation_thresholds": {
+    "wall_absolute_paired_ratio_change": 0.1,
+    "cpu_absolute_paired_ratio_change": 0.1,
+    "rss_absolute_paired_ratio_change": 0.15
+  },
+  "measurement_scope": "12 paired scalar cases and 15 candidate-only product cases. Five resource observations and one expected trap remain mandatory preflight cases.",
+  "interpretation": "Descriptive end-to-end CLI observations; performance attribution is inconclusive."
+}
