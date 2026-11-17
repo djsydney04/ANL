@@ -1,11 +1,13 @@
-# Pure function contract verification
+# Scalar function contract verification
 
-Status: implemented first verification increment. Production results are
-solver-trusted; the [proof inventory](../formal/PROOFS.md) records the separate
-model theorems and remaining correspondence obligations. The supported executable
-scalar semantics are `m1-2026-11-16`; the verification rules are `apl-verify-v0`.
-Programs using the `local-state-2026-11-17` extension are reported with that
-revision and rejected as unsupported before solver discovery.
+Status: implemented pure and loop-free local-state verification. Production
+results are solver-trusted; the [proof inventory](../formal/PROOFS.md) records
+separate model coverage and remaining correspondence obligations. Pure programs
+retain executable revision `m1-2026-11-16` and report schema `apl-verify-v0`.
+Local-state programs use executable revision `local-state-2026-11-17`, report
+schema `apl-verify-v1`, and verification revision `apl-state-verify-v1`. The
+[loop-free state contract](loop-verification.md#loop-free-report-contract)
+defines the exact v1 fields. While loops remain unsupported.
 
 ## Source contracts
 
@@ -69,7 +71,7 @@ a solver. `dump-core` exports the erased executable body in the existing scalar
 format for the executable revision selected by the complete checked program.
 Importing that core does not recover contracts or verification evidence.
 
-The first increment does not add `assert`, `assume`, ghost statements, or runtime
+The verifier does not add `assert`, `assume`, ghost statements, or runtime
 contract traps. Runtime assertions require a separate semantic revision, core
 format extension, evaluator behavior, native lowering, and formal coverage.
 
@@ -80,18 +82,17 @@ precondition `true` and no requested postcondition; arithmetic safety is still
 checked. The report states the count of explicit clauses. An empty function graph
 reports `not_requested` and does not succeed as a verification attempt.
 
-The supported executable fragment is the current pure scalar language with an
-acyclic function-call graph. The verifier checks this graph before generating
+The supported executable fragment contains scalar expressions, initialized
+mutable locals, and assignment, with an acyclic function-call graph and no loops. The verifier checks this graph before generating
 conditions. Any recursive component makes the whole verification attempt
 `unsupported`, including an unused or syntactically unreachable recursive call.
 This limitation applies to verification; ordinary compilation still supports
 recursion. A separate preflight visits every checked function body and rejects
-`let_mut`, `assign`, or `while` before compiler hashing, solver discovery, and
-query generation. This includes unused functions and unselected branches. It
+`while` before compiler hashing, solver discovery, and query generation. This includes unused functions and unselected branches. It
 reports `unsupported` with exit 7, identifies the construct, and emits no query
-obligations. No mutable-state, loop, heap, ownership, effect, concurrency, or
-foreign-call property is covered. A later loop verifier needs a symbolic-state
-invariant rule covering initialization, preservation, condition and body trap
+obligations. Mutable state is local scalar state only. No loop, heap, ownership,
+concurrency, or foreign-call property is covered. A later loop verifier needs a
+symbolic-state invariant rule covering initialization, preservation, condition and body trap
 freedom, and exit postconditions. Finite unrolling is not verification.
 
 ## Verification conditions
@@ -134,6 +135,26 @@ preconditions on those values, and inline the callee's actual body in a fresh
 parameter environment. Postconditions are never assumed as summaries. Thus an
 incorrect, unverified, or contradictory callee specification cannot certify a
 caller. All function bodies and clauses receive their own checks as well.
+
+The loop-free state generator retains a symbolic value and guarded safety
+formula while updating a typed environment carrying each binding's mutability.
+Assignment analyzes its full right-hand side, then replaces the target's current
+symbolic value. Let scope removal pops only its added binding and retains outer
+updates. Immutable bindings hold value snapshots.
+
+A conditional analyzes its condition first, then analyzes both branches from
+copies of that returned state. It merges their values and environments with
+conditional terms. Its safety is the condition's safety together with each
+branch's safety guarded by the selected condition. Short-circuit operators merge
+the right operand's state with the skipped state under the corresponding guard.
+Unsafe conditions are never assumed to remove a path from the safety formula.
+
+Calls capture each argument value immediately while passing caller state to the
+next argument. Callee preconditions use these captured values. The actual callee
+body is analyzed in a fresh immutable-parameter environment; its result and safety
+are retained, and the caller keeps its state after argument evaluation. Callee
+postconditions are not assumed. Function postconditions use the original entry
+parameter symbols, independently of subsequent local state.
 
 The implementation can share immutable expression and formula nodes to avoid
 repeating continuations. It must preserve the stated `wp` rules. Named condition
@@ -183,7 +204,7 @@ output. An `unsat` token followed by a crash or error is not accepted.
 For a validity obligation, `unsat` for its negation discharges the obligation;
 `sat` supplies a candidate refutation. A reachability obligation instead expects
 `sat`. Solver models remain labeled `unreplayed`; they are not presented as
-confirmed runtime counterexamples. The first increment has no proof-certificate
+confirmed runtime counterexamples. The verifier has no proof-certificate
 checker or automatic counterexample replay.
 
 `--timeout-ms` is the total wall-clock budget for solver discovery and all
@@ -203,6 +224,13 @@ The first implementation has these additional bounds:
 | Total generated query bytes | 16777216 | `unknown` |
 | Solver stdout per query | 1048576 bytes | `error` |
 | Solver stderr per query | 65536 bytes | `error` |
+
+State-aware verification additionally limits the complete attempt to 1000000
+symbolic work units and 100000 arena insertions. Copies, scans, and merges of
+environment/context entries, variable-length formula operands, and arena
+insertions are charged before allocation. Deadline checks occur during these
+loops and rendering; serialized arena definitions and queries are bounded by
+1 MiB. The pure v0 path retains its existing limits and query semantics.
 
 Source-loading and parsing limits still apply. No unbounded recursive substitution
 or blocking `wait_with_output` may bypass these limits. Resource exhaustion is
@@ -231,7 +259,8 @@ unknown, failed, or empty attempt is converted to success. Preflight rejection
 does not fabricate outcomes for queries that never ran. Already completed results
 remain visible if a later query fails or exhausts the deadline.
 
-The JSON report binds `apl-verify-v0`, the executable semantic revision, compiler
+The JSON report binds its schema and applicable verification revision, the
+executable semantic revision, compiler
 version and executable SHA-256, every loaded source path and exact-byte SHA-256,
 the module/function mapping, selected scope, limits, solver executable SHA-256,
 complete solver version output and arguments, each exact SMT query and its hash,
@@ -245,7 +274,11 @@ identity claim. Source snapshots and typed function metadata remain present when
 available, and no query records are invented. The executable semantic revision
 comes from the complete checked program, including stateful programs rejected
 as unsupported. When source loading, parsing, or checking fails, no checked
-program exists and `semantic_revision` is null. A `verified` report requires all
+program exists and `semantic_revision` is null in the unchanged v0 error envelope.
+Checked stateful reports use v1 even when loops or recursion are unsupported,
+retain `expanded_nodes: 0` on preflight failure, and add the exact scope, budget,
+and complete parameter `model_symbols` fields in the loop-free state contract.
+They have no loop-head or invariant metadata. A `verified` report requires all
 compiler, solver, source, and query bindings above.
 
 Every result has `trust: "smt-trusted"`. The report states that type checking ran,
@@ -254,7 +287,7 @@ It claims trap freedom and requested partial-correctness properties in the
 supported scope. It does not claim a checked termination proof, native compiler
 correctness, or kernel-checked solver evidence.
 
-The first increment never imports reports or reuses cached verification outcomes.
+The verifier never imports reports or reuses cached verification outcomes.
 Changing any source, contract, tool, or option requires a new attempt. A saved
 report describes its exact snapshot and cannot authorize a later build.
 
@@ -271,14 +304,18 @@ Call-free generator soundness, acyclic inlining preservation, and the relation
 between named conditions and combined `wp` are separate coverage items. Proofs
 must name any omitted constructors. Even complete model proofs leave the Rust
 generator, source erasure, SMT encoding, solver, and native compiler as separate
-correspondence or trust obligations. The implementation must report FM-07 as open
+correspondence or trust obligations. The loop-free state model's continuation
+generator and production's forward symbolic environment updates also require a
+separate correspondence argument. The implementation must report FM-07 as open
 or partial until its exact generator coverage has been independently reviewed.
 
 Acceptance requires real solver runs for valid and false postconditions,
 intermediate overflow, both division traps, signed division and remainder,
 short-circuit guards, lexical shadowing, cross-file calls and failed callee
 preconditions. It also requires contradictory and undefined preconditions,
-recursion rejection, missing/crashed/malformed solvers, unknown and timeout
+recursion and loop rejection, mutation order, scope exit, branch-state merges,
+argument snapshots, callee isolation, complete input models, symbolic-work limits,
+missing/crashed/malformed solvers, unknown and timeout
 results, input-bound tests, and a source mutation that invalidates prior evidence.
 Targeted mutation tests must show that dropping an overflow check, a call
 precondition, or a branch guard changes the relevant regression outcome.

@@ -39,8 +39,9 @@ Calls may refer to later function declarations. Arity and each argument type mus
 
 [File modules](../../spec/modules.md) add private/public declarations and qualified
 names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
-type-checked and erased during ordinary execution. Their optional verifier rejects
-stateful programs. Early `return`, `break`, `continue`, `for`, user-defined data,
+type-checked and erased during ordinary execution. Their optional verifier accepts
+loop-free mutable scalar code with acyclic calls; loops and recursion are unsupported.
+Early `return`, `break`, `continue`, `for`, user-defined data,
 allocation, references, generics, I/O, concurrency, and source-level unsafe code
 remain unsupported; they remain full-language delivery requirements.
 

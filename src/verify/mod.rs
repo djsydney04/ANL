@@ -1,6 +1,7 @@
-//! Opt-in, solver-trusted verification of pure acyclic source programs.
+//! Opt-in, solver-trusted verification of acyclic scalar source programs.
 mod formula;
 mod solver;
+mod state;
 
 use crate::{
     diagnostic::{Diagnostic, Span},
@@ -210,10 +211,11 @@ pub fn verify_file(
     }
     let program = crate::compile_file(path)?;
     let deadline = Instant::now() + Duration::from_millis(options.timeout_ms);
+    let stateful = program.has_local_state();
     let mut report = VerificationReport {
         data: json!({
             "schema":SCHEMA,"semantic_revision":program.semantic_revision(),"status":"verified","trust":"smt-trusted",
-            "scope":{"functions":"all_loaded","arithmetic_safety":true,"partial_correctness":true,"termination_proved":false,"model_proof":"FM-07 open or partial; call inlining and Rust/SMT correspondence are not proved","native_correctness":false},
+            "scope":{"functions":"all_loaded","arithmetic_safety":true,"partial_correctness":true,"termination_proved":false,"model_proof":"See formal/PROOFS.md; model proofs do not certify Rust generation or SMT encoding","native_correctness":false},
             "type_checked":true,"tested":false,"dynamic_checks":false,"contracts_erased":true,
             "limits":{"timeout_ms":options.timeout_ms,"expanded_nodes":MAX_NODES,"expansion_depth":256,"queries":MAX_QUERIES,"query_bytes":MAX_QUERY_BYTES,"total_query_bytes":MAX_TOTAL_QUERY_BYTES,"solver_stdout_bytes":1_048_576,"solver_stderr_bytes":65_536},
             "compiler":null,"solver":null,"sources":program.sources.iter().enumerate().map(|(id,s)|json!({"id":id,"path":s.path.to_string_lossy(),"path_bytes_hex":path_hex(&s.path),"sha256":sha(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>(),
@@ -221,6 +223,14 @@ pub fn verify_file(
         }),
         exit: 0,
     };
+    if stateful {
+        report.data["schema"] = json!("apl-verify-v1");
+        report.data["verification_revision"] = json!("apl-state-verify-v1");
+        report.data["scope"]["fragment"] = json!("loop_free_local_state_acyclic");
+        report.data["limits"]["symbolic_work"] = json!(formula::MAX_SYMBOLIC_WORK);
+        report.data["limits"]["arena_nodes"] = json!(formula::MAX_ARENA_NODES);
+        report.data["expanded_nodes"] = json!(0);
+    }
     let Some(contracts) = program.contracts.as_ref() else {
         fail(
             &mut report,
@@ -258,6 +268,7 @@ pub fn verify_file(
     };
     report.data["solver"] = json!({"executable":solver.path.to_string_lossy(),"executable_path_bytes_hex":path_hex(&solver.path),"sha256":solver.hash,"version":solver.version,"arguments":["-in","-smt2"]});
     let mut expanded = 0;
+    let mut state_budget = formula::StateBudget::new(deadline);
     let mut queries = 0;
     let mut bytes = 0;
     let result: Result<(), Failure> = (|| {
@@ -265,8 +276,16 @@ pub fn verify_file(
             if Instant::now() >= deadline {
                 return Err(Failure::Unknown("verification deadline exceeded".into()));
             }
-            let mut generator = formula::Generator::new(&program, &mut expanded);
-            let pending = formula::obligations(&mut generator, id)?;
+            let mut generator = if stateful {
+                formula::Generator::with_state_budget(&program, &mut expanded, &mut state_budget)
+            } else {
+                formula::Generator::new(&program, &mut expanded)
+            };
+            let pending = if stateful {
+                state::obligations(&mut generator, id)?
+            } else {
+                formula::obligations(&mut generator, id)?
+            };
             for obligation in pending {
                 queries += 1;
                 if queries > MAX_QUERIES {
@@ -286,6 +305,17 @@ pub fn verify_file(
                     ));
                 }
                 let mut item = json!({"id":queries-1,"function_id":id,"function":contracts[id].source_name,"kind":obligation.kind,"location":location(&program,obligation.span),"expected_solver_status":if obligation.expected_sat {"sat"}else{"unsat"},"trust":"smt-trusted","query":script,"query_sha256":sha(script.as_bytes()),"status":"unknown","query_complete":false,"solver_status":null,"model":null,"message":null});
+                if stateful {
+                    generator.arena.work(function.params.len())?;
+                    let mut symbols = Vec::new();
+                    for (i, ty) in function.params.iter().enumerate() {
+                        generator.arena.work(0)?;
+                        if *ty != crate::types::Type::Unit {
+                            symbols.push(json!({"symbol":format!("p{i}"),"type":ty.as_str(),"origin":{"kind":"parameter","index":i}}));
+                        }
+                    }
+                    item["model_symbols"] = json!(symbols);
+                }
                 let attempt = solver.query(
                     &script,
                     &function.params,

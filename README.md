@@ -6,17 +6,20 @@ formal verification.
 
 The current implementation checks, interprets, and compiles a scalar language with
 `i64`, `bool`, unit, immutable and initialized mutable bindings, assignment,
-structured while loops, conditionals, recursive functions, and file modules. `apl verify` checks arithmetic safety and contracts
-for pure acyclic functions using Z3 5.3.3, with results labeled `smt-trusted`.
+structured while loops, conditionals, recursive functions, and file modules.
+`apl verify` checks arithmetic safety and contracts for loop-free scalar code,
+including mutable locals and acyclic calls, using Z3 5.3.3. Results are labeled
+`smt-trusted`.
 Ordinary compilation type-checks and erases contract annotations. The Rust CLI
 also exports and independently validates typed core JSON. Lean proofs cover
 expression and recursive-function typing,
 safety, and finite evaluator correspondence with sufficient depth and fuel.
 A separate local-state model proves typing and finite machine safety for mutation
 and loops. Verification-condition proofs cover call-free terms and finite symbolic
-function-body expansion with ordered callee preconditions when generation succeeds.
+function-body expansion with ordered callee preconditions when generation succeeds,
+including loop-free local-state updates.
 They do not certify the production verifier or solver. None of these proofs
-establishes termination or Rust implementation correctness.
+establishes production termination or Rust implementation correctness.
 See the [proof inventory](formal/PROOFS.md) for exact scope and assumptions.
 
 From this checkout, with Rust installed through rustup:
@@ -34,7 +37,7 @@ resource limits, and core import/export. The CLI also supports native `build`,
 [native compilation](docs/native-compilation.md). There is no qualified
 installable release yet. Aggregates, ownership, I/O, concurrency, loop/recursive
 verification, and the wider language remain roadmap work. `verify` rejects any
-program containing local-state constructs before starting a solver.
+program containing loops or recursive calls before starting a solver.
 
 - [Getting started](docs/getting-started.md)
 - [Native compilation](docs/native-compilation.md)

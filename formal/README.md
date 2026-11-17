@@ -192,8 +192,9 @@ entry preconditions. They establish the requested result type, postcondition,
 and absence of finite traps or invalid states. The raw generator describes the
 value-only machine and does not check static assignment permission.
 
-These are model proofs. Production mutable-code verification requires separate
-implementation acceptance. Source elaboration, graph validation, the production
+These are model proofs. The production verifier separately supports loop-free
+mutable scalar code with acyclic calls and reports `smt-trusted` results.
+Source elaboration, graph validation, the production
 forward analysis and its correspondence to this CPS generator, named query
 grouping, SMT translation, and the solver remain outside the theorem boundary.
 Production reports retain `termination_proved: false`. Loop invariants and their

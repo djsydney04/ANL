@@ -4,8 +4,8 @@ APL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, and file modules.
-An optional verifier checks arithmetic safety and contracts for pure acyclic
-functions without local-state constructs. Collections, ownership, source-level
+An optional verifier checks arithmetic safety and contracts for loop-free scalar
+functions with mutable locals and acyclic calls. Collections, ownership, source-level
 I/O, concurrency, and loop/recursive verification remain in the [roadmap](roadmap.md).
 
 ## Build and run
@@ -122,17 +122,39 @@ selects an executable explicitly. `--timeout-ms N` sets the whole attempt's budg
 after source checking; its default is 30000 milliseconds. The verifier checks every
 loaded function, including unused functions, for defined and satisfiable
 preconditions, checked-arithmetic safety, and each postcondition. Calls must form
-an acyclic graph. Recursion, `let mut`, assignment, or `while` anywhere in the
+an acyclic graph. Recursion or `while` anywhere in the
 loaded graph report `unsupported`, even in unused functions or skipped branches.
-Local-state rejection happens before solver discovery and creates no obligations.
-Ordinary interpretation and native compilation still support those constructs.
+This rejection happens before solver discovery and creates no obligations.
+Loop-free `let mut` and assignment are supported, including changes made while
+evaluating operands, conditions, and call arguments. Ordinary interpretation and
+native compilation also support loops and recursion.
+
+A mutable implementation can use the same contract:
+
+```text
+fn increment(value: i64) -> i64
+    requires value < 9223372036854775807;
+    ensures (answer) answer == value + 1;
+{
+    let mut next = value;
+    next = next + 1;
+    next
+}
+```
+
+Save it as `mutable-increment.apl` and run
+`./target/release/apl verify mutable-increment.apl`. It returns `verified` with
+`trust=smt-trusted`. Verification accepts this library without a `main` function.
 
 `requires` and `ensures` clauses use mathematical integers. Runtime expressions
 still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
 erase clauses without proving or dynamically enforcing them; scalar core export
 also erases them. Verification reports bind source, tools, and queries to their
 exact hashes. Refuting models are candidate inputs labeled `replayed: false`,
-not confirmed executions. The guide explains failed, unknown, and error outcomes.
+not confirmed executions. Pure programs retain `apl-verify-v0` reports. Programs
+containing local-state constructs use `apl-verify-v1` with verification revision
+`apl-state-verify-v1`, including unsupported stateful programs. The guide explains
+failed, unknown, and error outcomes.
 
 ## Examples
 

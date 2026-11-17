@@ -398,8 +398,9 @@ and its syntactically expanded callees, not every unused function. Production
 whole-program loop/recursion rejection is a separate check. The production
 forward analysis, its correspondence to this CPS generator, named-query grouping,
 source-contract correspondence, SMT translation, and solver evidence remain
-unproved. These model results do not by themselves enable production mutable-code
-verification or change `termination_proved: false`. Loop-invariant reasoning,
+unproved. Production loop-free mutable-code verification reports `smt-trusted`
+results separately from these model theorems and retains
+`termination_proved: false`. Loop-invariant reasoning,
 fresh head symbols, and partial correctness of possibly divergent loops require
 separate definitions and proofs.
 

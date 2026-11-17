@@ -1,9 +1,10 @@
-# Verify pure function contracts
+# Verify scalar function contracts
 
-`apl verify` checks arithmetic safety and function contracts for the current pure
-scalar language. It uses Z3 5.3.3 and reports solver-trusted results. It supports
-acyclic calls across source modules; recursive programs still compile and run,
-but this verifier reports them as unsupported.
+`apl verify` checks arithmetic safety and function contracts for pure scalar
+code and loop-free mutable scalar locals. It uses Z3 5.3.3 and reports
+solver-trusted results. It supports acyclic calls across source modules.
+Programs with loops or recursive calls still compile and run, but verification
+reports them as unsupported.
 
 ## Run a verification
 
@@ -79,16 +80,19 @@ that division and remainder are overflow traps in executable code.
 
 The verifier checks every loaded function, including private and unused functions.
 A function with no explicit contracts still gets an arithmetic-safety check.
-Any `let mut`, assignment, or `while` in any checked body makes the complete
-attempt `unsupported`, including unused functions and unselected branches.
-This preflight runs before compiler hashing, solver discovery, or query creation.
-The diagnostic identifies the unsupported construct. A library does not need
-`main`. An empty program reports that nothing was requested.
+Any `while` or recursive call graph makes the complete attempt `unsupported`,
+including unused functions and unselected branches. This preflight runs before
+compiler hashing, solver discovery, or query creation. The diagnostic identifies
+the unsupported construct. A library does not need `main`. An empty program reports that nothing was requested.
 
 Calls check argument evaluation and callee preconditions, then analyze the actual
 callee body. The verifier does not assume a callee's postconditions as axioms.
 Branches, short-circuit operands, discarded expressions, and lexical scopes retain
-their executable meaning.
+their executable meaning. Mutable assignments pass updated state to later
+operands, conditions, and arguments. Leaving a scope retains changes to outer
+locals. A callee receives copied argument values and cannot mutate caller locals.
+Postconditions refer to the original entry parameters, even when a body creates
+mutable locals with the same names.
 
 | Exit | Result |
 | ---: | --- |
@@ -98,13 +102,16 @@ their executable meaning.
 | 4 | Invocation, solver protocol, tool, or I/O failure |
 | 5 | Refuted property or unsatisfiable preconditions |
 | 6 | Solver uncertainty, timeout, or verification analysis limit |
-| 7 | Unsupported recursion, mutable state, loops, or an empty function graph |
+| 7 | Unsupported recursion, loops, or an empty function graph |
 
 A refuting solver model is labeled `replayed: false`. It is a candidate
 counterexample, not an execution trace. A later error does not erase already
 completed obligation results. Only the aggregate `verified` result returns zero.
 
-The JSON report uses schema `apl-verify-v0`. It includes retained source hashes,
+Pure programs retain schema `apl-verify-v0`. Programs containing local-state
+constructors use `apl-verify-v1` with `verification_revision: "apl-state-verify-v1"`,
+including programs rejected for loops or recursion. Reports include retained
+source hashes,
 function identities, exact tool hashes and versions, limits, obligation locations,
 SMT commands and hashes, outcomes, and candidate input assignments. Completed
 query records include `get-value` when needed and `exit`; incomplete records are
@@ -112,7 +119,20 @@ marked `query_complete: false`. A source failure still produces one error report
 with unavailable bindings left null. `semantic_revision` is the checked
 program's executable revision, including `local-state-2026-11-17` for rejected
 stateful programs. It is null for source errors because no checked program
-exists. Diagnostics also identify invalid source on stderr.
+exists; those errors retain the v0 error envelope. Malformed CLI options produce
+stderr and exit 4 without a JSON report. Diagnostics also identify invalid source
+on stderr.
+
+Each v1 obligation records `model_symbols`, listing every non-unit entry parameter
+in declaration order, including unused parameters. Counterexamples retain that
+complete assignment; unit values require no solver symbol. No loop-head symbols
+or loop obligations are included.
+
+State analysis has attempt-wide ceilings of 1000000 symbolic work units and
+100000 arena nodes, in addition to the existing expression, query, byte, and time
+limits. Environment copies, state merges, formula operands, and arena insertions
+consume this budget. A limit returns `unknown`. These added limits do not change
+the pure v0 path.
 
 Preflight rejection or an empty function graph can also leave tool identities
 null because discovery and hashing have not run. Null means unavailable or not
@@ -128,8 +148,8 @@ or option requires another verification attempt.
 Ordinary `check`, `eval`, `build`, and `run` type-check contracts and erase them.
 They neither run a solver nor insert dynamic contract checks. `dump-core` exports
 only the executable scalar program; importing it does not recover contracts.
-`assert`, ghost code, mutable-state and loop verification, heap properties, and
-recursive verification remain later work. Ordinary evaluation and native
+`assert`, ghost code, loop verification, heap properties, and recursive
+verification remain later work. Ordinary evaluation and native
 compilation support the [local-state extension](../spec/control-flow.md).
 Loop verification will require invariant obligations over mutable state;
 finite unrolling cannot establish verification success.
@@ -139,9 +159,13 @@ partial-correctness obligations under the recorded SMT encoding and solver
 assumptions. It does not establish native compiler correctness, a checked
 termination proof, or a kernel-checked solver certificate. The
 [formal proof inventory](../formal/PROOFS.md) separately records model theorems;
-those do not prove this Rust generator or its SMT serialization correct.
+those do not prove this Rust generator or its SMT serialization correct. The
+state model's continuation-based generator and production's forward environment
+updates are separate implementations with an unproved correspondence.
 The [verification specification](../spec/verification.md) defines exact rules,
-resource bounds, protocol behavior, and the remaining FM-07 obligations.
+resource bounds, protocol behavior, and the remaining FM-07 obligations. The
+[state verification specification](../spec/loop-verification.md) defines the
+implemented loop-free report contract and the separate proposed invariant rule.
 
 For development checks, install the pinned solver before running the complete
 suite. `APL_TEST_SOLVER` can select it for integration tests:

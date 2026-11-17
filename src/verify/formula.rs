@@ -3,6 +3,7 @@ use crate::{
     diagnostic::Span,
     types::{BinaryOp, Expr, ExprKind, Program, SpecExpr, SpecExprKind, SpecType, Type, UnaryOp},
 };
+use std::{fmt::Write, time::Instant};
 
 pub(super) type Id = usize;
 #[derive(Clone, Copy)]
@@ -14,19 +15,71 @@ struct Node {
     sort: &'static str,
     body: String,
 }
-pub(super) struct Arena {
+pub(super) const MAX_SYMBOLIC_WORK: usize = 1_000_000;
+pub(super) const MAX_ARENA_NODES: usize = 100_000;
+
+pub(super) struct StateBudget {
+    work: usize,
+    nodes: usize,
+    deadline: Instant,
+}
+impl StateBudget {
+    pub fn new(deadline: Instant) -> Self {
+        Self {
+            work: 0,
+            nodes: 0,
+            deadline,
+        }
+    }
+    fn charge(&mut self, amount: usize) -> Result<(), Failure> {
+        if Instant::now() >= self.deadline {
+            return Err(Failure::Unknown(
+                "verification deadline exceeded during symbolic analysis".into(),
+            ));
+        }
+        self.work = self
+            .work
+            .checked_add(amount)
+            .filter(|n| *n <= MAX_SYMBOLIC_WORK)
+            .ok_or_else(|| Failure::Unknown("symbolic work exceeds 1000000 units".into()))?;
+        Ok(())
+    }
+}
+
+pub(super) struct Arena<'a> {
     nodes: Vec<Node>,
     bytes: usize,
+    budget: Option<&'a mut StateBudget>,
 }
-impl Arena {
+impl Arena<'_> {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
             bytes: 0,
+            budget: None,
         }
     }
+    pub fn work(&mut self, amount: usize) -> Result<(), Failure> {
+        if let Some(budget) = &mut self.budget {
+            budget.charge(amount)?;
+        }
+        Ok(())
+    }
     pub fn add(&mut self, sort: &'static str, body: String) -> Result<Id, Failure> {
-        self.bytes += format!("(define-fun n{} () {sort} {body})\n", self.nodes.len()).len();
+        self.work(1)?;
+        if let Some(budget) = &mut self.budget {
+            if budget.nodes >= MAX_ARENA_NODES {
+                return Err(Failure::Unknown(
+                    "symbolic arena exceeds 100000 nodes".into(),
+                ));
+            }
+            budget.nodes += 1;
+        }
+        self.bytes += if self.budget.is_some() {
+            definition_bytes(self.nodes.len(), sort, body.len())
+        } else {
+            format!("(define-fun n{} () {sort} {body})\n", self.nodes.len()).len()
+        };
         if self.bytes > MAX_QUERY_BYTES {
             return Err(Failure::Unknown(
                 "generated query exceeds 1048576 bytes".into(),
@@ -43,14 +96,46 @@ impl Arena {
         self.add("Bool", value.to_string())
     }
     pub fn int(&mut self, value: &str) -> Result<Id, Failure> {
+        if self.budget.is_some()
+            && definition_bytes(self.nodes.len(), "Int", value.len())
+                > MAX_QUERY_BYTES.saturating_sub(self.bytes)
+        {
+            return Err(Failure::Unknown(
+                "generated query exceeds 1048576 bytes".into(),
+            ));
+        }
         self.add("Int", value.into())
     }
     pub fn and(&mut self, ids: &[Id]) -> Result<Id, Failure> {
+        self.work(ids.len())?;
         if ids.is_empty() {
             return self.truth();
         }
         if ids.len() == 1 {
             return Ok(ids[0]);
+        }
+        if self.budget.is_some() {
+            let mut length = 5;
+            for id in ids {
+                self.work(0)?;
+                length += 3 + id.checked_ilog10().unwrap_or(0) as usize;
+            }
+            if definition_bytes(self.nodes.len(), "Bool", length)
+                > MAX_QUERY_BYTES.saturating_sub(self.bytes)
+            {
+                return Err(Failure::Unknown(
+                    "generated query exceeds 1048576 bytes".into(),
+                ));
+            }
+            self.work(ids.len())?;
+            let mut body = String::with_capacity(length);
+            body.push_str("(and");
+            for id in ids {
+                self.work(0)?;
+                write!(body, " n{id}").expect("String write");
+            }
+            body.push(')');
+            return self.add("Bool", body);
         }
         self.add(
             "Bool",
@@ -76,7 +161,7 @@ impl Arena {
         )
     }
     pub fn render(
-        &self,
+        &mut self,
         params: &[Type],
         assertion: Id,
         timeout_ms: u128,
@@ -86,18 +171,42 @@ impl Arena {
             timeout_ms.max(1)
         );
         text.push_str("(define-fun apl_abs ((x Int)) Int (ite (< x 0) (- x) x))\n(define-fun apl_div ((a Int) (b Int)) Int (ite (= b 0) 0 (ite (= (< a 0) (< b 0)) (div (apl_abs a) (apl_abs b)) (- (div (apl_abs a) (apl_abs b))))))\n");
+        self.work(params.len())?;
         for (i, ty) in params.iter().enumerate() {
+            if let Some(budget) = &mut self.budget {
+                budget.charge(0)?;
+            }
             if *ty != Type::Unit {
-                text.push_str(&format!("(declare-const p{i} {})\n", sort(*ty)));
+                let declaration = format!("(declare-const p{i} {})\n", sort(*ty));
+                if self.budget.is_some() && text.len() + declaration.len() > MAX_QUERY_BYTES {
+                    return Err(Failure::Unknown(
+                        "generated query exceeds 1048576 bytes".into(),
+                    ));
+                }
+                text.push_str(&declaration);
             }
         }
         for (i, node) in self.nodes.iter().enumerate() {
+            if let Some(budget) = &mut self.budget {
+                budget.charge(0)?;
+                if text.len() + definition_bytes(i, node.sort, node.body.len()) > MAX_QUERY_BYTES {
+                    return Err(Failure::Unknown(
+                        "generated query exceeds 1048576 bytes".into(),
+                    ));
+                }
+            }
             text.push_str(&format!(
                 "(define-fun n{i} () {} {})\n",
                 node.sort, node.body
             ));
         }
-        text.push_str(&format!("(assert n{assertion})\n(check-sat)\n"));
+        let ending = format!("(assert n{assertion})\n(check-sat)\n");
+        if self.budget.is_some() && text.len() + ending.len() > MAX_QUERY_BYTES {
+            return Err(Failure::Unknown(
+                "generated query exceeds 1048576 bytes".into(),
+            ));
+        }
+        text.push_str(&ending);
         if text.len() > MAX_QUERY_BYTES {
             return Err(Failure::Unknown(
                 "generated query exceeds 1048576 bytes".into(),
@@ -106,7 +215,10 @@ impl Arena {
         Ok(text)
     }
 }
-fn sort(ty: Type) -> &'static str {
+fn definition_bytes(id: usize, sort: &str, body_bytes: usize) -> usize {
+    format!("(define-fun n{id} () {sort} )\n").len() + body_bytes
+}
+pub(super) fn sort(ty: Type) -> &'static str {
     if ty == Type::Bool { "Bool" } else { "Int" }
 }
 fn spec_type(ty: SpecType) -> Type {
@@ -118,8 +230,8 @@ fn spec_type(ty: SpecType) -> Type {
 }
 
 pub(super) struct Generator<'a> {
-    pub arena: Arena,
-    program: &'a Program,
+    pub arena: Arena<'a>,
+    pub(super) program: &'a Program,
     pub expanded: &'a mut usize,
 }
 impl<'a> Generator<'a> {
@@ -130,7 +242,23 @@ impl<'a> Generator<'a> {
             expanded,
         }
     }
-    fn visit(&mut self, depth: usize) -> Result<(), Failure> {
+    pub fn with_state_budget(
+        program: &'a Program,
+        expanded: &'a mut usize,
+        budget: &'a mut StateBudget,
+    ) -> Self {
+        Self {
+            arena: Arena {
+                nodes: Vec::new(),
+                bytes: 0,
+                budget: Some(budget),
+            },
+            program,
+            expanded,
+        }
+    }
+    pub(super) fn visit(&mut self, depth: usize) -> Result<(), Failure> {
+        self.arena.work(0)?;
         *self.expanded += 1;
         if *self.expanded > MAX_NODES {
             return Err(Failure::Unknown(
@@ -145,6 +273,7 @@ impl<'a> Generator<'a> {
         Ok(())
     }
     pub fn parameters(&mut self, params: &[Type]) -> Result<(Vec<Id>, Id), Failure> {
+        self.arena.work(params.len())?;
         let mut values = Vec::new();
         let mut domain = Vec::new();
         for (i, ty) in params.iter().enumerate() {
@@ -296,7 +425,12 @@ impl<'a> Generator<'a> {
             }
         })
     }
-    fn unary(&mut self, op: UnaryOp, a: Symbolic, machine: bool) -> Result<Symbolic, Failure> {
+    pub(super) fn unary(
+        &mut self,
+        op: UnaryOp,
+        a: Symbolic,
+        machine: bool,
+    ) -> Result<Symbolic, Failure> {
         let value = match op {
             UnaryOp::Not => self.arena.not(a.value)?,
             UnaryOp::Neg => self.arena.add("Int", format!("(- n{})", a.value))?,
@@ -309,7 +443,7 @@ impl<'a> Generator<'a> {
         };
         Ok(Symbolic { value, safe })
     }
-    fn binary(
+    pub(super) fn binary(
         &mut self,
         op: BinaryOp,
         a: Symbolic,
@@ -367,10 +501,12 @@ pub(super) fn supported(program: &Program) -> Result<(), Failure> {
         let mut work = vec![&function.body];
         while let Some(expr) = work.pop() {
             let construct = match &expr.kind {
-                ExprKind::LetMut { .. } => Some("let mut"),
-                ExprKind::Assign { .. } => Some("assignment"),
                 ExprKind::While { .. } => Some("while"),
-                ExprKind::Let { value, body } => {
+                ExprKind::Assign { value, .. } => {
+                    work.push(value);
+                    None
+                }
+                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                     work.extend([body.as_ref(), value.as_ref()]);
                     None
                 }
@@ -405,7 +541,7 @@ pub(super) fn supported(program: &Program) -> Result<(), Failure> {
             };
             if let Some(construct) = construct {
                 return Err(Failure::Unsupported(format!(
-                    "{construct} in function {} is outside apl-verify-v0; mutable state and loops are not verified",
+                    "{construct} in function {} is outside apl-state-verify-v1; loops are not verified",
                     function.name
                 )));
             }
@@ -437,7 +573,10 @@ pub(super) fn acyclic(program: &Program) -> Result<(), Failure> {
                     indegree[*function] += 1;
                     work.extend(arguments);
                 }
-                ExprKind::Let { value, body } => work.extend([value.as_ref(), body.as_ref()]),
+                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
+                    work.extend([value.as_ref(), body.as_ref()])
+                }
+                ExprKind::Assign { value, .. } => work.push(value),
                 ExprKind::If {
                     condition,
                     then_branch,
@@ -467,9 +606,14 @@ pub(super) fn acyclic(program: &Program) -> Result<(), Failure> {
         }
     }
     if visited != n {
-        return Err(Failure::Unsupported(
-            "recursive function calls are outside apl-verify-v0".into(),
-        ));
+        return Err(Failure::Unsupported(format!(
+            "recursive function calls are outside {}",
+            if program.has_local_state() {
+                "apl-state-verify-v1"
+            } else {
+                "apl-verify-v0"
+            }
+        )));
     }
     Ok(())
 }
@@ -534,4 +678,48 @@ pub(super) fn obligations(
         });
     }
     Ok(pending)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn state_arena_node_limit_is_shared_across_function_arenas() {
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        budget.nodes = MAX_ARENA_NODES - 1;
+        let mut first = Arena {
+            nodes: Vec::new(),
+            bytes: 0,
+            budget: Some(&mut budget),
+        };
+        assert!(first.truth().is_ok());
+        drop(first);
+        let mut second = Arena {
+            nodes: Vec::new(),
+            bytes: 0,
+            budget: Some(&mut budget),
+        };
+        assert!(
+            matches!(second.truth(), Err(Failure::Unknown(message)) if message.contains("arena"))
+        );
+        assert!(second.nodes.is_empty());
+    }
+
+    #[test]
+    fn state_operand_budget_is_reserved_before_building_a_formula() {
+        let mut budget = StateBudget::new(Instant::now() + Duration::from_secs(5));
+        let mut arena = Arena {
+            nodes: Vec::new(),
+            bytes: 0,
+            budget: Some(&mut budget),
+        };
+        let value = arena.truth().unwrap();
+        arena.budget.as_mut().unwrap().work = MAX_SYMBOLIC_WORK - 1;
+        assert!(
+            matches!(arena.and(&[value, value]), Err(Failure::Unknown(message)) if message.contains("symbolic work"))
+        );
+        assert_eq!(arena.nodes.len(), 1);
+    }
 }

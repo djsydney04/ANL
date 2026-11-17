@@ -2,7 +2,8 @@
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
 adapters, initialized scalar state and loops, validated structured MIR, C11 native
-backend, and pure acyclic contract verifier are implemented. Ownership/effects and language-server integration remain
+backend, and loop-free scalar contract verifier with acyclic calls are implemented.
+Ownership/effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
 recursive-function and separate local-state models, not Rust implementation correctness.
@@ -112,14 +113,17 @@ The linker driver receives structured arguments through a process API. It checks
 It checks ordered precondition definedness, satisfiability, runtime arithmetic
 safety, callee preconditions, and postconditions. Calls inline the actual body;
 recursive graphs are unsupported, and callee postconditions are never assumed.
-Any `let_mut`, assignment, or while in any function is rejected before tool
-discovery or query generation, including unused bodies and unselected branches.
+Mutable locals and assignments pass symbolic state through operands, conditions,
+scopes, and arguments. Any while in any function is rejected before tool discovery
+or query generation, including unused bodies and unselected branches.
 The [verification specification](../../spec/verification.md) defines the supported
 fragment, bounds, and exact report schema.
 
-Reports identify the checked program's executable revision, including v1 for
-unsupported stateful programs; source-error reports use null when no checked
-program exists. Reports bind retained source snapshots, compiler and solver identities, limits,
+Reports identify the checked program's executable revision. Stateful programs
+use schema `apl-verify-v1` and verification revision `apl-state-verify-v1`,
+including unsupported programs; pure programs retain `apl-verify-v0`. Source-error
+reports use null for the semantic revision when no checked program exists.
+Reports bind retained source snapshots, compiler and solver identities, limits,
 exact SMT commands, obligation locations, and per-obligation results. The driver
 uses Z3 5.3.3 with a shared deadline and bounded protocol I/O. Only an aggregate
 `verified` result succeeds, always labeled `smt-trusted`; candidate countermodels

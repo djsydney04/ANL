@@ -1,9 +1,9 @@
 # APL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar core,
-native C11 compiler, file modules, initialized scalar state and loops, pure acyclic
-contract verification, and scoped immutable, local-state, and verification-condition
-proofs.
+native C11 compiler, file modules, initialized scalar state and loops, loop-free
+scalar contract verification with acyclic calls, and scoped immutable, local-state,
+and verification-condition proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
 the complete-language release requirements open.
@@ -70,8 +70,8 @@ boolean operators short-circuit and conditionals select one branch. Resource
 limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
-release feature set. Native compilation, modules, and opt-in pure acyclic contract
-verification and local scalar state extend that core today; aggregates, heap
+release feature set. Native compilation, modules, local scalar state, and opt-in
+loop-free contract verification with acyclic calls extend that core today; aggregates, heap
 ownership, and concurrency remain later increments.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
@@ -105,9 +105,9 @@ flowchart TD
 ```
 
 The source frontend, module loader, typed core, Rust evaluator, Lean model,
-validated structured MIR, C11 code generator, native linker driver, and pure
-acyclic contract verifier exist today. Ownership/effects and broader runtime
-facilities remain planned stages of this pipeline.
+validated structured MIR, C11 code generator, native linker driver, and loop-free
+scalar contract verifier with acyclic calls exist today. Ownership/effects and
+broader runtime facilities remain planned stages of this pipeline.
 
 Rust implements the production frontend and toolchain. Lean independently models
 semantics and checks metatheory. This separation supports independent comparison
@@ -127,20 +127,23 @@ comparison and workload evaluation. Cranelift remains a credible alternative;
 MLIR is deferred until workloads justify multi-level transforms. Backend reputation
 does not establish APL performance or compiler correctness.
 
-The implemented [program verifier](../verification.md) covers pure acyclic
-functions, including calls across modules. It expands actual bodies, checks
-callee preconditions, and generates named safety and contract obligations with
+The implemented [program verifier](../verification.md) covers loop-free scalar
+functions with mutable locals and acyclic calls across modules. It expands actual
+bodies, checks callee preconditions, and generates named safety and contract obligations with
 checked intermediate ranges and truncating division. Preconditions must be
 defined and satisfiable. Z3 5.3.3 results are `smt-trusted`, and countermodels remain
 unreplayed. Compilation erases the typed clauses without proving them.
 
 Lean proves soundness for call-free generation and finite symbolic body expansion
-with ordered arguments and callee preconditions when generation succeeds.
+with ordered arguments and callee preconditions when generation succeeds. The
+state-aware model also covers loop-free mutation and final local environments.
 FM-07 remains partial: source call-graph checking, expansion completeness for
 acyclic programs, separate syntax-inlining equivalence, named decomposition, and
-Rust/SMT/solver bridges remain open. The production verifier rejects local-state
-constructs before tools run. Loop invariants, recursive verification, assertions,
-heap properties, concurrency, and ghost code need further verification support.
+Rust/SMT/solver bridges remain open, including correspondence between the
+state model's continuation-based generator and production forward analysis. The
+production verifier rejects loops and recursion before tools run. Loop invariants,
+recursive verification, assertions, heap properties, concurrency, and ghost code
+need further verification support.
 
 [Compiler contracts](compiler.md), [formal architecture](formal-methods.md) and
 [trust boundaries](trust.md) define pass interfaces, theorem coverage, verification

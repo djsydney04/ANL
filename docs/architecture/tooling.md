@@ -1,8 +1,9 @@
 # Toolchain and developer ecosystem architecture
 
 Status: the CLI implements scalar checking, interpretation, native compilation,
-file modules, local scalar state and loops, v0/v1 core interchange, and pure acyclic
-contract verification. Verification rejects local-state constructs before tools run. Package management, formatting, language-server
+file modules, local scalar state and loops, v0/v1 core interchange, and loop-free
+scalar contract verification with acyclic calls. Verification rejects loops and
+recursion before tools run. Package management, formatting, language-server
 integration, source debugging, and release distribution below remain design
 proposals unless explicitly identified as implemented.
 

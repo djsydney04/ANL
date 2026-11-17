@@ -244,16 +244,18 @@ Cross-evaluator tests compare finite values and trap kinds and treat resource
 exhaustion as inconclusive. These model proofs and conformance tests do not
 establish Rust or compiler correspondence, termination, or arithmetic trap freedom.
 
-Initially, `apl verify` rejects the complete checked program as `unsupported`
-when any function contains `let_mut`, `assign`, or `while`. This preflight runs
+`apl verify` supports loop-free `let_mut` and assignment with acyclic calls.
+It rejects the complete checked program as `unsupported` when any function
+contains `while` or the call graph contains recursion. This preflight runs
 before solver discovery and query generation, including for unused functions
 and unselected branches. It exits 7, identifies the source construct, and emits
 no invented proof obligations. The existing pure verifier continues to accept
 its previously supported fragment. Runtime contracts remain erased in both.
 
-A later verification increment must carry symbolic mutable state and prove a
-loop-invariant rule. It needs initialization, preservation, condition/body trap
-freedom, and exit-postcondition obligations over arbitrary invariant states.
+The [state verifier](loop-verification.md) carries symbolic mutable state. A later
+verification increment must prove a loop-invariant rule. It needs initialization,
+preservation, condition/body trap freedom, and exit-postcondition obligations over
+arbitrary invariant states.
 Effects in the condition belong to that rule. Finite unrolling alone cannot
 justify success. A decreasing variant and termination theorem are separate work.
 

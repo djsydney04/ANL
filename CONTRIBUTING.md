@@ -3,9 +3,11 @@
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
 the scalar checker/interpreter, native C11 backend, file modules, core JSON
-adapters, initialized mutable scalar locals and loops, a pure acyclic contract
-verifier, and separate immutable/local-state Lean models. Verification-condition
-proofs cover call-free terms and finite symbolic function-body expansion. Follow
+adapters, initialized mutable scalar locals and loops, a loop-free scalar contract
+verifier with acyclic calls, and separate immutable/local-state Lean models.
+Verification-condition
+proofs cover call-free terms and finite symbolic function-body expansion,
+including loop-free local-state updates. Follow
 [getting started](docs/getting-started.md) to build and run source programs; the
 [proof inventory](formal/PROOFS.md) records finite model correspondence in both
 directions and the remaining source, Rust, module, and backend proof boundaries.
@@ -75,11 +77,12 @@ that it has passed on that platform; inspect the run for the revision under revi
 
 The workflow includes native execution, module tests, arithmetic sanitizer
 probes, and contract/verifier regressions with the pinned real solver and controlled
-protocol-failure responders. At `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`,
+protocol-failure responders. At `c59ad04ac259079ca9730859e3b3e18226080ea9`,
 the Linux and macOS Rust jobs and the Lean proof/comparison job all passed
-([run](https://github.com/djsydney04/ANL/actions/runs/44059286145)), including local
-state and the 118-statement proof inventory. Later checks cover broader property
-testing, fuzzing, security, installation, and release artifact integrity.
+([run](https://github.com/djsydney04/ANL/actions/runs/44063801812)), including the
+134-statement proof inventory. That run precedes production mutable-code
+verification. Later checks cover broader property testing, fuzzing, security,
+installation, and release artifact integrity.
 
 Use reproducible tool versions and lockfiles. Keep workflow permissions read-only
 unless a specific operation requires more. Keep secrets out of logs and source

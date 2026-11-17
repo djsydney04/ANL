@@ -224,7 +224,7 @@ fn unsupported_empty_source_errors_and_missing_tools_never_succeed() {
 }
 #[test]
 #[cfg(unix)]
-fn local_state_preflight_rejects_unused_and_dead_forms_without_starting_solver() {
+fn loop_preflight_rejects_unused_dead_and_recursive_state_without_starting_solver() {
     use std::os::unix::fs::PermissionsExt;
     let fixture = Fixture::new();
     let marker = fixture.0.join("invoked");
@@ -237,14 +237,14 @@ fn local_state_preflight_rejects_unused_and_dead_forms_without_starting_solver()
     );
     fs::set_permissions(&solver, fs::Permissions::from_mode(0o755)).unwrap();
     for (source, construct) in [
-        ("fn main()->i64 {let mut x=42;x}", "let mut"),
+        ("fn main()->i64 {let mut x=42;while (false) {} x}", "while"),
         (
-            "fn main()->i64 {42} fn unused()->i64 {let mut x=0;x=1;x}",
-            "let mut",
+            "fn main()->i64 {42} fn unused()->i64 {let mut x=0;while (false) {x=1;}x}",
+            "while",
         ),
         (
-            "fn main()->i64 {if false {let mut x=0;x}else{42}}",
-            "let mut",
+            "fn main()->i64 {if false {let mut x=0;while (true) {} x}else{42}}",
+            "while",
         ),
         ("fn main()->i64 {while (false) {} 42}", "while"),
         (
@@ -255,10 +255,19 @@ fn local_state_preflight_rejects_unused_and_dead_forms_without_starting_solver()
             "fn main()->i64 {42} fn unused()->unit {while (true) {}}",
             "while",
         ),
+        ("fn main()->i64 {let mut x=0;x=main();x}", "recursive"),
+        (
+            "fn main()->i64 {let mut x=0;x} fn unused()->i64 {unused()}",
+            "recursive",
+        ),
     ] {
         let path = fixture.file("main.apl", source);
         let (output, report) = verify(&path, &solver, 30_000);
-        status(&output, &report, 7, "unsupported");
+        assert_eq!(output.status.code(), Some(7), "{report}");
+        assert_eq!(report["status"], "unsupported");
+        assert_eq!(report["schema"], "apl-verify-v1");
+        assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+        assert_eq!(report["expanded_nodes"], 0);
         assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
         assert!(
             report["message"].as_str().unwrap().contains(construct),
@@ -273,7 +282,11 @@ fn local_state_preflight_rejects_unused_and_dead_forms_without_starting_solver()
     let path = fixture.file("main.apl", "mod helper; fn main()->i64 {42}");
     fixture.file("helper.apl", "fn unused()->unit {while (false) {}}");
     let (output, report) = verify(&path, &solver, 30_000);
-    status(&output, &report, 7, "unsupported");
+    assert_eq!(output.status.code(), Some(7), "{report}");
+    assert_eq!(report["status"], "unsupported");
+    assert_eq!(report["schema"], "apl-verify-v1");
+    assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+    assert_eq!(report["expanded_nodes"], 0);
     assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
     assert_eq!(report["sources"].as_array().unwrap().len(), 2);
     assert!(report["obligations"].as_array().unwrap().is_empty());
@@ -326,6 +339,39 @@ fn solver_protocol_rejects_errors_crashes_extra_output_and_malformed_models() {
     let (o, r) = verify(&source, &executable, 10_000);
     status(&o, &r, 6, "unknown");
 }
+#[test]
+#[cfg(unix)]
+fn state_solver_failures_retain_revision_and_attempted_model_manifest() {
+    let fixture = Fixture::new();
+    let source = fixture.file("main.apl", "fn f(x:i64)->i64{let mut y=x;y}");
+    let (output, report) = verify(&source, &fixture.0.join("missing"), 30_000);
+    assert_eq!(output.status.code(), Some(4));
+    assert_eq!(report["schema"], "apl-verify-v1");
+    assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+    assert_eq!(report["expanded_nodes"], 0);
+    assert!(report["solver"].is_null());
+    assert!(report["obligations"].as_array().unwrap().is_empty());
+    for (mode, code) in [("model", 4), ("unknown", 6)] {
+        let (output, report) = verify(&source, &fake(&fixture, mode), 10_000);
+        assert_eq!(output.status.code(), Some(code), "{report}");
+        assert_eq!(report["schema"], "apl-verify-v1");
+        assert_eq!(report["verification_revision"], "apl-state-verify-v1");
+        assert!(report["expanded_nodes"].as_u64().unwrap() > 0);
+        let obligations = report["obligations"].as_array().unwrap();
+        assert!(!obligations.is_empty());
+        for obligation in obligations {
+            assert_eq!(
+                obligation["model_symbols"],
+                serde_json::json!([
+                    {"symbol":"p0","type":"i64","origin":{"kind":"parameter","index":0}}
+                ])
+            );
+            assert_eq!(obligation["query_sha256"].as_str().unwrap().len(), 64);
+            assert_eq!(obligation["query_complete"], mode == "unknown");
+        }
+    }
+}
+
 #[test]
 #[cfg(unix)]
 fn deadline_bounds_hanging_solvers_and_descendant_held_pipes() {

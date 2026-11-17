@@ -2,18 +2,22 @@
 
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
-[proof inventory](../../formal/PROOFS.md) records 118 checked statements: the prior
-81 immutable/verification statements and 37 local-state statements. FM-01 through
+[proof inventory](../../formal/PROOFS.md) records 134 checked statements:
+81 immutable/verification statements, 37 local-state statements, and 16 loop-free
+state-verification statements. FM-01 through
 FM-05 apply to the documented v0 model; local state has its own typing, machine
 safety, finite correspondence, and forward v0 embedding results.
 
 The immutable verification generators prove call-free and finite body-expansion
 soundness, including ordered arguments and callee preconditions, when generation
-succeeds and interpreted obligations hold. FM-07 remains partial: source call-graph
+succeeds and interpreted obligations hold. The separate state-aware generator
+proves loop-free mutation, final environments, and typed entry contracts over the
+local-state machine. FM-07 remains partial: source call-graph
 checking, expansion completeness, separate syntax-inlining equivalence, named
 condition decomposition, and Rust/SMT/solver bridges remain open. Production
-verification stays `smt-trusted` and rejects local state. No theorem here proves
-termination, fixed-production-budget completeness, or Rust/JSON/native correctness.
+verification supports loop-free mutable scalar code and stays `smt-trusted`.
+The model's finite expansion result does not establish production termination,
+fixed-production-budget completeness, or Rust/JSON/native correctness.
 
 ## Two distinct guarantees
 
@@ -160,10 +164,12 @@ and scalar core while preserving source locations, checked-operation conditions,
 branches, and named clauses. It checks every loaded function, including private
 and unused bodies. The call graph must be acyclic, including syntactically dead
 calls. Calls require the callee's preconditions and inline its actual body;
-postconditions are never assumed as summaries. Any local-state constructor in any
-loaded function is rejected before solver discovery, including unused and skipped
-code. This produces `unsupported` with no invented obligations. Ownership/effect
-analysis, loop-invariant rules, and solver-certificate checking remain planned.
+postconditions are never assumed as summaries. Loop-free mutable locals and
+assignment retain state through operands, scopes, branches, and call arguments.
+Any loop in any loaded function is rejected before solver discovery, including
+unused and skipped code. This produces `unsupported` with no invented obligations.
+Ownership/effect analysis, loop-invariant rules, and solver-certificate checking
+remain planned.
 
 Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
 
@@ -218,9 +224,10 @@ The implemented verifier has tests for valid and false properties, intermediate
 overflow, division faults, unsatisfiable or undefined preconditions, guarded
 paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
 malformed protocol output, limits, and report identities. The Linux/macOS Rust
-jobs and the Lean proof/comparison job, including local state and all 118 audited
-statements, passed for `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`
-([CI run](https://github.com/djsydney04/ANL/actions/runs/44059286145)). Passing CI
+jobs and the Lean proof/comparison job, including all 134 audited statements,
+passed for `c59ad04ac259079ca9730859e3b3e18226080ea9`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44063801812)). That run
+precedes production mutable-code verification. Passing CI
 does not discharge the remaining FM-07 or implementation-correspondence obligations.
 
 The Lean generators construct concrete formulas and prove soundness under
@@ -233,4 +240,7 @@ Theorems cover nonvacuous entry contracts, returned postconditions, and exclusio
 of traps/invalid outcomes, while permitting resource limits. They do not prove
 source call-graph validation, separate syntax-inlining equivalence, named-condition
 decomposition, source-contract erasure, Rust generation, SMT translation, or solver
-answers. No local-state or loop-invariant verifier theorem is included.
+answers. The state-aware generator additionally proves loop-free mutation and
+final-environment postconditions over the local-state machine; correspondence
+with production forward analysis is unproved. No loop-invariant verifier theorem
+is included.
