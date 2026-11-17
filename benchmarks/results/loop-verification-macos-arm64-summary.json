@@ -1,0 +1,1506 @@
+{
+  "schema": "apl-loop-verification-summary-v1",
+  "verdict": "No demonstrated speedup or regression on four shared workloads; additional loop verification coverage is measured separately.",
+  "measurement_utc": "2026-11-17T13:02:46.840340+00:00",
+  "sample_counts": {
+    "warmup_rounds": 1,
+    "measured_rounds": 5,
+    "cases": 13,
+    "variants": 2,
+    "warmup_invocations": 26,
+    "measured_invocations": 130,
+    "all_timing_invocations": 156,
+    "preflight_verify_invocations": 26,
+    "preflight_runtime_commands": 50
+  },
+  "unexpected_failures": 0,
+  "common_comparisons": [
+    {
+      "case": "pure-affine",
+      "status": "verified",
+      "queries": 4,
+      "baseline_ms": {
+        "count": 5,
+        "median": 170.364584,
+        "minimum": 165.73325,
+        "maximum": 185.846875
+      },
+      "candidate_ms": {
+        "count": 5,
+        "median": 168.965791,
+        "minimum": 166.86525,
+        "maximum": 189.493458
+      },
+      "median_delta_percent": -0.8210585599175979,
+      "paired_deltas_ms": [
+        1.500583000000006,
+        2.1283750000000055,
+        15.764583000000016,
+        -1.398793000000012,
+        -18.981625000000008
+      ],
+      "range_overlap": true,
+      "exact_normalized_reports_and_queries": true
+    },
+    {
+      "case": "pure-false-post",
+      "status": "failed",
+      "queries": 3,
+      "baseline_ms": {
+        "count": 5,
+        "median": 157.717792,
+        "minimum": 155.753459,
+        "maximum": 186.512167
+      },
+      "candidate_ms": {
+        "count": 5,
+        "median": 158.963583,
+        "minimum": 157.672666,
+        "maximum": 162.776791
+      },
+      "median_delta_percent": 0.7898861531107304,
+      "paired_deltas_ms": [
+        1.919207,
+        -27.548584000000005,
+        -0.9077089999999828,
+        1.959750999999983,
+        5.058999
+      ],
+      "range_overlap": true,
+      "exact_normalized_reports_and_queries": true
+    },
+    {
+      "case": "state-scope",
+      "status": "verified",
+      "queries": 5,
+      "baseline_ms": {
+        "count": 5,
+        "median": 179.074875,
+        "minimum": 176.510084,
+        "maximum": 196.480167
+      },
+      "candidate_ms": {
+        "count": 5,
+        "median": 176.87625,
+        "minimum": 176.011333,
+        "maximum": 189.84125
+      },
+      "median_delta_percent": -1.2277685521210002,
+      "paired_deltas_ms": [
+        -0.055001000000004296,
+        -1.8255829999999946,
+        1.9365420000000029,
+        -3.063541999999984,
+        -12.601082999999988
+      ],
+      "range_overlap": true,
+      "exact_normalized_reports_and_queries": true
+    },
+    {
+      "case": "state-intermediate-overflow",
+      "status": "failed",
+      "queries": 2,
+      "baseline_ms": {
+        "count": 5,
+        "median": 146.873208,
+        "minimum": 145.493,
+        "maximum": 153.712542
+      },
+      "candidate_ms": {
+        "count": 5,
+        "median": 146.992333,
+        "minimum": 145.488917,
+        "maximum": 220.38625
+      },
+      "median_delta_percent": 0.08110737255768719,
+      "paired_deltas_ms": [
+        1.096790999999996,
+        -1.0362919999999747,
+        -0.0040830000000084965,
+        0.49791700000000105,
+        66.67370799999998
+      ],
+      "range_overlap": true,
+      "exact_normalized_reports_and_queries": true
+    }
+  ],
+  "candidate_loop_costs": [
+    {
+      "case": "counter",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 268.593167,
+          "minimum": 265.695459,
+          "maximum": 281.478625
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 170.46700000000038,
+          "minimum": 169.78899999999976,
+          "maximum": 176.64100000000005
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 44.52400000000001,
+          "minimum": 43.04899999999989,
+          "maximum": 46.59199999999997
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 15,
+        "query_bytes": 57628,
+        "expanded_nodes": 81,
+        "functions": 2,
+        "heads": 2,
+        "occurrences": 2
+      }
+    },
+    {
+      "case": "final-false-write",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 196.82325,
+          "minimum": 193.446542,
+          "maximum": 207.87075
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 143.01599999999937,
+          "minimum": 142.5200000000002,
+          "maximum": 147.7280000000003
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 25.411999999999992,
+          "minimum": 22.741999999999596,
+          "maximum": 35.39300000000001
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 7,
+        "query_bytes": 23512,
+        "expanded_nodes": 35,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "safe-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 172.176875,
+          "minimum": 169.231292,
+          "maximum": 173.190375
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 133.34500000000025,
+          "minimum": 133.24899999999928,
+          "maximum": 134.0210000000006
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 19.380000000000063,
+          "minimum": 17.456999999999834,
+          "maximum": 20.119
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 5,
+        "query_bytes": 6584,
+        "expanded_nodes": 9,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "weak-invariant",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 175.491917,
+          "minimum": 174.262792,
+          "maximum": 311.633917
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 136.43499999999875,
+          "minimum": 136.34200000000084,
+          "maximum": 165.82800000000032
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 19.11099999999999,
+          "minimum": 18.275999999999737,
+          "maximum": 40.36799999999996
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 5,
+        "query_bytes": 10016,
+        "expanded_nodes": 20,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "trap-before-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 165.561583,
+          "minimum": 161.97475,
+          "maximum": 220.344042
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 131.34600000000017,
+          "minimum": 130.9769999999997,
+          "maximum": 150.98199999999994
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 16.913999999999984,
+          "minimum": 15.014000000000305,
+          "maximum": 29.274000000000022
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 4,
+        "query_bytes": 6143,
+        "expanded_nodes": 15,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "trap-after-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 163.075583,
+          "minimum": 161.381125,
+          "maximum": 177.921833
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 131.1880000000003,
+          "minimum": 131.06999999999937,
+          "maximum": 132.28299999999928
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 15.666999999999987,
+          "minimum": 15.283999999999853,
+          "maximum": 21.81300000000008
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 4,
+        "query_bytes": 5683,
+        "expanded_nodes": 10,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "missing-invariant",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 2.809958,
+          "minimum": 2.638709,
+          "maximum": 5.668917
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.8970000000001477,
+          "minimum": 0.8850000000002467,
+          "maximum": 1.100000000000101
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8030000000001092,
+          "minimum": 0.7969999999999366,
+          "maximum": 2.1700000000000053
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "nested-untouched",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 255.30575,
+          "minimum": 251.398625,
+          "maximum": 297.354084
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 168.1100000000004,
+          "minimum": 167.74099999999947,
+          "maximum": 179.53699999999984
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 38.146000000000015,
+          "minimum": 37.76599999999996,
+          "maximum": 62.49400000000005
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 13,
+        "query_bytes": 138305,
+        "expanded_nodes": 115,
+        "functions": 1,
+        "heads": 5,
+        "occurrences": 2
+      }
+    },
+    {
+      "case": "loop-work-cap",
+      "category": "loop_resource",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 707.61825,
+          "minimum": 684.072125,
+          "maximum": 756.365042
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 486.6349999999997,
+          "minimum": 479.0410000000005,
+          "maximum": 498.16400000000004
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 103.11199999999987,
+          "minimum": 97.60900000000028,
+          "maximum": 116.1439999999998
+        }
+      },
+      "metrics": {
+        "status": "unknown",
+        "query_count": 35,
+        "query_bytes": 3189025,
+        "expanded_nodes": 318,
+        "functions": 2,
+        "heads": 0,
+        "occurrences": 45
+      }
+    }
+  ],
+  "host_before": {
+    "utc": "2026-11-17T13:02:46.840340+00:00",
+    "system": "Darwin",
+    "release": "25.4.0",
+    "machine": "arm64",
+    "cpus": 10,
+    "load_average": [
+      4.77392578125,
+      5.98681640625,
+      7.6923828125
+    ],
+    "python": "3.9.6",
+    "perf_counter": {
+      "implementation": "mach_absolute_time()",
+      "monotonic": true,
+      "adjustable": false,
+      "resolution": 4.166666666666667e-08
+    },
+    "monotonic": {
+      "implementation": "mach_absolute_time()",
+      "monotonic": true,
+      "adjustable": false,
+      "resolution": 4.166666666666667e-08
+    },
+    "uptime": "5:02  up 28 days,  9:50, 1 user, load averages: 4.77 5.99 7.69",
+    "hardware": "hw.model: Mac16,10\nhw.ncpu: 10\nhw.physicalcpu: 10\nhw.memsize: 34359738368",
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.4.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "solver_version": "Z3 version 5.3.3 - 64 bit - build hashcode 430d19e697e2ec9bad79ff210d41b4a7a5fcfa3e",
+    "cpu_processes": [
+      "PID  %CPU COMM",
+      " 3337 313.2 /System/Library/Frameworks/Virtualization.framework/Versions/A/XPCServices/com.apple.Virtualization.VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine",
+      "74450   6.9 /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python",
+      "  700   6.8 /System/Library/ExtensionKit/Extensions/WallpaperAerialsExtension.appex/Contents/MacOS/WallpaperAerialsExtension",
+      "  394   5.2 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+      "24966   4.0 /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+      "53023   1.4 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService",
+      "33684   1.0 /Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex-code-mode-host",
+      "69017   1.0 /System/Applications/Utilities/Activity Monitor.app/Contents/MacOS/Activity Monitor",
+      "24894   0.9 /Applications/ChatGPT.app/Contents/MacOS/ChatGPT",
+      "  577   0.9 /System/Library/DriverExtensions/com.apple.DriverKit-AppleBCMWLAN.dext/com.apple.DriverKit-AppleBCMWLAN",
+      "24993   0.5 /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/157.0.8103.78/Helpers/Codex (Aperitif Renderer).app/Contents/MacOS/Codex (Aperitif Renderer)"
+    ]
+  },
+  "host_after": {
+    "utc": "2026-11-17T13:03:10.547360+00:00",
+    "system": "Darwin",
+    "release": "25.4.0",
+    "machine": "arm64",
+    "cpus": 10,
+    "load_average": [
+      5.701171875,
+      6.08740234375,
+      7.677734375
+    ],
+    "python": "3.9.6",
+    "perf_counter": {
+      "implementation": "mach_absolute_time()",
+      "monotonic": true,
+      "adjustable": false,
+      "resolution": 4.166666666666667e-08
+    },
+    "monotonic": {
+      "implementation": "mach_absolute_time()",
+      "monotonic": true,
+      "adjustable": false,
+      "resolution": 4.166666666666667e-08
+    },
+    "uptime": "5:03  up 28 days,  9:50, 1 user, load averages: 5.70 6.09 7.68",
+    "hardware": "hw.model: Mac16,10\nhw.ncpu: 10\nhw.physicalcpu: 10\nhw.memsize: 34359738368",
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: aarch64-apple-darwin\nrelease: 1.99.1\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.4.0\nThread model: posix\nInstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+    "solver_version": "Z3 version 5.3.3 - 64 bit - build hashcode 430d19e697e2ec9bad79ff210d41b4a7a5fcfa3e",
+    "cpu_processes": [
+      "PID  %CPU COMM",
+      " 3337 312.3 /System/Library/Frameworks/Virtualization.framework/Versions/A/XPCServices/com.apple.Virtualization.VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine",
+      "24966  11.0 /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+      "74450   9.0 /Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python",
+      "  700   7.0 /System/Library/ExtensionKit/Extensions/WallpaperAerialsExtension.appex/Contents/MacOS/WallpaperAerialsExtension",
+      "53023   6.6 /System/Library/Frameworks/VideoToolbox.framework/Versions/A/XPCServices/VTDecoderXPCService.xpc/Contents/MacOS/VTDecoderXPCService",
+      "  394   5.5 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer",
+      "  362   2.3 /usr/libexec/opendirectoryd",
+      "24993   1.9 /Applications/ChatGPT.app/Contents/Frameworks/Codex Framework.framework/Versions/157.0.8103.78/Helpers/Codex (Aperitif Renderer).app/Contents/MacOS/Codex (Aperitif Renderer)",
+      "28612   1.2 /Users/dylanmitic/.local/share/self-host-init/bin/init",
+      "24894   1.2 /Applications/ChatGPT.app/Contents/MacOS/ChatGPT",
+      "  387   1.2 /usr/sbin/notifyd"
+    ]
+  },
+  "identity": {
+    "tools": {
+      "baseline": {
+        "path": "/Users/dylanmitic/ANL/.git/apl-internal/loop-annotations-apl",
+        "sha256": "9a61fd95d4598082d60e914f1d3128e8b6d6a499a351cc2bc495587114b58a19",
+        "bytes": 1119968
+      },
+      "candidate": {
+        "path": "/Users/dylanmitic/ANL/.git/apl-internal/loop-implementation/apl-final",
+        "sha256": "7e6d0787aca17b770ad3043faf1ac3846adf39ee298b7c24e3a3b6a67fb4e013",
+        "bytes": 1255440
+      },
+      "solver": {
+        "path": "/Users/dylanmitic/ANL/.tools/z3-5.3.3-arm64-osx-13.3/bin/z3",
+        "sha256": "9b3df8db3324ac2de9ebdd2841477366ecad0626656f806c2168ebf2732745a4",
+        "bytes": 32423904
+      }
+    },
+    "baseline_revision": "0795dd689c40b88d0a0ae37e25bfdc3b06468f8e",
+    "source_freeze_sha256": "5d6d7260aeba088d77558ed2d3990be9937dad89f5c2a262288b951e93cc1136",
+    "baseline_source_inputs": {
+      "Cargo.lock": "98a5a2fb822c211254ede5d613b3a31adc5b5c61cd8f19aa103725435947dbec",
+      "Cargo.toml": "ae7604f64cc6f78cd0e75e044ce4f408821619715e8015adc1ce50d692d6101f",
+      "rust-toolchain.toml": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1",
+      "src/codegen.rs": "2f746049297afcb0cdaa835a60e22a5cb323a2fdad5c8e1fddc2d0b7161860f5",
+      "src/core.rs": "5c1d757a4a9e425fdcc93abb817fd71a0f398aba4bdf7f7bdadf040af001302f",
+      "src/diagnostic.rs": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8",
+      "src/eval.rs": "c86f94a7a92ae3b7bcb2504957d0aa757f2ca29c0332f498b8d02252f7cddcda",
+      "src/lib.rs": "ad3fe2c924cda988b97620e7eaac26ace5193509e622b64f8dee2f076aadf2e4",
+      "src/main.rs": "0573ba3f1cedf191913e29a7d9109e50ef9ddcc83048e5cf75f8a4832872eb82",
+      "src/mir.rs": "8904c26cf89d453e2aaa3b6441112c5f3041756b4373d486b4d80ca0f37b41c3",
+      "src/modules.rs": "3c725117c8d3f1c566846f66a439142507c288ae0df6c057f967ffd8f6a61115",
+      "src/resolve.rs": "f95cdfc7045f03a45873e2f24e6b750705cd36f1bac5a5cfeafac94b6714f201",
+      "src/syntax.rs": "4cc05b7c98416aff66ed34ff83c5686c3d6903c52559d5d6d6e0a992b95a155d",
+      "src/types.rs": "3a7f1abfce7188c6d33a090c27101513e67fd3c614307ca09e355585e440a8ff",
+      "src/verify/formula.rs": "213404bd2afa99dab743c0347eecb253860d9aa13412e032b157301b60cdd8bc",
+      "src/verify/mod.rs": "7179c601c29d6ed9228b376c19b934a5cf1c86b69fe08f2b30415b30611f7d5d",
+      "src/verify/solver.rs": "f8debe57a2cc3ded2385b70f964aa110501ff8e235b06ed89f2e7893fb317e13",
+      "src/verify/state.rs": "008c02c2f68398c907dd1c03756c565123601557eda8e4c3e8dc474ce3f39ceb"
+    },
+    "candidate_source_inputs": {
+      "Cargo.lock": "98a5a2fb822c211254ede5d613b3a31adc5b5c61cd8f19aa103725435947dbec",
+      "Cargo.toml": "ae7604f64cc6f78cd0e75e044ce4f408821619715e8015adc1ce50d692d6101f",
+      "rust-toolchain.toml": "f715f440167e20fd8ea9afa0498c3d1ab80174cfcb8cbc895f106a34d907a1e1",
+      "src/codegen.rs": "2f746049297afcb0cdaa835a60e22a5cb323a2fdad5c8e1fddc2d0b7161860f5",
+      "src/core.rs": "5c1d757a4a9e425fdcc93abb817fd71a0f398aba4bdf7f7bdadf040af001302f",
+      "src/diagnostic.rs": "4d814072c46d197b5c02f78d8d39e3c0aa177204c4b3a6e67a5a022909e229f8",
+      "src/eval.rs": "c86f94a7a92ae3b7bcb2504957d0aa757f2ca29c0332f498b8d02252f7cddcda",
+      "src/lib.rs": "ad3fe2c924cda988b97620e7eaac26ace5193509e622b64f8dee2f076aadf2e4",
+      "src/main.rs": "0573ba3f1cedf191913e29a7d9109e50ef9ddcc83048e5cf75f8a4832872eb82",
+      "src/mir.rs": "8904c26cf89d453e2aaa3b6441112c5f3041756b4373d486b4d80ca0f37b41c3",
+      "src/modules.rs": "3c725117c8d3f1c566846f66a439142507c288ae0df6c057f967ffd8f6a61115",
+      "src/resolve.rs": "f95cdfc7045f03a45873e2f24e6b750705cd36f1bac5a5cfeafac94b6714f201",
+      "src/syntax.rs": "4cc05b7c98416aff66ed34ff83c5686c3d6903c52559d5d6d6e0a992b95a155d",
+      "src/types.rs": "41a279381048be32532986259f68e64d31704df885bf262f434619c6865794c6",
+      "src/verify/formula.rs": "ca0048aa11e75615cb0dc78f00118a121e1e3847cd1b54e1d80fe094e1cafaa1",
+      "src/verify/mod.rs": "642a70b044665df77210109e07cf5e5621f892e231f4404939d69337e748e600",
+      "src/verify/solver.rs": "a51434d7a7f0ccb370a888dba3fb3f36d2c5b583b7fd303113002c8f8b40d6e3",
+      "src/verify/state.rs": "008c02c2f68398c907dd1c03756c565123601557eda8e4c3e8dc474ce3f39ceb",
+      "src/verify/loops.rs": "baeb4b0c45e0fbbec723ca7fb9b530062a3836b0747d50c97830b1224ad2c700",
+      "tests/loop_verification.rs": "8e10c6a867fc672f4d34d87356e1d3cc730e672f87faa081cceb59a7c499a216",
+      "tests/verification.rs": "7df6dc44a60d272dab05fdd89c81d1342883752e64fe7c5663a67f1d7035d0f7"
+    },
+    "harness_inputs": {
+      "cases.json": "0f78e577215ce45f47dc73329fc106ee02963e90d690dc04797d7ce5b2f3bbaa",
+      "measure.py": "c0a11e8d37d23ffef30da83620abf0c5698d11c8bfc96f1c796459eff887955c",
+      "report_oracle.py": "5e4d17a06819ba93f61e1c9529f8b189963bfaa510111157da9139b641c3146e",
+      "fixtures/counter.apl": "6db53c443dbd6914ad24a7d53969cd046a09eb7cc1695bd988ba0f466b3236d4",
+      "fixtures/final-false-write.apl": "cf8c49c5f0a98524780a92b1fbd4688165d87622d1153088dc83f0af2bc9e535",
+      "fixtures/loop-work-cap.apl": "bb7ea729ca5c374268485d98fa01ffbae9192f8b8fcb29c3c5d05eed7fc56b64",
+      "fixtures/missing-invariant.apl": "b72017889ccd7aa89dd59189a233cb3f887cfed38aa0661b6a7de46aa98c84e4",
+      "fixtures/nested-untouched.apl": "dbfa676aa2c9e46b29198daf4a243847f5dd5103477acb1b4aafa6f6593d7ea7",
+      "fixtures/pure-affine.apl": "002654c20e0980a4d721d4ca6278d4fe358e522eb729285af96f6bd5f68bd71b",
+      "fixtures/pure-false-post.apl": "0df96cb922f687072332f7e5d49ea231777d07407f561d41d4fb16d2cc1f4f30",
+      "fixtures/safe-divergence.apl": "db622a66735acf47eff0abf864effed0aed3b5ca0051a1b3c12c5b9edbed8be9",
+      "fixtures/state-intermediate-overflow.apl": "8406ecdb6b0a3d9ce1c0896eb7967aaa543510d7778335647981955cf7849b4e",
+      "fixtures/state-scope.apl": "e19c4f501d88db067adf8509e05ce334f697125c3feb810ff727f022787e9b75",
+      "fixtures/trap-after-divergence.apl": "84e17e56940e0c2500c95d1a8158eb70011fcb13a0b610e9616dd0d3ab514e5b",
+      "fixtures/trap-before-divergence.apl": "d6704ca616465ec72c630a8431e41634d5d71c77975de882bc83629926bacaa0",
+      "fixtures/weak-invariant.apl": "d0b0c17888bbf417d3d5d307264a1aa8a5e7ffb4e8f264d7bdd8ca280c99cdb0"
+    },
+    "candidate_revision": "14bb053ca5e09f6036e1a61089452f8ccf90d375"
+  },
+  "all_summaries": [
+    {
+      "case": "pure-affine",
+      "category": "common",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 170.364584,
+          "minimum": 165.73325,
+          "maximum": 185.846875
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 134.37700000000063,
+          "minimum": 133.7679999999999,
+          "maximum": 136.72299999999993
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 17.668999999999933,
+          "minimum": 16.276999999999987,
+          "maximum": 27.002999999999666
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 4,
+        "query_bytes": 9597,
+        "expanded_nodes": 20,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "pure-affine",
+      "category": "common",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 168.965791,
+          "minimum": 166.86525,
+          "maximum": 189.493458
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 134.51500000000038,
+          "minimum": 134.3620000000003,
+          "maximum": 139.6090000000001
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 16.76600000000017,
+          "minimum": 16.027000000000015,
+          "maximum": 20.439000000000096
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 4,
+        "query_bytes": 9597,
+        "expanded_nodes": 20,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "pure-false-post",
+      "category": "common",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 157.717792,
+          "minimum": 155.753459,
+          "maximum": 186.512167
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 129.9779999999995,
+          "minimum": 129.78299999999976,
+          "maximum": 136.62300000000016
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 14.283999999999963,
+          "minimum": 13.352999999999948,
+          "maximum": 26.491999999999962
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 3,
+        "query_bytes": 3041,
+        "expanded_nodes": 6,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "pure-false-post",
+      "category": "common",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 158.963583,
+          "minimum": 157.672666,
+          "maximum": 162.776791
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 130.54599999999894,
+          "minimum": 130.18199999999956,
+          "maximum": 130.7659999999995
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 14.885000000000037,
+          "minimum": 13.358999999999899,
+          "maximum": 16.239000000000114
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 3,
+        "query_bytes": 3041,
+        "expanded_nodes": 6,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "state-scope",
+      "category": "common",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 179.074875,
+          "minimum": 176.510084,
+          "maximum": 196.480167
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 138.21999999999957,
+          "minimum": 137.71399999999988,
+          "maximum": 141.54800000000023
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 19.90399999999992,
+          "minimum": 18.450000000000077,
+          "maximum": 29.516000000000098
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 5,
+        "query_bytes": 22926,
+        "expanded_nodes": 46,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "state-scope",
+      "category": "common",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 176.87625,
+          "minimum": 176.011333,
+          "maximum": 189.84125
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 138.55700000000047,
+          "minimum": 137.78800000000047,
+          "maximum": 140.09500000000054
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 18.839000000000272,
+          "minimum": 18.31000000000005,
+          "maximum": 22.72099999999977
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 5,
+        "query_bytes": 22926,
+        "expanded_nodes": 46,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "state-intermediate-overflow",
+      "category": "common",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 146.873208,
+          "minimum": 145.493,
+          "maximum": 153.712542
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 125.57900000000011,
+          "minimum": 125.45399999999951,
+          "maximum": 126.65499999999952
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 10.894999999999655,
+          "minimum": 10.743000000000059,
+          "maximum": 13.549999999999951
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 2,
+        "query_bytes": 2841,
+        "expanded_nodes": 13,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "state-intermediate-overflow",
+      "category": "common",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 146.992333,
+          "minimum": 145.488917,
+          "maximum": 220.38625
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 126.01999999999869,
+          "minimum": 126.01700000000005,
+          "maximum": 141.94300000000126
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 10.855000000000281,
+          "minimum": 10.64799999999999,
+          "maximum": 29.431000000000207
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 2,
+        "query_bytes": 2841,
+        "expanded_nodes": 13,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "counter",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.345917,
+          "minimum": 3.181333,
+          "maximum": 13.724083
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9639999999997428,
+          "minimum": 0.9420000000002204,
+          "maximum": 1.7889999999987083
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8809999999999096,
+          "minimum": 0.8610000000000007,
+          "maximum": 3.591000000000122
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 2,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "counter",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 268.593167,
+          "minimum": 265.695459,
+          "maximum": 281.478625
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 170.46700000000038,
+          "minimum": 169.78899999999976,
+          "maximum": 176.64100000000005
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 44.52400000000001,
+          "minimum": 43.04899999999989,
+          "maximum": 46.59199999999997
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 15,
+        "query_bytes": 57628,
+        "expanded_nodes": 81,
+        "functions": 2,
+        "heads": 2,
+        "occurrences": 2
+      }
+    },
+    {
+      "case": "final-false-write",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.316583,
+          "minimum": 3.164625,
+          "maximum": 3.412042
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9700000000005815,
+          "minimum": 0.9689999999995536,
+          "maximum": 1.0010000000004737
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.9449999999997516,
+          "minimum": 0.8640000000001979,
+          "maximum": 1.0260000000001934
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "final-false-write",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 196.82325,
+          "minimum": 193.446542,
+          "maximum": 207.87075
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 143.01599999999937,
+          "minimum": 142.5200000000002,
+          "maximum": 147.7280000000003
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 25.411999999999992,
+          "minimum": 22.741999999999596,
+          "maximum": 35.39300000000001
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 7,
+        "query_bytes": 23512,
+        "expanded_nodes": 35,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "safe-divergence",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.279667,
+          "minimum": 3.12975,
+          "maximum": 3.551958
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9700000000005815,
+          "minimum": 0.8930000000013649,
+          "maximum": 0.9999999999998899
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.9089999999996046,
+          "minimum": 0.8690000000002307,
+          "maximum": 1.2959999999999638
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "safe-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 172.176875,
+          "minimum": 169.231292,
+          "maximum": 173.190375
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 133.34500000000025,
+          "minimum": 133.24899999999928,
+          "maximum": 134.0210000000006
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 19.380000000000063,
+          "minimum": 17.456999999999834,
+          "maximum": 20.119
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 5,
+        "query_bytes": 6584,
+        "expanded_nodes": 9,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "weak-invariant",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.205041,
+          "minimum": 3.152084,
+          "maximum": 3.315833
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9540000000001214,
+          "minimum": 0.9169999999993905,
+          "maximum": 0.9779999999999234
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8739999999999304,
+          "minimum": 0.8459999999999024,
+          "maximum": 1.1309999999999931
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "weak-invariant",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 175.491917,
+          "minimum": 174.262792,
+          "maximum": 311.633917
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 136.43499999999875,
+          "minimum": 136.34200000000084,
+          "maximum": 165.82800000000032
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 19.11099999999999,
+          "minimum": 18.275999999999737,
+          "maximum": 40.36799999999996
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 5,
+        "query_bytes": 10016,
+        "expanded_nodes": 20,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "trap-before-divergence",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.643292,
+          "minimum": 3.012375,
+          "maximum": 8.802875
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9730000000001127,
+          "minimum": 0.9060000000005175,
+          "maximum": 1.7339999999999023
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.9369999999999656,
+          "minimum": 0.8660000000000334,
+          "maximum": 3.5970000000000724
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "trap-before-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 165.561583,
+          "minimum": 161.97475,
+          "maximum": 220.344042
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 131.34600000000017,
+          "minimum": 130.9769999999997,
+          "maximum": 150.98199999999994
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 16.913999999999984,
+          "minimum": 15.014000000000305,
+          "maximum": 29.274000000000022
+        }
+      },
+      "metrics": {
+        "status": "failed",
+        "query_count": 4,
+        "query_bytes": 6143,
+        "expanded_nodes": 15,
+        "functions": 1,
+        "heads": 1,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "trap-after-divergence",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.368458,
+          "minimum": 3.134541,
+          "maximum": 4.802125
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.9899999999998244,
+          "minimum": 0.932000000000599,
+          "maximum": 1.0580000000004475
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.9359999999998259,
+          "minimum": 0.8879999999997779,
+          "maximum": 2.027000000000001
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "trap-after-divergence",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 163.075583,
+          "minimum": 161.381125,
+          "maximum": 177.921833
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 131.1880000000003,
+          "minimum": 131.06999999999937,
+          "maximum": 132.28299999999928
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 15.666999999999987,
+          "minimum": 15.283999999999853,
+          "maximum": 21.81300000000008
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 4,
+        "query_bytes": 5683,
+        "expanded_nodes": 10,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 1
+      }
+    },
+    {
+      "case": "missing-invariant",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.18725,
+          "minimum": 2.426875,
+          "maximum": 5.611959
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.8580000000009136,
+          "minimum": 0.8119999999998129,
+          "maximum": 1.1279999999995738
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8159999999999279,
+          "minimum": 0.6810000000000427,
+          "maximum": 1.4939999999998843
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "missing-invariant",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 2.809958,
+          "minimum": 2.638709,
+          "maximum": 5.668917
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.8970000000001477,
+          "minimum": 0.8850000000002467,
+          "maximum": 1.100000000000101
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8030000000001092,
+          "minimum": 0.7969999999999366,
+          "maximum": 2.1700000000000053
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "nested-untouched",
+      "category": "loop",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 3.235375,
+          "minimum": 2.885916,
+          "maximum": 4.134625
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 0.978999999999175,
+          "minimum": 0.8859999999994983,
+          "maximum": 1.1590000000003542
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 0.8780000000001564,
+          "minimum": 0.7929999999998216,
+          "maximum": 1.530999999999949
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 1,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "nested-untouched",
+      "category": "loop",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 255.30575,
+          "minimum": 251.398625,
+          "maximum": 297.354084
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 168.1100000000004,
+          "minimum": 167.74099999999947,
+          "maximum": 179.53699999999984
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 38.146000000000015,
+          "minimum": 37.76599999999996,
+          "maximum": 62.49400000000005
+        }
+      },
+      "metrics": {
+        "status": "verified",
+        "query_count": 13,
+        "query_bytes": 138305,
+        "expanded_nodes": 115,
+        "functions": 1,
+        "heads": 5,
+        "occurrences": 2
+      }
+    },
+    {
+      "case": "loop-work-cap",
+      "category": "loop_resource",
+      "variant": "baseline",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 4.541958,
+          "minimum": 4.381375,
+          "maximum": 4.739292
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 1.8770000000003506,
+          "minimum": 1.8200000000003769,
+          "maximum": 1.8959999999994537
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 1.1259999999997383,
+          "minimum": 1.032000000000033,
+          "maximum": 1.1970000000001146
+        }
+      },
+      "metrics": {
+        "status": "unsupported",
+        "query_count": 0,
+        "query_bytes": 0,
+        "expanded_nodes": 0,
+        "functions": 2,
+        "heads": 0,
+        "occurrences": 0
+      }
+    },
+    {
+      "case": "loop-work-cap",
+      "category": "loop_resource",
+      "variant": "candidate",
+      "timing": {
+        "elapsed_ms": {
+          "count": 5,
+          "median": 707.61825,
+          "minimum": 684.072125,
+          "maximum": 756.365042
+        },
+        "user_cpu_ms": {
+          "count": 5,
+          "median": 486.6349999999997,
+          "minimum": 479.0410000000005,
+          "maximum": 498.16400000000004
+        },
+        "system_cpu_ms": {
+          "count": 5,
+          "median": 103.11199999999987,
+          "minimum": 97.60900000000028,
+          "maximum": 116.1439999999998
+        }
+      },
+      "metrics": {
+        "status": "unknown",
+        "query_count": 35,
+        "query_bytes": 3189025,
+        "expanded_nodes": 318,
+        "functions": 2,
+        "heads": 0,
+        "occurrences": 45
+      }
+    }
+  ],
+  "limitations": [
+    "Single host and five samples per side; no population or cross-platform inference.",
+    "External virtual machine used about three cores; other compiler builds were held during timed trials.",
+    "Whole-CLI timing includes parsing, identities, solver startup, all queries and report output; semantic/oracle checks run after the timed command.",
+    "No component profiler was used; the experiment does not attribute a timing difference to a subsystem.",
+    "Baseline unsupported loops performed zero solver queries and provide no proof-latency comparison.",
+    "Resource-limit case measures a bounded failure with 35 completed leaf queries, not complete function verification or a per-function budget reset.",
+    "Independent report oracle checks rendered formula/report consistency and provenance, not source-to-SMT or solver soundness."
+  ],
+  "completed_solver_queries_in_timing": 696,
+  "retained_query_bytes_in_timing": 21082236,
+  "release_binary_size_delta_bytes": 135472
+}

@@ -1,0 +1,233 @@
+[
+  {
+    "name": "pure-affine",
+    "status": "verified",
+    "queries": 4,
+    "eval": [
+      [
+        "-1000",
+        -2993
+      ],
+      [
+        "-1",
+        4
+      ],
+      [
+        "0",
+        7
+      ],
+      [
+        "1",
+        10
+      ],
+      [
+        "1000",
+        3007
+      ]
+    ],
+    "file": "pure-affine.apl",
+    "category": "common",
+    "route": "pure",
+    "source_sha256": "002654c20e0980a4d721d4ca6278d4fe358e522eb729285af96f6bd5f68bd71b"
+  },
+  {
+    "name": "pure-false-post",
+    "status": "failed",
+    "queries": 3,
+    "failed_kind": "postcondition",
+    "eval": [
+      [
+        "-1",
+        -1
+      ],
+      [
+        "0",
+        0
+      ],
+      [
+        "1",
+        1
+      ]
+    ],
+    "file": "pure-false-post.apl",
+    "category": "common",
+    "route": "pure",
+    "source_sha256": "0df96cb922f687072332f7e5d49ea231777d07407f561d41d4fb16d2cc1f4f30"
+  },
+  {
+    "name": "state-scope",
+    "status": "verified",
+    "queries": 5,
+    "eval": [
+      [
+        "0,0",
+        302
+      ],
+      [
+        "2,8",
+        510
+      ],
+      [
+        "10,10",
+        1312
+      ]
+    ],
+    "file": "state-scope.apl",
+    "category": "common",
+    "route": "state",
+    "source_sha256": "e19c4f501d88db067adf8509e05ce334f697125c3feb810ff727f022787e9b75"
+  },
+  {
+    "name": "state-intermediate-overflow",
+    "status": "failed",
+    "queries": 2,
+    "failed_kind": "body_safe",
+    "trap": true,
+    "file": "state-intermediate-overflow.apl",
+    "category": "common",
+    "route": "state",
+    "source_sha256": "8406ecdb6b0a3d9ce1c0896eb7967aaa543510d7778335647981955cf7849b4e"
+  },
+  {
+    "name": "counter",
+    "file": "counter.apl",
+    "source_sha256": "6db53c443dbd6914ad24a7d53969cd046a09eb7cc1695bd988ba0f466b3236d4",
+    "expected_candidate_status": "verified",
+    "expected_baseline_status": "unsupported",
+    "finite_value": "1000",
+    "bounded_evaluator_outcome": null,
+    "category": "loop",
+    "route": "loop",
+    "status": "verified",
+    "queries": 15,
+    "heads": 2,
+    "occurrences": 2
+  },
+  {
+    "name": "final-false-write",
+    "file": "final-false-write.apl",
+    "source_sha256": "cf8c49c5f0a98524780a92b1fbd4688165d87622d1153088dc83f0af2bc9e535",
+    "expected_candidate_status": "verified",
+    "expected_baseline_status": "unsupported",
+    "finite_value": "4",
+    "bounded_evaluator_outcome": null,
+    "category": "loop",
+    "route": "loop",
+    "status": "verified",
+    "queries": 7,
+    "heads": 1,
+    "occurrences": 1
+  },
+  {
+    "name": "safe-divergence",
+    "file": "safe-divergence.apl",
+    "source_sha256": "db622a66735acf47eff0abf864effed0aed3b5ca0051a1b3c12c5b9edbed8be9",
+    "expected_candidate_status": "verified",
+    "expected_baseline_status": "unsupported",
+    "finite_value": null,
+    "bounded_evaluator_outcome": "resource_limit",
+    "category": "loop",
+    "route": "loop",
+    "status": "verified",
+    "queries": 5,
+    "heads": 0,
+    "occurrences": 1
+  },
+  {
+    "name": "weak-invariant",
+    "file": "weak-invariant.apl",
+    "source_sha256": "d0b0c17888bbf417d3d5d307264a1aa8a5e7ffb4e8f264d7bdd8ca280c99cdb0",
+    "expected_candidate_status": "failed",
+    "expected_baseline_status": "unsupported",
+    "finite_value": "2",
+    "bounded_evaluator_outcome": null,
+    "category": "loop",
+    "route": "loop",
+    "status": "failed",
+    "queries": 5,
+    "heads": 1,
+    "occurrences": 1,
+    "failed_kind": "postcondition"
+  },
+  {
+    "name": "trap-before-divergence",
+    "file": "trap-before-divergence.apl",
+    "source_sha256": "d6704ca616465ec72c630a8431e41634d5d71c77975de882bc83629926bacaa0",
+    "expected_candidate_status": "failed",
+    "expected_baseline_status": "unsupported",
+    "finite_value": null,
+    "bounded_evaluator_outcome": "arithmetic_overflow",
+    "category": "loop",
+    "route": "loop",
+    "status": "failed",
+    "queries": 4,
+    "heads": 1,
+    "occurrences": 1,
+    "failed_kind": "body_safe"
+  },
+  {
+    "name": "trap-after-divergence",
+    "file": "trap-after-divergence.apl",
+    "source_sha256": "84e17e56940e0c2500c95d1a8158eb70011fcb13a0b610e9616dd0d3ab514e5b",
+    "expected_candidate_status": "verified",
+    "expected_baseline_status": "unsupported",
+    "finite_value": null,
+    "bounded_evaluator_outcome": "resource_limit",
+    "category": "loop",
+    "route": "loop",
+    "status": "verified",
+    "queries": 4,
+    "heads": 0,
+    "occurrences": 1
+  },
+  {
+    "name": "missing-invariant",
+    "file": "missing-invariant.apl",
+    "source_sha256": "b72017889ccd7aa89dd59189a233cb3f887cfed38aa0661b6a7de46aa98c84e4",
+    "expected_candidate_status": "unsupported",
+    "expected_baseline_status": "unsupported",
+    "finite_value": "0",
+    "bounded_evaluator_outcome": null,
+    "category": "loop",
+    "route": "loop",
+    "status": "unsupported",
+    "queries": 0,
+    "heads": 0,
+    "occurrences": 0
+  },
+  {
+    "name": "nested-untouched",
+    "file": "nested-untouched.apl",
+    "category": "loop",
+    "route": "loop",
+    "status": "verified",
+    "queries": 13,
+    "heads": 5,
+    "occurrences": 2,
+    "finite_value": "7",
+    "bounded_evaluator_outcome": null,
+    "source_sha256": "dbfa676aa2c9e46b29198daf4a243847f5dd5103477acb1b4aafa6f6593d7ea7"
+  },
+  {
+    "name": "loop-work-cap",
+    "file": "loop-work-cap.apl",
+    "category": "loop_resource",
+    "route": "loop",
+    "status": "unknown",
+    "queries": 35,
+    "heads": 0,
+    "source_sha256": "bb7ea729ca5c374268485d98fa01ffbae9192f8b8fcb29c3c5d05eed7fc56b64",
+    "expected_message": "symbolic work exceeds 1000000 units",
+    "completed_function": "leaf",
+    "generator": {
+      "unit_parameters": 2000,
+      "false_loops": 45
+    },
+    "completed_prefix": {
+      "precondition_satisfiable": 1,
+      "body_safe": 1,
+      "loop_invariant_initialized": 17,
+      "loop_invariant_preserved": 16
+    }
+  }
+]

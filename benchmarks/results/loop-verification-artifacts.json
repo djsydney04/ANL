@@ -1,0 +1,129 @@
+{
+  "schema": "apl-loop-verification-artifacts-v1",
+  "baseline_revision": "0795dd689c40b88d0a0ae37e25bfdc3b06468f8e",
+  "candidate_revision": "14bb053ca5e09f6036e1a61089452f8ccf90d375",
+  "scope": "Recorded measurements, relocated reproduction harness, fixture corpus and publication validation. No new timed trials.",
+  "files": [
+    {
+      "path": "benchmarks/README.md",
+      "sha256": "4779a25dc04c3f022a7b6a1a77f43eeaf73ecf7cd0e38df71389130fea61740e",
+      "bytes": 7104
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/counter.apl",
+      "sha256": "6db53c443dbd6914ad24a7d53969cd046a09eb7cc1695bd988ba0f466b3236d4",
+      "bytes": 178
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/final-false-write.apl",
+      "sha256": "cf8c49c5f0a98524780a92b1fbd4688165d87622d1153088dc83f0af2bc9e535",
+      "bytes": 112
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/loop-work-cap.apl",
+      "sha256": "bb7ea729ca5c374268485d98fa01ffbae9192f8b8fcb29c3c5d05eed7fc56b64",
+      "bytes": 28294
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/manifest.json",
+      "sha256": "0d356295c64320a9aecf5f7ecf73fcd10f313c6de35e3d39ba0201c7140c7ed6",
+      "bytes": 5873
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/missing-invariant.apl",
+      "sha256": "b72017889ccd7aa89dd59189a233cb3f887cfed38aa0661b6a7de46aa98c84e4",
+      "bytes": 35
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/nested-untouched.apl",
+      "sha256": "dbfa676aa2c9e46b29198daf4a243847f5dd5103477acb1b4aafa6f6593d7ea7",
+      "bytes": 234
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/pure-affine.apl",
+      "sha256": "002654c20e0980a4d721d4ca6278d4fe358e522eb729285af96f6bd5f68bd71b",
+      "bytes": 73
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/pure-false-post.apl",
+      "sha256": "0df96cb922f687072332f7e5d49ea231777d07407f561d41d4fb16d2cc1f4f30",
+      "bytes": 38
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/safe-divergence.apl",
+      "sha256": "db622a66735acf47eff0abf864effed0aed3b5ca0051a1b3c12c5b9edbed8be9",
+      "bytes": 73
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/state-intermediate-overflow.apl",
+      "sha256": "8406ecdb6b0a3d9ce1c0896eb7967aaa543510d7778335647981955cf7849b4e",
+      "bytes": 57
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/state-scope.apl",
+      "sha256": "e19c4f501d88db067adf8509e05ce334f697125c3feb810ff727f022787e9b75",
+      "bytes": 160
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/trap-after-divergence.apl",
+      "sha256": "84e17e56940e0c2500c95d1a8158eb70011fcb13a0b610e9616dd0d3ab514e5b",
+      "bytes": 52
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/trap-before-divergence.apl",
+      "sha256": "d6704ca616465ec72c630a8431e41634d5d71c77975de882bc83629926bacaa0",
+      "bytes": 87
+    },
+    {
+      "path": "benchmarks/cases/loop-verification/weak-invariant.apl",
+      "sha256": "d0b0c17888bbf417d3d5d307264a1aa8a5e7ffb4e8f264d7bdd8ca280c99cdb0",
+      "bytes": 94
+    },
+    {
+      "path": "benchmarks/loop_report_oracle.py",
+      "sha256": "5e4d17a06819ba93f61e1c9529f8b189963bfaa510111157da9139b641c3146e",
+      "bytes": 14795
+    },
+    {
+      "path": "benchmarks/loop_verification.py",
+      "sha256": "9e04fe9a354228bff127d05759e9888475018410ddd6ffa7e3f9fdbc26e5a471",
+      "bytes": 24269
+    },
+    {
+      "path": "benchmarks/results/loop-verification-macos-arm64-gates.json.gz",
+      "sha256": "4ad6b9da68a10c8158e261d8ccaafcbc0d4c222b029467dd3aa52bfb908395a7",
+      "bytes": 503415
+    },
+    {
+      "path": "benchmarks/results/loop-verification-macos-arm64-snapshot.json.gz",
+      "sha256": "32acdb9f8cf2086546d5ae60264cb2d30a9b98380b869a9cf22bf5ee3b533aee",
+      "bytes": 12031
+    },
+    {
+      "path": "benchmarks/results/loop-verification-macos-arm64-summary.json",
+      "sha256": "aa5ae630bb0c84067fcf645bf5165c66520556bf914027a1ee481b3cb260e6ae",
+      "bytes": 46048
+    },
+    {
+      "path": "benchmarks/results/loop-verification-macos-arm64.json.gz",
+      "sha256": "6eb053babac4af0fae69913d7e413f286ec9ee16b776e105ac6c389ccfc5a641",
+      "bytes": 2962893
+    },
+    {
+      "path": "benchmarks/results/loop-verification-macos-arm64.md",
+      "sha256": "450ae7c35d33f171660386aeff246dcc154600b8a212c0dd267aa894d4b8632f",
+      "bytes": 14813
+    },
+    {
+      "path": "benchmarks/results/loop-verification-public-gates.json.gz",
+      "sha256": "315dcdc0951254b23e5f9de0e02fe6fa8a654f2831ee3cc6e90849cb83217763",
+      "bytes": 502173
+    },
+    {
+      "path": "benchmarks/results/loop-verification-public-validation.json",
+      "sha256": "66647c38329a87cbf5a90da09c79c119915d1a9bf970ffe828daad86221b0283",
+      "bytes": 109857
+    }
+  ],
+  "manifest_self_hash": "Excluded to avoid a circular hash; use the committed file bytes."
+}

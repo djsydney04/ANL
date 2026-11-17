@@ -113,3 +113,18 @@ finite outcomes, and four deliberate failures of its own semantic gate before
 timing, including a missing SAT model.
 Use `--gate-only` to run just those checks. It requires explicit baseline,
 candidate and solver paths; the earlier runtime baselines remain unchanged.
+
+## Invariant-loop verification coverage and latency
+
+The [invariant-loop report](results/loop-verification-macos-arm64.md) compares
+`0795dd689c40b88d0a0ae37e25bfdc3b06468f8e` with
+`14bb053ca5e09f6036e1a61089452f8ccf90d375`: four shared pure/state controls,
+eight loop cases and one bounded symbolic-work failure. Five samples per side
+show overlapping shared-workload ranges; no speedup or regression is established.
+Old unsupported-loop latency measures rejection, not proof cost.
+
+The self-contained [loop harness](loop_verification.py) and
+[13-case manifest](cases/loop-verification/manifest.json) retain exact report,
+SMT, model, source/tool identity and runtime gates. The report includes commands
+for `gate` and `time`, deliberate new-host identity recording, unchanged original
+raw evidence, a source/harness snapshot, and limits of the loaded-host results.
