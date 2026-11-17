@@ -1,0 +1,117 @@
+# Type-system and scalar-core specification
+
+Status: design proposal. This specifies intended behavior; implementation and proof status must be reported separately. The initial grammar is [grammar.ebnf](../../spec/grammar.ebnf).
+
+## Language model
+
+APL is a strict, statically typed, expression-oriented systems language. Function signatures define module boundaries. Local expressions synthesize types or check against an expected type. There are no implicit numeric conversions, truthiness conversions, dynamically typed escape values, or unchecked downcasts in safe code.
+
+The complete language requires primitive integers and floating-point numbers, Unicode scalar characters, UTF-8 text, arrays, slices, tuples, records, nominal algebraic data types, exhaustive matches, generics, closures, modules, explicit errors, mutation, and ownership. These remain delivery requirements even when a milestone supports a smaller subset.
+
+## M1 executable boundary
+
+M1 supports these forms only:
+
+| Form | Contract |
+| --- | --- |
+| `i64` | Mathematical integers in `[-2^63, 2^63-1]` with checked operations |
+| `bool` | Exactly `true` or `false` |
+| `unit` | One value, written `()` |
+| `fn name(x: T, ...) -> U { ... }` | Declared parameter and result types, named calls, recursion |
+| `let x = e;` or `let x: T = e;` | Immutable, monomorphic local binding |
+| `{ statements; final_expression }` | Lexical scope; omitted final expression has type `unit` |
+| `if c { a } else { b }` | `c: bool`; both branches have the same type |
+| Arithmetic | `+`, `-`, `*`, `/`, `%`, and unary `-`, on `i64` only |
+| Comparison | `<`, `<=`, `>`, `>=` on `i64`; `==`, `!=` on two scalars of the same type |
+| Boolean operations | `!`, short-circuit `&&`, and short-circuit `||` |
+| Expression statement | Evaluate an expression, discard its scalar result, retain its trap behavior |
+
+An executable contains exactly one `fn main() -> i64`. Other functions may return any M1 type. Every function body is checked, including unreachable or unused functions. Duplicate function names or parameter names are errors. A block rejects duplicate local binding names in that block. Inner blocks may shadow outer names. A local name shadows a same-named global function, so calling that local scalar is a type error.
+
+Calls may refer to later function declarations. Arity and each argument type must match the declared signature. Function identifiers cannot be stored, returned, or passed as values in M1. That restriction is removed with the higher-order-function milestone rather than emulated with unchecked pointers.
+
+M1 excludes mutable bindings, loops, early `return`, user-defined data types, allocation, references, generics, modules, I/O, concurrency, contracts, and source-level unsafe code. Rejected syntax receives an explicit diagnostic. These exclusions bound M1; they do not remove final-release requirements.
+
+## Scalar evaluation rules
+
+Operands and function arguments evaluate left to right. A trap stops the current evaluation; no later operand is evaluated. `false && e`, `true || e`, and an unselected `if` branch do not evaluate `e`. Arithmetic never invokes undefined behavior or silently wraps.
+
+Let `L = -9223372036854775808` and `H = 9223372036854775807`. Addition, subtraction, multiplication, and negation first compute their mathematical result. A result outside `[L,H]` produces `ArithmeticOverflow`. Division and remainder produce `DivisionByZero` when the divisor is zero. Both produce `ArithmeticOverflow` for `L / -1` and `L % -1`. Otherwise division truncates toward zero and remainder is `a - trunc(a/b)*b`.
+
+The canonical interchange tags for these traps are `arithmetic_overflow` and `division_by_zero`. Descriptive names in mathematical prose do not define additional trap kinds.
+
+The lexer retains the unsigned decimal magnitude of an integer token without converting through a host signed integer. An unnegated literal must be at most `H`. The syntactic form `-9223372036854775808` is admitted as `L`; negating that value again traps. Parentheses around the positive out-of-range magnitude do not make it legal. Underscores, radix prefixes, and numeric suffixes are absent from M1.
+
+`if` evaluates its condition and exactly one branch. `let` evaluates its initializer in the old environment, then extends the environment for subsequent statements. The initializer cannot refer to its own binding. A nested block restores the outer environment on exit. An expression statement still evaluates even when its value is discarded.
+
+A program may diverge through recursion. The reference interpreter uses a documented fuel budget and returns `OutOfFuel` when that budget is exhausted. `OutOfFuel` is not a language trap, proof of divergence, or proof of safety. A native stack or allocation failure is a host resource failure, outside the scalar semantics. Future verified termination claims require a separate proof.
+
+## Typing judgments
+
+`Sigma` maps function names to declared parameter and result types. `Gamma` maps local names to types. `Sigma; Gamma |- e => T` synthesizes a type; `Sigma; Gamma |- e <= T` checks an expected type. Checking succeeds when synthesis produces the same type in M1. Later closures use genuinely checking-directed rules.
+
+The declarative core has these representative rules:
+
+```text
+Gamma(x) = T
+------------------------ VAR
+Sigma; Gamma |- x : T
+
+Sigma; Gamma |- a : i64    Sigma; Gamma |- b : i64
+------------------------------------------------ ARITH
+Sigma; Gamma |- a op b : i64
+
+Sigma; Gamma |- c : bool    Sigma; Gamma |- a : T    Sigma; Gamma |- b : T
+------------------------------------------------------------------------ IF
+Sigma; Gamma |- if c { a } else { b } : T
+
+Sigma; Gamma |- e : U    Sigma; Gamma, x:U |- body : T
+---------------------------------------------------- LET
+Sigma; Gamma |- let x = e; body : T
+
+Sigma(f) = (T1, ..., Tn) -> U    each Sigma; Gamma |- ai : Ti
+---------------------------------------------------------- CALL
+Sigma; Gamma |- f(a1, ..., an) : U
+```
+
+Arithmetic typing proves operand compatibility, not absence of overflow or division by zero. The operational model includes those traps. A preservation theorem must preserve expression type or reach a defined trap. Progress permits a value, a next step, or a defined trap for a closed well-typed term. A separate verification result can establish trap freedom under preconditions.
+
+For the first expression-only mechanization, function calls are outside the theorem unless the proof explicitly models `Sigma`, function bodies, and substitution or environments. The compiler must not describe a whole program as formally type-safe solely because its expressions resemble the proven fragment.
+
+## Complete-language typing direction
+
+Generic parameters are explicit and universally quantified at declaration boundaries. Generic bodies are checked under those abstract parameters. Local lets do not introduce implicit polymorphism. Overload resolution uses explicit trait bounds and rejects ambiguous calls. Nominal data types prevent accidental representation-based interchange.
+
+ADT matching must cover every constructor. Guards do not establish coverage unless there is an unconditional covering pattern. A match over an owned non-`Copy` value consumes it, while a borrowed match binds borrowed fields. Partial moves and drop flags require an explicit extension to the ownership analysis before acceptance.
+
+Closures contain typed capture records. Captures distinguish copy, move, shared borrow, and exclusive borrow. A closure's invocation permission depends on how it uses those captures. Escaping closures cannot retain references to expired stack storage. Higher-order APIs carry both invocation and effect requirements.
+
+`Result<T,E>` and `Option<T>` are nominal library ADTs. Error propagation lowers to a match and ordinary cleanup. There is no unchecked exception channel hidden from a function type. A panic remains a defined aborting failure and is distinct from an expected `Result` error.
+
+Safe conversions use named fallible or lossless operations. Any unchecked representation conversion is inside an explicit unsafe boundary with preconditions. Floating-point semantics, NaN behavior, and permitted transformations require a later normative specification; integer rules must not silently generalize to floats.
+
+## Ownership and borrow-analysis interface
+
+The complete-language checker carries unrestricted scalar bindings, affine resource bindings, and a loan environment. Owned values may move once. Compiler-derived `Copy` applies only when duplication introduces no owning resource, exclusive reference, or cleanup obligation. Shared references can copy their loan; exclusive references cannot copy.
+
+`&'r T` permits reads during region `'r`; `&'r mut T` permits exclusive access. While a shared loan exists, overlapping storage cannot be mutated or moved. While an exclusive loan exists, access to overlapping storage is restricted to that loan and its active reborrows. A reborrow suspends the parent permission until the reborrow ends. A reference cannot outlive its storage.
+
+The first ownership implementation uses lexical regions, complete initialization, and whole-value moves. It rejects references stored in aggregates, self-referential values, partial moves, and escaping borrows until those cases have accepted rules. These are milestone restrictions, not the final data model.
+
+The ownership pass consumes typed places and an explicit control-flow graph. It emits either diagnostics or move, loan, initialization, and cleanup facts attached to the same node and local IDs. A join retains a usable owner only if every incoming path supplies one. Back edges require a fixed point. A later pass cannot revive a moved value or ignore a live loan.
+
+## Effects and authority
+
+M1 has no external interaction effects. A pure M1 function can still trap or diverge. Future internal effect summaries distinguish allocation, external I/O, spawning, suspension, state access, and panic. Exported functions declare an upper bound on effects. Call effects must fit within that bound.
+
+Effect-polymorphic higher-order APIs require a proven substitution rule; an effect variable cannot discard a callback's effects. External authority comes from opaque capability values, not an effect annotation. Unsafe code changes which proof obligations the programmer must discharge; it does not grant an operating-system capability.
+
+## Compiler and verifier contracts
+
+The type checker consumes the parsed module plus resolved names and produces typed expressions with stable node IDs, source spans, and explicit types. Invalid source produces structured diagnostics and no executable typed module. Diagnostics identify the expected type, actual type, primary source range, and the declaration that imposed the expectation.
+
+Source blocks lower to nested core lets and their final expression. A discarded expression statement lowers to a fresh unnamed let, preserving its evaluation and trap behavior. An omitted final expression lowers to `Unit`. Name resolution occurs before interchange export. If the exporter uses de Bruijn indices, every inserted discard binding shifts later references; conformance tests must cover a discarded expression between a binding and its later use.
+
+The verifier consumes checked and ownership-valid IR, never untyped parser output. Its mathematical integer model includes range obligations for machine arithmetic. Each obligation identifies the source node and the assumptions used. A successful solver result applies only to the named obligation and its assumptions.
+
+Required evidence before M1 acceptance includes positive execution examples, negative type and name-resolution cases, arithmetic boundary tests, short-circuit tests, call and recursion tests, source-position diagnostics, and checked formal artifacts for the advertised theorem scope. Later milestones add compile-fail ownership tests and independent review of every unsafe abstraction.
