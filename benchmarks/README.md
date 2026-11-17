@@ -97,3 +97,19 @@ The earlier native baseline and its raw evidence remain unchanged. The new
 workload, compiler revision, and shared-host conditions do not establish a
 before-and-after speedup or a cross-language comparison. Read the report for
 workload-specific results, profile evidence, first-launch exclusions, and limits.
+
+## Contract verification coverage and latency
+
+The [loop-free state verification report](results/verification-macos-arm64.md)
+compares pure-program outcomes and records new mutable-state proof coverage at
+`5e9dff071bf58a369af0386fb042c5948dcf8862`. Its 100 measured samples keep verified,
+failed, unknown and unsupported outcomes separate. Pure timing ranges overlap;
+old state rejection costs are not compared with successful proof costs.
+
+The report links exact raw data, the original measured script and profile,
+and build/reproduction instructions for [verification.py](verification.py).
+The configurable harness checks complete reports, exact hashes, independent
+finite outcomes, and four deliberate failures of its own semantic gate before
+timing, including a missing SAT model.
+Use `--gate-only` to run just those checks. It requires explicit baseline,
+candidate and solver paths; the earlier runtime baselines remain unchanged.

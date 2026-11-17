@@ -1,0 +1,208 @@
+[
+  {
+    "name": "pure-affine",
+    "status": "verified",
+    "queries": 4,
+    "eval": [
+      [
+        "-1000",
+        -2993
+      ],
+      [
+        "-1",
+        4
+      ],
+      [
+        "0",
+        7
+      ],
+      [
+        "1",
+        10
+      ],
+      [
+        "1000",
+        3007
+      ]
+    ],
+    "file": "pure-affine.apl"
+  },
+  {
+    "name": "pure-calls",
+    "status": "verified",
+    "queries": 12,
+    "eval": [
+      [
+        "-100",
+        -382
+      ],
+      [
+        "-1",
+        14
+      ],
+      [
+        "0",
+        18
+      ],
+      [
+        "1",
+        22
+      ],
+      [
+        "100",
+        418
+      ]
+    ],
+    "file": "pure-calls.apl"
+  },
+  {
+    "name": "pure-guarded-division",
+    "status": "verified",
+    "queries": 4,
+    "eval": [
+      [
+        "-100",
+        -1
+      ],
+      [
+        "-3",
+        -33
+      ],
+      [
+        "0",
+        7
+      ],
+      [
+        "3",
+        33
+      ],
+      [
+        "100",
+        1
+      ]
+    ],
+    "file": "pure-guarded-division.apl"
+  },
+  {
+    "name": "pure-false-post",
+    "status": "failed",
+    "queries": 3,
+    "failed_kind": "postcondition",
+    "eval": [
+      [
+        "-1",
+        -1
+      ],
+      [
+        "0",
+        0
+      ],
+      [
+        "1",
+        1
+      ]
+    ],
+    "file": "pure-false-post.apl"
+  },
+  {
+    "name": "state-scope",
+    "status": "verified",
+    "queries": 5,
+    "eval": [
+      [
+        "0,0",
+        302
+      ],
+      [
+        "2,8",
+        510
+      ],
+      [
+        "10,10",
+        1312
+      ]
+    ],
+    "file": "state-scope.apl"
+  },
+  {
+    "name": "state-branch",
+    "status": "verified",
+    "queries": 4,
+    "eval": [
+      [
+        "false,-100",
+        -1095
+      ],
+      [
+        "false,0",
+        5
+      ],
+      [
+        "false,100",
+        1105
+      ],
+      [
+        "true,-100",
+        -1097
+      ],
+      [
+        "true,0",
+        3
+      ],
+      [
+        "true,100",
+        1103
+      ]
+    ],
+    "file": "state-branch.apl"
+  },
+  {
+    "name": "state-call-snapshots",
+    "status": "verified",
+    "queries": 8,
+    "eval": [
+      [
+        "0",
+        22505
+      ],
+      [
+        "2",
+        46909
+      ],
+      [
+        "10",
+        144525
+      ]
+    ],
+    "file": "state-call-snapshots.apl"
+  },
+  {
+    "name": "state-intermediate-overflow",
+    "status": "failed",
+    "queries": 2,
+    "failed_kind": "body_safe",
+    "trap": true,
+    "file": "state-intermediate-overflow.apl"
+  },
+  {
+    "name": "state-work-cap",
+    "status": "unknown",
+    "queries": 2,
+    "generate": {
+      "unit_parameters": 4000,
+      "branches": 70
+    }
+  },
+  {
+    "name": "state-loop",
+    "status": "unsupported",
+    "queries": 0,
+    "eval": [
+      [
+        "",
+        0
+      ]
+    ],
+    "file": "state-loop.apl"
+  }
+]

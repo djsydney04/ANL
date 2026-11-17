@@ -77,11 +77,11 @@ that it has passed on that platform; inspect the run for the revision under revi
 
 The workflow includes native execution, module tests, arithmetic sanitizer
 probes, and contract/verifier regressions with the pinned real solver and controlled
-protocol-failure responders. At `c59ad04ac259079ca9730859e3b3e18226080ea9`,
+protocol-failure responders. At `5e9dff071bf58a369af0386fb042c5948dcf8862`,
 the Linux and macOS Rust jobs and the Lean proof/comparison job all passed
-([run](https://github.com/djsydney04/ANL/actions/runs/44063801812)), including the
-134-statement proof inventory. That run precedes production mutable-code
-verification. Later checks cover broader property testing, fuzzing, security,
+([run](https://github.com/djsydney04/ANL/actions/runs/44066324662)), including
+loop-free mutable-code verification and the 134-statement proof inventory.
+Later checks cover broader property testing, fuzzing, security,
 installation, and release artifact integrity.
 
 Use reproducible tool versions and lockfiles. Keep workflow permissions read-only

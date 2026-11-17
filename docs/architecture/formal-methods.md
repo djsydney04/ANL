@@ -224,10 +224,10 @@ The implemented verifier has tests for valid and false properties, intermediate
 overflow, division faults, unsatisfiable or undefined preconditions, guarded
 paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
 malformed protocol output, limits, and report identities. The Linux/macOS Rust
-jobs and the Lean proof/comparison job, including all 134 audited statements,
-passed for `c59ad04ac259079ca9730859e3b3e18226080ea9`
-([CI run](https://github.com/djsydney04/ANL/actions/runs/44063801812)). That run
-precedes production mutable-code verification. Passing CI
+jobs and the Lean proof/comparison job, including loop-free mutable-code
+verification and all 134 audited statements, passed for
+`5e9dff071bf58a369af0386fb042c5948dcf8862`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44066324662)). Passing CI
 does not discharge the remaining FM-07 or implementation-correspondence obligations.
 
 The Lean generators construct concrete formulas and prove soundness under
