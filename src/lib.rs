@@ -1,8 +1,10 @@
-//! APL M1 source checker, typed core interchange, and bounded reference evaluator.
+//! APL scalar checker, typed core interchange, reference evaluator, and native compiler.
 //! Formal proof scope is recorded separately under `formal/`.
+pub mod codegen;
 pub mod core;
 pub mod diagnostic;
 pub mod eval;
+mod mir;
 mod resolve;
 mod syntax;
 pub mod types;

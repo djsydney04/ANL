@@ -1,5 +1,5 @@
 use apl::{
-    DEFAULT_FUEL, MAX_FUEL, MAX_SOURCE_BYTES,
+    DEFAULT_FUEL, MAX_FUEL, MAX_SOURCE_BYTES, codegen,
     core::{self, ImportError},
     diagnostic::{Diagnostic, Span},
     eval::{self, EvalError},
@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "APL 0.1 scalar-core checker and reference evaluator\n\nUsage:\n  apl check FILE\n  apl eval FILE [--fuel N]\n  apl dump-core FILE\n  apl eval-core FILE [--fuel N]\n  apl --version\n\nFuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md for the full interchange and resource protocol.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\n";
+const HELP: &str = "APL 0.1 scalar checker, evaluator, and native compiler\n\nUsage:\n  apl check FILE\n  apl eval FILE [--fuel N]\n  apl build FILE [-o PATH]\n  apl run FILE\n  apl emit-c FILE\n  apl dump-core FILE\n  apl eval-core FILE [--fuel N]\n  apl --version\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 arithmetic trap,\n3 resource limit, 4 invocation or infrastructure error.\n";
 
 enum CliError {
     Message(String),
@@ -58,11 +58,16 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     }
     let usage = "invalid invocation; use apl --help";
     let command = args.first().and_then(|arg| arg.to_str()).ok_or(usage)?;
-    if !matches!(command, "check" | "eval" | "dump-core" | "eval-core") || args.len() < 2 {
+    if !matches!(
+        command,
+        "check" | "eval" | "dump-core" | "eval-core" | "build" | "run" | "emit-c"
+    ) || args.len() < 2
+    {
         return Err(usage.into());
     }
     let fuel = match args.len() {
         2 => DEFAULT_FUEL,
+        4 if command == "build" && args[2] == "-o" => DEFAULT_FUEL,
         4 if matches!(command, "eval" | "eval-core") && args[2] == "--fuel" => {
             let text = args[3]
                 .to_str()
@@ -151,6 +156,29 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if command == "dump-core" {
         output(core::export(&program, entry))?;
         return Ok(0);
+    }
+    if command == "emit-c" {
+        output(codegen::emit_c(&program, entry)?)?;
+        return Ok(0);
+    }
+    if command == "build" {
+        let default = if path.extension().is_some() {
+            path.with_extension("")
+        } else {
+            let mut name = path.as_os_str().to_os_string();
+            name.push(".out");
+            name.into()
+        };
+        let destination = if args.len() == 4 {
+            Path::new(&args[3])
+        } else {
+            &default
+        };
+        codegen::build(&program, entry, path, destination)?;
+        return Ok(0);
+    }
+    if command == "run" {
+        return codegen::run(&program, entry, path).map_err(CliError::from);
     }
     let result = eval::evaluate(&program, entry, fuel);
     if let Ok(value) = &result {
