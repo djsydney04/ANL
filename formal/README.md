@@ -1,16 +1,17 @@
 # APL formal core
 
-This directory implements the `m1-2026-11-16` scalar expression model in Lean
+This directory implements the `m1-2026-11-16` scalar function model in Lean
 4.36.0. It includes untyped syntax, declarative typing, independently checked
 inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
-functions. Finite evaluator correspondence is proved in both directions for scalar
-expressions. Finite program evaluation is proved sound against the call relation.
+functions. Finite evaluator correspondence is proved in both directions for
+scalar expressions and recursive programs. Program completeness establishes the
+existence of sufficient depth and fuel for a given finite reduction.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
-recursive function calls. It is the first
-mechanized slice of APL. It does not replace the complete-language roadmap.
+recursive function calls. It is the first mechanized slice of APL. It does not
+replace the complete-language roadmap.
 
 ## Build and check
 
@@ -84,9 +85,11 @@ before evaluating each expression, with a global decreasing budget and a
 branches and operands consume fuel. Every finite value, trap or invalid outcome
 is proved to have a matching reduction under `APL.Program.Step`. Under a
 well-typed function table and term, returned values have the declared type and
-`invalid` cannot occur. Resource exhaustion makes no semantic claim. The converse,
-that a finite reduction has a sufficient depth and fuel budget, is **not proved**.
-The CLI's fixed depth bound is not a termination or completeness guarantee.
+`invalid` cannot occur. Conversely, every finite reduction from a term and value
+environment with an empty continuation to a value, trap or invalid state has some
+depth and fuel budget for which the evaluator returns that outcome. This does not
+assert termination or completeness at the CLI's fixed depth bound of 256.
+Resource exhaustion is not a terminal language result or proof of divergence.
 Program execution is also covered by conformance tests.
 
 The CLI bounds files at 1,048,576 bytes, JSON nesting at 256, expression trees at
@@ -118,12 +121,15 @@ language behavior; they do not establish divergence or type safety.
   recursion, heterogeneous argument order, bad arity and unknown function IDs.
 - `APL/ProgramEvalSoundness.lean` connects the actual bounded `Program.eval` to
   finite relation traces for values, traps and invalid inputs. It proves returned
-  value typing and exclusion of invalid outcomes for well-typed programs. The
-  converse existence of sufficient depth and fuel remains open.
+  value typing and exclusion of invalid outcomes for well-typed programs.
+- `APL/ProgramEvalCompleteness.lean` proves that every finite value, trap or invalid
+  reduction from an evaluation state with an empty continuation can be reproduced
+  by `Program.eval` with sufficient depth and fuel. The proof uses deterministic
+  transitions and counted trace prefixes; it does not assume that programs end.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
   and strict interchange. The total program inference function is proved against
-  declarative typing; the JSON adapter, evaluator completeness, and executable
-  compilation remain trusted or tested boundaries.
+  declarative typing; the JSON adapter and executable compilation remain trusted
+  or tested boundaries.
 - `APL/Smoke.lean` contains kernel-reduced arithmetic, trap, short-circuit,
   scoping, and typing examples. `test.py` drives the actual executables against
   specified expected outcomes and a separate Python integer oracle, including
@@ -132,6 +138,6 @@ language behavior; they do not establish divergence or type safety.
 
 The exact theorem statements, assumptions, and coverage are recorded in the
 [proof inventory](PROOFS.md). These proofs concern the Lean model. They do not
-prove the Rust parser, resolver, checker, exporter, interpreter, future native
+prove the Rust parser, resolver, checker, exporter, interpreter, native
 backend, runtime, OS, or hardware correct. Executing a compiled Lean evaluator
 also trusts Lean compilation and its runtime; a kernel proof is separate evidence.

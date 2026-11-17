@@ -30,6 +30,7 @@ constructed and are rejected by the inference function.
 | FM-03 | `APL.relational_progress` | `s.Typed t` implies `Terminal s` or a successor under `Step`. A terminal is a value with an empty continuation or a defined trap. Invalid states have no typing constructor. | The same expression machine, including intermediate configurations. Closed expressions start with an empty environment and continuation. |
 | FM-04 | `APL.run_sound` | `run fuel s = some last` implies `Steps s last` and `step last = none`. No typing assumption is needed for correspondence. | Every successful finite machine run, including invalid untyped inputs. |
 | FM-04 | `APL.run_complete` | `Steps s last` and `step last = none` imply existence of a fuel budget for which `run fuel s = some last`. | Every finite terminal reduction in the expression relation. No claim for exhausted fuel or infinite reductions. |
+| FM-05 | Program typing, safety and evaluator theorems below | Extends FM-01 through FM-04 to well-typed global functions and recursive calls. Finite evaluator completeness quantifies sufficient depth and fuel. | The resolved scalar function model; no termination or fixed-CLI-bound completeness claim. |
 | Safety corollary | `APL.closed_safety` | `HasType [] e t` and a successful `run` from `eval e [] []` imply a final value of type `t` with empty continuation, or one of the two defined traps. | The full expression fragment. It does not assert trap freedom or termination. |
 
 ## Supporting checked theorems
@@ -76,8 +77,9 @@ The following theorems extend FM-01 through FM-03 and the checker guarantees to
 forward and mutually recursive functions. All operators, short circuits, traps,
 locals, lets, conditionals, argument transitions and call transitions are covered.
 No proof assumes termination. The actual bounded evaluator's finite-result
-soundness is also checked below. Reverse correspondence remains open, so the
-complete FM-05 obligation is still not discharged.
+soundness and the existence of sufficient depth and fuel for finite reductions
+are also checked below. Together these discharge FM-05 for this resolved scalar
+function model.
 
 | Theorem | Quantified statement and assumptions |
 | --- | --- |
@@ -108,8 +110,8 @@ callee values while preserving the caller's environment and continuation.
 The private trace-composition predicate imposes no condition for `resourceLimit`;
 none of the public soundness theorems accepts that result as its premise. A resource
 limit establishes neither divergence nor a finite terminal reduction. The
-existence of sufficient depth and fuel for every finite relation reduction remains
-unproved. In particular, the fixed CLI depth of 256 is not a completeness promise.
+completeness theorems below establish the existence of sufficient model budgets;
+the fixed CLI depth of 256 is not a completeness promise.
 
 | Theorem | Quantified statement and assumptions |
 | --- | --- |
@@ -118,6 +120,34 @@ unproved. In particular, the fixed CLI depth of 256 is not a completeness promis
 | `APL.Program.eval_invalid_sound` | `eval fs depth env e fuel = .error .invalid` implies `Steps fs (.eval e env k) .invalid` for every continuation. Covers invalid untyped inputs as well. |
 | `APL.Program.eval_value_typed` | Under `WellTyped fs` and `HasType (signatures fs) (env.map Val.type) e t`, a successful actual evaluation returning `v` implies `v.type = t`. |
 | `APL.Program.eval_ne_invalid` | Under those same function-table and term-typing assumptions, actual evaluation cannot return `.error .invalid`. Values, defined arithmetic traps and resource exhaustion remain possible. |
+
+## Finite program evaluator completeness
+
+These theorems concern the same actual `Program.eval`, with no typing hypothesis.
+Their premises are finite `Program.Steps` reductions from an evaluation state with
+an empty continuation. The environment may be any list of values. Their
+conclusions quantify over both depth and fuel; they do not assume or prove that
+an arbitrary recursive program terminates.
+
+The proof counts relation steps and establishes determinism of all 22 transition
+constructors. Successful evaluator results cannot increase remaining fuel, and
+their traces bound consumed fuel. Resource exhaustion yields a trace prefix at
+least as long as the smaller initial depth/fuel budget. A known terminal trace of
+length `n` cannot have a longer prefix. Choosing depth and fuel `n + 1` therefore
+excludes resource exhaustion, and deterministic terminal-result uniqueness forces
+the exact value, trap or invalid outcome. This argument does not change any
+execution rule, fuel charge, or CLI limit.
+
+| Theorem | Quantified statement and assumptions |
+| --- | --- |
+| `APL.Program.eval_value_complete` | `Steps fs (.eval e env []) (.ret v [])` implies existence of `depth`, `fuel` and `remaining` with `eval fs depth env e fuel = .ok (v, remaining)`. No typing assumption. |
+| `APL.Program.eval_trap_complete` | `Steps fs (.eval e env []) (.trap kind)` implies existence of `depth` and `fuel` with `eval fs depth env e fuel = .error (.trap kind)`. No typing assumption. |
+| `APL.Program.eval_invalid_complete` | `Steps fs (.eval e env []) .invalid` implies existence of `depth` and `fuel` with `eval fs depth env e fuel = .error .invalid`. Includes untyped invalid inputs. |
+
+Together with finite soundness, these give correspondence in both directions for
+finite program outcomes. The fixed CLI depth bound of 256 can still reject a
+terminating computation that needs a larger model depth. Increasing fuel alone
+does not establish completeness at that fixed depth.
 
 ## Axiom dependencies and trust
 
@@ -130,7 +160,7 @@ axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 41 inventoried names are included.
+Its allowable set is explicit, and all 44 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -138,14 +168,11 @@ not establish that the formal definitions match every intended APL rule.
 
 ## Explicit gaps
 
-FM-05 is partly discharged. Declarative program typing, checker soundness and
-completeness, type uniqueness, preservation, progress and finite reduction safety
-are checked for global functions and recursive calls. Actual `APL.Program.eval`
-finite value/trap/invalid outcomes have checked relation traces, and typed programs
-have checked executable value typing and exclusion of invalid outcomes. The
-converse existence of sufficient depth and fuel for finite relation reductions
-is unproved. The expression syntax intentionally has no call constructor; program
-terms use a separate type to make that boundary visible.
+FM-01 through FM-05 are discharged for the documented scalar expression/function
+model. This does not establish termination, trap freedom, completeness at fixed
+CLI resource limits, or correctness of source/module elaboration, Rust checking,
+JSON adapters or native compilation. The expression syntax intentionally has no
+call constructor; program terms use a separate type to make that boundary visible.
 
 FM-06 is differential and negative testing evidence only. The Lean expression
 checker's soundness theorem does not prove the Rust frontend, checker, serializer,
