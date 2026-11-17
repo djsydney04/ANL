@@ -1,5 +1,6 @@
 import APL.VCGCallsExamples
 import APL.LocalStateExamples
+import APL.StateVCGExamples
 import Lean
 
 open Lean Elab Command in
@@ -79,7 +80,23 @@ run_elab do
     ``APL.LocalState.embed_trap_steps,
     ``APL.LocalState.embed_invalid_steps,
     ``APL.LocalState.embed_value_run,
-    ``APL.LocalState.embed_trap_run]
+    ``APL.LocalState.embed_trap_run,
+    ``APL.StateVCG.update_rep,
+    ``APL.StateVCG.run_result,
+    ``APL.StateVCG.wp_trace,
+    ``APL.StateVCG.wp_run_sound,
+    ``APL.StateVCG.wp_run_complete,
+    ``APL.StateVCG.wp_steps_value,
+    ``APL.StateVCG.wp_steps_no_trap,
+    ``APL.StateVCG.wp_steps_no_invalid,
+    ``APL.StateVCG.invoke_preconditions,
+    ``APL.StateVCG.contract_run_sound,
+    ``APL.StateVCG.contract_run_complete,
+    ``APL.StateVCG.contract_steps_value,
+    ``APL.StateVCG.contract_steps_no_trap,
+    ``APL.StateVCG.contract_steps_no_invalid,
+    ``APL.StateVCG.contract_preconditions_defined,
+    ``APL.StateVCG.contract_nonvacuous]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

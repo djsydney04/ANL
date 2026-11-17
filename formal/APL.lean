@@ -6,3 +6,4 @@ import APL.Smoke
 import APL.VCGContracts
 import APL.VCGCallsExamples
 import APL.LocalStateExamples
+import APL.StateVCGExamples

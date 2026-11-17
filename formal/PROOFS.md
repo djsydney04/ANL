@@ -337,8 +337,71 @@ effects, ordered argument mutation, isolated callee changes, recursive functions
 immutable/shadowed/mistyped assignment rejection, malformed loop types, exact
 machine budget boundaries, short circuit, and loop-body trap propagation. V1
 resource exhaustion is not a terminal language result and proves neither
-termination nor divergence. No local-state VCG, loop-invariant rule, variant,
-abrupt control-flow semantics, or native-lowering theorem is included.
+termination nor divergence. The loop-free VCG results below add conditional
+trap freedom. No loop-invariant rule, variant, abrupt control-flow semantics,
+or native-lowering theorem is included.
+
+## Loop-free local-state verification
+
+The following 16 theorems belong to `APL.StateVCG`. They preserve the preceding
+118 statements. `wp` is a concrete syntax-directed generator with a decreasing
+expansion height. `StatePost` receives a symbolic value and a final symbolic
+environment. `StatePostHolds` requires those symbols to denote the actual result
+and final runtime environment and requires the returned formula to hold.
+Formula interpretation reuses `APL.VCG.Formula.Holds`; it is independent of the
+program execution relation.
+
+The low-level generator describes the value-only `LocalState` machine. It does
+not check assignment permission. Contract run and reduction corollaries add
+`LocalState.WellTyped fs`, a typed body under `immutable types.reverse`, and
+typed input parameters. These premises establish immutable entry parameters,
+legal assignment targets and fixed binding types through the existing static
+judgments. The generated conditions do not replace source checking.
+
+| Theorem in `APL.StateVCG` | Quantified statement and assumptions |
+| --- | --- |
+| `update_rep` | A related symbolic/runtime environment, a denoting replacement value, and successful symbolic update imply a corresponding runtime update and related updated environments. |
+| `run_result` | A finite reduction from any state to `.ret v env []` fixes every completed `LocalState.run` from that state to the same result and final environment. |
+| `wp_trace` | Successful generation, related input environments, and independently interpreted formula truth imply a finite `LocalState.Steps` prefix from `.eval e env k` to `.ret v finalEnv k` satisfying `StatePostHolds`. The outer continuation is not executed. No execution-safety or termination premise. |
+| `wp_run_sound` | Under those generator premises and an empty outer continuation, every transition budget yields `none` or a returned value/environment satisfying `StatePostHolds`. No returned trap, invalid state or unfinished configuration is allowed. |
+| `wp_run_complete` | Those premises imply some transition budget returns a value and final environment satisfying `StatePostHolds`. This finite model termination consequence applies only to successfully expanded terms. |
+| `wp_steps_value` | Every finite reduction to a value with empty outer continuation satisfies the generated value/environment postcondition. |
+| `wp_steps_no_trap`, `wp_steps_no_invalid` | Under the generator premises, no finite reduction from the term with empty outer continuation reaches a trap or invalid state. |
+| `invoke_preconditions` | Successful invocation generation, related declaration-order argument values, and formula truth imply ordered callee precondition definedness and truth on the captured actual arguments. |
+| `contract_run_sound` | A generated and `Accepted` contract, a well-typed function table/body, typed inputs, and true entry requires imply that every run budget exhausts or returns the specified type and satisfies the requested postcondition on frozen entry parameters and result. |
+| `contract_run_complete` | The same typed contract premises imply some sufficient transition budget returns the specified type and satisfies the requested postcondition. |
+| `contract_steps_value` | Under those typed contract premises, every finite value reduction has the specified result type and satisfies the requested postcondition. |
+| `contract_steps_no_trap`, `contract_steps_no_invalid` | Under those typed contract premises, no finite reduction reaches a trap or invalid state. |
+| `contract_preconditions_defined` | A generated and accepted contract establishes ordered precondition definedness for every typed input. |
+| `contract_nonvacuous` | A generated and accepted contract has a typed input on which every precondition is true. |
+
+The trace proof follows assignment RHS effects, one-cell scope removal,
+condition and operand effects, short circuit, ordered argument capture, and
+callee isolation. Argument symbols are collected in declaration order. The
+callee body uses reversed arguments as local cells. Returning from the callee
+restores the caller environment saved after arguments, discarding callee cells.
+Contract postconditions always use the original declaration-order parameter
+symbols and the result, even when mutable local copies have changed.
+
+Kernel-checked examples include a generic increment contract with a required
+upper bound, RHS mutation of the same target, outer writes across scopes,
+shadowing, initializer effects, both conditional branches, skipped state and
+traps under short circuit, the independently expected ordered-argument result
+2677, and a caller-state isolation result of 992. Negative examples cover
+discarded overflow, false or undefined preconditions, missing targets/functions,
+wrong arity, loops in unselected branches and short-circuit operands, recursive
+expansion exhaustion, and zero expansion height.
+
+Successful finite generation is not a theorem that every acyclic source graph
+has sufficient expansion height. The model generator visits the selected root
+and its syntactically expanded callees, not every unused function. Production
+whole-program loop/recursion rejection is a separate check. The production
+forward analysis, its correspondence to this CPS generator, named-query grouping,
+source-contract correspondence, SMT translation, and solver evidence remain
+unproved. These model results do not by themselves enable production mutable-code
+verification or change `termination_proved: false`. Loop-invariant reasoning,
+fresh head symbols, and partial correctness of possibly divergent loops require
+separate definitions and proofs.
 
 ## Axiom dependencies and trust
 
@@ -353,7 +416,7 @@ trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 118 inventoried names are included.
+Its allowable set is explicit, and all 134 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -362,8 +425,10 @@ not establish that the formal definitions match every intended APL rule.
 ## Explicit gaps
 
 FM-01 through FM-05 are discharged for the documented v0 scalar expression/function
-model; the local-state extension has the separate scoped results above. This does not establish termination, trap freedom, completeness at fixed
-CLI resource limits, or correctness of source/module elaboration, Rust checking,
+model; the local-state extension has the separate scoped results above. Typing
+theorems alone do not establish termination or trap freedom. VCG guarantees
+require accepted logical obligations and the documented expansion boundary.
+No result establishes completeness at fixed CLI resource limits or correctness of source/module elaboration, Rust checking,
 JSON adapters or native compilation. The expression syntax intentionally has no
 call constructor; program terms use a separate type to make that boundary visible.
 
@@ -372,8 +437,9 @@ checker's soundness theorem does not prove the Rust frontend, checker, serialize
 or either JSON adapter correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
-FM-07 is partial: the call-free and finite call-expansion generators, ordered
-callee precondition obligations, and contract soundness above are checked. Source
+FM-07 is partial: the call-free, finite call-expansion, and loop-free local-state
+generators, ordered callee precondition obligations, and contract soundness above
+are checked. Source
 call-graph validation, acyclic expansion completeness, separate syntax-inlining
 preservation, named-condition decomposition and the production/SMT/solver bridges
 remain open. Runtime verification reports therefore remain solver-trusted.

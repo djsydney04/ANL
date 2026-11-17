@@ -9,6 +9,8 @@ scalar expressions and recursive programs. Program completeness establishes the
 existence of sufficient depth and fuel for a given finite reduction. Separate
 verification-condition generators prove contract postconditions and trap freedom from interpreted logical obligations for call-free terms and
 finite symbolic expansion of function bodies with callee preconditions.
+The separate state-aware generator also covers loop-free mutable locals and
+finite body expansion over the local-state machine.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
@@ -157,8 +159,45 @@ The v1 files separate concerns as follows:
   CLI conformance tests. The JSON adapter, production Rust implementation and
   native compilation remain tested boundaries, not consequences of these proofs.
 
-Verification-condition generators continue to operate on the immutable v0 model.
-There is no local-state contract or loop-invariant proof rule in this increment.
+## Loop-free local-state contracts
+
+`APL.StateVCG` defines a concrete continuation-based generator for local-state
+terms. A continuation receives both the symbolic value and updated environment.
+Assignments use the environment returned by their RHS. Scope exit removes one
+binding and retains outer writes. Conditions and left operands pass their final
+state to the selected branch or right operand. Arguments evaluate left to right,
+and the callee returns to the caller state captured after all arguments.
+
+The generator reuses the existing mathematical symbolic terms and independently
+interpreted formulas. It checks arithmetic guards and ordered callee
+preconditions, then expands actual callee bodies. It rejects loops and fails if
+the finite expansion height is exhausted. Both conditional branches and both
+symbolic short-circuit paths must generate successfully.
+
+`wp_trace` constructs an actual `LocalState.Steps` prefix ending at a returned
+value and related final environment. Its arbitrary outer continuation is left
+unexecuted. The run and trap-freedom theorems use an empty outer continuation.
+For every transition budget, execution either exhausts its budget or returns a
+value satisfying the generated postcondition. Successful generation and true
+obligations also imply that some sufficient model transition budget exists.
+This finite termination result is limited to the successfully expanded Lean
+term. It does not establish source graph completeness or a production
+termination claim.
+
+`StateVCGContracts` freezes declaration-order entry parameter symbols for
+specification interpretation. Runtime local environments use reversed parameter
+order. Typed contract theorems require `LocalState.WellTyped`, a body typed under
+immutable parameters, typed input values, accepted logical obligations, and true
+entry preconditions. They establish the requested result type, postcondition,
+and absence of finite traps or invalid states. The raw generator describes the
+value-only machine and does not check static assignment permission.
+
+These are model proofs. Production mutable-code verification requires separate
+implementation acceptance. Source elaboration, graph validation, the production
+forward analysis and its correspondence to this CPS generator, named query
+grouping, SMT translation, and the solver remain outside the theorem boundary.
+Production reports retain `termination_proved: false`. Loop invariants and their
+fresh-state reasoning remain a separate increment.
 
 ## Model and evidence
 
@@ -206,6 +245,13 @@ There is no local-state contract or loop-invariant proof rule in this increment.
   `APL/VCGCallsExamples.lean` checks nested calls with mixed parameter types,
   argument trap order, rejected undefined or false preconditions, missing
   functions, wrong arity, and exhausted expansion bounds.
+- `APL/StateVCG.lean` defines symbolic local-state updates and a finite expansion
+  generator, proving direct trace and executable-run soundness over the existing
+  `LocalState` machine. `APL/StateVCGContracts.lean` adds frozen parameter/result
+  specifications and typed contract corollaries. `APL/StateVCGExamples.lean`
+  checks RHS effects, scope exit, branches, short circuit, argument capture,
+  isolated calls, a parameterized increment contract, arithmetic failure,
+  false/undefined preconditions, and unsupported expansion cases.
 - `APL/Program.lean`, `APL/Wire.lean`, and `Main.lean` implement program execution
   and strict interchange. The total program inference function is proved against
   declarative typing; the JSON adapter and executable compilation remain trusted

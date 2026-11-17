@@ -15,7 +15,7 @@ lake build
 printf '%s\n' 'Auditing theorem axiom dependencies'
 lake env lean -DwarningAsError=true APL/Audit.lean
 # Separate processes avoid Lean 4.36.0's freed-import cache bug (leanprover/lean4#16267).
-for module in APL.Core APL.Machine APL.Semantics APL.Smoke APL.Program APL.ProgramSemantics APL.ProgramTyping APL.ProgramSafety APL.ProgramEvalSoundness APL.ProgramEvalCompleteness APL.VCG APL.VCGContracts APL.VCGCalls APL.VCGCallsExamples APL.LocalState APL.LocalStateTyping APL.LocalStateRun APL.LocalStateSafety APL.LocalStateEmbedding APL.LocalStateExamples; do
+for module in APL.Core APL.Machine APL.Semantics APL.Smoke APL.Program APL.ProgramSemantics APL.ProgramTyping APL.ProgramSafety APL.ProgramEvalSoundness APL.ProgramEvalCompleteness APL.VCG APL.VCGContracts APL.VCGCalls APL.VCGCallsExamples APL.LocalState APL.LocalStateTyping APL.LocalStateRun APL.LocalStateSafety APL.LocalStateEmbedding APL.LocalStateExamples APL.StateVCG APL.StateVCGContracts APL.StateVCGExamples; do
     printf 'Replaying %s through the Lean kernel\n' "$module"
     lake env leanchecker --verbose "$module"
 done
