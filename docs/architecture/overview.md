@@ -23,6 +23,10 @@ The [language charter](../charter.md) defines the project scope. The
 for release. Language changes must preserve consistent semantics across the
 specification, compiler, formal model and runtime.
 
+The complete OS is also a required product outcome. The
+[OS architecture](operating-system.md) defines its planned ANL implementation,
+hardware interfaces and bootstrap boundaries. No bootable ANL OS exists yet.
+
 The design prioritizes correctness, explicit semantics, performance control,
 composable abstractions, optional deeper proofs and usable developer workflows.
 Typing is mandatory. A proof obligation is never considered discharged because a

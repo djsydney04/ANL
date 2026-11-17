@@ -7,6 +7,12 @@ structured `while` statements are supported. Programs may use the
 and the remaining full-language requirements are pending. The backend and its
 runtime helpers are tested, not formally verified.
 
+This is hosted compilation. Generated C uses libc for result printing and failure
+handling and runs under the host operating system. Freestanding entry, hardware
+intrinsics and an ANL OS are not implemented. The required
+[ANL-authored OS](architecture/operating-system.md) needs separate compiler and
+language extensions; a host executable is not a bootable OS image.
+
 Install a host C11 toolchain providing `cc`, then build the ANL CLI with the pinned
 Rust toolchain. `CC` can select another compiler executable. Its value is one
 executable name or path; embedded options and shell commands are not interpreted.

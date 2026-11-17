@@ -11,6 +11,45 @@ Evidence categories are distinct. **Designed** means a specification exists.
 **Machine-checked** names the theorem, formal model, tool version and assumptions.
 **Released** requires qualified installation artifacts. None implies another.
 
+## OS authorship and expressibility gate
+
+**Open; mandatory for project completion and final release.** In addition to the
+52 technical requirement IDs below, the complete operating system must be
+authored in ANL: boot code, hardware initialization, interrupt handlers, memory
+management, scheduler, drivers, filesystems, networking, system services, agent
+infrastructure and GUI. This gate spans language, compiler, runtime and product
+requirements; hosted OS access under L14 or S02 does not satisfy it.
+
+Missing expressibility is a language/compiler gap to close. ANL must provide
+features or intrinsics for register access, interrupt entry/return, atomics,
+barriers, port I/O and page-table manipulation, with explicit semantics and
+documented safety boundaries. The compiler may initially be implemented in Rust
+and may emit C. Generated output must not conceal handwritten C/Rust OS
+functionality. Foreign interoperability is not an exception to OS authorship.
+
+Firmware and an external bootloader may support initial bring-up through explicit
+boundaries. Boot responsibilities within the intended OS scope must be developed
+in ANL. Any temporary handwritten assembly or other non-ANL OS code must be
+minimal, identify a concrete missing language/compiler capability, and carry an
+ANL replacement plan. Each milestone must report every remaining instance until
+eliminated. Convenience is not a reason to retain non-ANL OS implementation.
+
+Acceptance requires:
+
+- An integrated bootable OS exercising every listed subsystem from ANL source,
+  with target-specific conformance, failure, isolation and security evidence.
+- A source-to-artifact inventory of OS code, generated code, linked dependencies,
+  firmware and bootloader boundaries, and the trust assumptions for each.
+- Specified hardware operations and checked compiler lowering, supported by
+  executable target evidence; formal claims remain limited to named models.
+- Elimination of temporary non-ANL OS implementation before completion or final
+  release, with the final audit recording how each missing capability was closed.
+
+The [OS architecture](architecture/operating-system.md) defines planned interfaces
+and [delivery sequence](roadmap.md#anl-os-delivery-track-planned). The current
+hosted compiler supplies no freestanding entry, hardware intrinsics or OS
+implementation. No OS target architecture or ISA has been selected.
+
 ## Current stage coverage
 
 The following evidence covers immutable revision `m1-2026-11-16` and the separate
@@ -128,3 +167,7 @@ runtime, standard library, agent libraries, tooling, installation, documentation
 and whitepaper. It records unsupported features, known defects, security risks,
 performance limitations and supported platforms. Release-blocking gaps must be
 resolved before completion is claimed.
+
+The audit also covers the complete ANL-authored operating system and the
+[OS authorship and expressibility gate](#os-authorship-and-expressibility-gate).
+All 52 technical requirements and this cross-cutting gate remain open.

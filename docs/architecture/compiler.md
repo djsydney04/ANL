@@ -154,6 +154,25 @@ Foreign calls use an explicit C ABI declaration, target layout, and unsafe bound
 
 The linker driver receives structured arguments through a process API. It checks exit status, preserves diagnostics, and publishes an output artifact only after successful compilation and linking. Missing tools produce actionable diagnostics. Output paths cannot overwrite source inputs. M2 development builds may require a system C toolchain; the final end-user distribution must package or install the supported backend without requiring internal proof-development tools.
 
+## Freestanding OS compilation (planned)
+
+The current C11 output depends on the host C library for entry-wrapper output and
+failure handling. It provides no freestanding entry or hardware intrinsics.
+The [OS architecture](operating-system.md#hardware-operations-planned) requires
+specified low-level types, layout, memory effects and target operations before
+ANL OS code can use them. MIR validation and lowering must preserve privileged
+effects, register clobbers, interrupt conventions and memory ordering; unsupported
+target operations must be rejected explicitly.
+
+A freestanding target must define its entry ABI, startup state, image sections,
+linking and trap behavior without depending on hosted libc or an existing host
+OS. Backend-generated instruction sequences may implement specified ANL
+intrinsics, including interrupt entry/return. They must not embed handwritten OS
+subsystems behind generated C or external helper calls. The
+[authorship gate](../requirements.md#os-authorship-and-expressibility-gate)
+applies to the full linked OS image, independently of the compiler's own
+implementation language.
+
 ## Verification and optimization boundaries
 
 `anl verify` consumes the complete checked source graph and its typed contracts.

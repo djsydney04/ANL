@@ -4,6 +4,12 @@ ANL is a programming language under development for native systems software and
 capability-controlled agent applications, with strong static types and integrated
 formal verification.
 
+A complete operating system authored in ANL is a required product outcome,
+including boot code, the kernel, drivers, services, agent infrastructure and GUI.
+The [OS architecture](docs/architecture/operating-system.md) describes this planned
+work and its language requirements. There is no bootable ANL OS yet; the current
+compiler produces hosted executables.
+
 The current implementation checks, interprets, and compiles `i64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
 structured while loops, conditionals, recursive functions, and file modules.
@@ -63,6 +69,7 @@ equality, including invariant clauses. See the [tuple contract examples](docs/ve
 - [Formal model and proof checks](formal/README.md)
 - [Language charter](docs/charter.md)
 - [Architecture](docs/architecture/overview.md)
+- [ANL-authored operating system](docs/architecture/operating-system.md)
 - [Language requirements](docs/requirements.md)
 - [Roadmap](docs/roadmap.md)
 - [Contributing](CONTRIBUTING.md)

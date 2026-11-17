@@ -41,6 +41,10 @@ The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
 
+The [OS authorship and expressibility gate](requirements.md#os-authorship-and-expressibility-gate)
+also remains open. No bootable ANL OS, freestanding entry or hardware intrinsics
+exist yet, and no OS target architecture or ISA has been selected.
+
 ## M0: architecture
 
 Define compatible syntax, type rules, memory semantics, compiler representations
@@ -205,6 +209,31 @@ library integration, concurrent application and network service. Evaluate the
 listed optimizations against reproducible workloads. Runtime and unsafe code need
 independent security review. No data-race claim extends to deadlock freedom.
 
+## ANL OS delivery track (planned)
+
+This required track extends M2–M5 and feeds M7. It develops the language wherever
+OS work exposes missing expressibility. The
+[OS architecture](architecture/operating-system.md) records hardware contracts
+without choosing an ISA or kernel structure prematurely.
+
+1. Define the target and firmware/bootloader handoff, freestanding entry and image
+   format, layout, low-level types, unsafe boundaries and hardware intrinsics.
+   Implement and validate their compiler lowering before dependent OS code.
+2. Build ANL boot code and hardware initialization, interrupt entry/return and
+   handlers, physical/virtual memory management, page tables and scheduling.
+   Demonstrate a bootable image with target-specific interrupt, memory and
+   context-switch evidence.
+3. Implement ANL device drivers, filesystems, networking and system services;
+   exercise persistence, I/O failures, concurrency and isolation end to end.
+4. Run ANL agent infrastructure and GUI on those services, exercising durability,
+   capabilities, recovery, input and display on the integrated OS.
+5. Qualify the full source-to-image build and every subsystem for M7. Apply the
+   authorship gate's milestone reporting and eliminate all temporary non-ANL OS
+   implementation before final release.
+
+A hosted allocator, host thread scheduler or socket adapter can support language
+bootstrap work; it is not delivery of the corresponding ANL OS subsystem.
+
 ## M5: agent systems
 
 Build typed tools, capabilities, structured workflows, durable state, budgets,
@@ -226,6 +255,10 @@ formatting idempotence, real editor interactions, debugging and clean builds.
 ## M7: qualified release
 
 Audit all [language requirements](requirements.md) against the actual revision.
+Audit the integrated OS against the
+[OS authorship and expressibility gate](requirements.md#os-authorship-and-expressibility-gate),
+including ANL source coverage, hardware semantics, boot dependencies, generated
+artifacts and elimination of temporary non-ANL OS implementation.
 Close release blockers. Build versioned installation artifacts with checksums and appropriate
 integrity mechanisms. Validate install/upgrade/uninstall in clean supported
 environments. Ordinary users must not require internal development dependencies.

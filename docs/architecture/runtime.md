@@ -4,6 +4,18 @@ Status: broader runtime facilities below remain design proposals unless linked t
 implementation evidence. Current execution supports scalars, flat tuples and local
 state as defined by the [type-system specification](type-system.md).
 
+## Hosted runtime and ANL OS boundary
+
+The implemented native runtime is hosted: generated C helpers use libc to print
+results and report failures. The allocator, threads and OS adapters described
+below are planned language facilities. Hosted adapters can support language
+bootstrap work, but do not implement an ANL OS memory manager, scheduler or
+driver. For the OS target, these facilities and their underlying OS services
+must be authored in ANL under the
+[OS authorship gate](../requirements.md#os-authorship-and-expressibility-gate).
+The [OS architecture](operating-system.md) defines the planned freestanding
+boundary, including agent infrastructure and GUI. No bootable ANL OS exists yet.
+
 ## Runtime components follow language capabilities
 
 An arithmetic-only ANL program requires startup, native scalar operations, and a defined failure path. It does not require a garbage collector, allocator, event loop, thread pool, network stack, or model client. Programs link runtime modules when their capabilities require them.

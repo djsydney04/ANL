@@ -8,6 +8,18 @@ abstractions and integrated formal verification.
 ANL is currently under development. The architecture describes intended behavior;
 it does not establish implemented functionality, proven safety, or performance.
 
+## ANL-authored operating system
+
+The complete operating system must be authored in ANL: boot code, hardware
+initialization, interrupt handlers, memory management, scheduling, drivers,
+filesystems, networking, system services, agent infrastructure and GUI. When a
+subsystem cannot be expressed, extend the language and compiler. Implementing that
+subsystem in C or Rust does not satisfy the goal. This is a central completeness
+and release requirement, governed by the
+[OS authorship and expressibility gate](requirements.md#os-authorship-and-expressibility-gate).
+The [OS architecture](architecture/operating-system.md) defines the planned
+hardware interface and bootstrap boundaries; no bootable ANL OS exists yet.
+
 ## Language goals
 
 - Reject invalid operations at compile time through precise type rules and sound
@@ -73,6 +85,9 @@ The [requirements](requirements.md) define the full capability inventory and
 validation criteria. The [roadmap](roadmap.md) divides delivery into executable
 increments. An early compiler or formally defined core is a milestone toward the
 complete language.
+
+Completion also requires the integrated ANL-authored OS and evidence for its
+authorship and expressibility gate. Language milestones do not waive this gate.
 
 A release requires working integrated programs, passing conformance and regression
 tests, checked proof artifacts, security evaluation, reproducible performance
