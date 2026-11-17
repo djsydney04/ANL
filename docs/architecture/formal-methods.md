@@ -2,21 +2,24 @@
 
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
-[proof inventory](../../formal/PROOFS.md) records 166 checked statements:
-81 immutable/verification statements, 37 local-state statements, and 16 loop-free
-state-verification statements, plus 32 frame, fresh-head, and annotation-erasure
-foundations. These foundations do not establish general loop verification. FM-01 through
-FM-05 apply to the documented v0 model; local state has its own typing, machine
+[proof inventory](../../formal/PROOFS.md) records 292 audited theorem names,
+including the concrete invariant-loop generator and its connection to the actual
+local-state machine. Coverage follows the stated theorem premises and conclusions,
+not the number of supporting lemmas. FM-01 through FM-05 apply to the documented
+v0 model; local state has its own typing, machine
 safety, finite correspondence, and forward v0 embedding results.
 
 The immutable verification generators prove call-free and finite body-expansion
 soundness, including ordered arguments and callee preconditions, when generation
 succeeds and interpreted obligations hold. The separate state-aware generator
 proves loop-free mutation, final environments, and typed entry contracts over the
-local-state machine. FM-07 remains partial: source call-graph
-checking, expansion completeness, separate syntax-inlining equivalence, named
-condition decomposition, and Rust/SMT/solver bridges remain open. Production
-verification supports loop-free mutable scalar code and stays `smt-trusted`.
+local-state machine. A separate invariant generator proves safety at every
+transition budget and partial correctness of normal returns, including possibly
+divergent loops and effectful conditions. Its mathematical check partition is
+exact. FM-07 remains partial: source call-graph checking, expansion completeness,
+separate syntax-inlining equivalence, production named-condition correspondence,
+and Rust/SMT/solver bridges remain open. Production verification supports loop-free
+mutable scalar code, rejects every loop, and stays `smt-trusted`.
 The model's finite expansion result does not establish production termination,
 fixed-production-budget completeness, or Rust/JSON/native correctness.
 
@@ -169,8 +172,9 @@ postconditions are never assumed as summaries. Loop-free mutable locals and
 assignment retain state through operands, scopes, branches, and call arguments.
 Any loop in any loaded function is rejected before solver discovery, including
 unused and skipped code. This produces `unsupported` with no invented obligations.
-Ownership/effect analysis, loop-invariant rules, and solver-certificate checking
-remain planned.
+Ownership/effect analysis, production loop-invariant verification, and
+solver-certificate checking remain planned. Source invariants are name/type-checked
+and erased; ordinary compilation proves neither their truth nor their definedness.
 
 Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
 
@@ -185,7 +189,59 @@ justify division. Postconditions are checked independently. The
 `assert`, `assume`, and foreign calls are not implemented; future assertions must
 create obligations rather than silently become assumptions.
 
-For mutable loops, later VCG stages require invariant initialization, preservation, and an exit implication. Total correctness additionally requires a decreasing well-founded variant. Heap contracts need frame and aliasing rules compatible with ownership. Ghost state is erased only after checking that it cannot affect runtime values, control flow, effects, or resource authority.
+## Invariant-loop model
+
+The concrete Lean generator uses separate symbolic outcomes for each path and
+retains guarded checks independently of normal outcomes. Initialization and
+preservation require each invariant clause to be defined and true under the
+original incoming path; no clause assumes itself or a sibling conclusion.
+At an arbitrary loop head, it assumes the established invariant and gives mutable
+nonunit cells fresh symbols. The typed frame theorem preserves immutable cells.
+Every typed concrete head with those immutable values has a representing model
+extension that preserves all earlier symbols. The condition's final environment
+reaches the body or the false-exit outcome, so final false-guard effects survive;
+the exit need not satisfy the head invariant.
+
+Successful generation, well-typed functions, bounded input symbols and path,
+represented typed inputs on a true input path, and checks valid in every model
+extension preserving earlier symbols imply safety of the actual `LocalState.run` at every transition
+budget. Execution may exhaust its budget or return a generated, represented
+normal outcome with its final environment. Corresponding `Steps` theorems exclude
+finite trap and invalid traces and cover every finite normal return. The complete
+generator induction discharges the child specifications. Checks before a divergent
+suffix remain mandatory even when no normal outcome follows. Finite syntax and
+callee-expansion height does not unroll iterations or establish termination.
+
+The typed contract wrapper uses original declaration-order parameter values and
+the returned result. Acceptance requires ordered precondition definedness for
+every typed input, existence of a typed input satisfying all preconditions, and
+valid body and postcondition checks under every fresh extension for each satisfying
+input. For verification-ready annotated functions and bodies, accepted generated
+contracts establish the declared result type and postcondition on every finite
+normal return from a typed input satisfying the preconditions. A safe infinite loop can satisfy a
+false postcondition; no returning budget or global invariant-satisfiability
+requirement is asserted.
+
+The mathematical query partition tags each original check by position and groups
+checks by a supplied classifier. It preserves order and duplicates when tags are
+removed, retains each guard, and proves equivalence between all grouped queries
+and all original checks, including validity under fresh extensions. Production
+names, source occurrences, clause metadata and query generation still need their
+own correspondence evidence.
+
+These proofs describe the formal path-split generator. The earlier loop-free
+generator uses continuations, and the Rust verifier uses distinct merged flows.
+Source lowering and annotation attachment, those production representations,
+global allocation-event history, fixed resource limits, SMT encoding, solver
+answers and countermodel decoding remain outside the proof boundary. Head domains
+are guarded by their paths; an inactive head need not be typed in every
+mathematical model. An abstract head countermodel is not a replayed source trace.
+See the [precise theorem inventory](../../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness).
+
+Total correctness additionally requires a decreasing well-founded variant. Heap
+contracts need frame and aliasing rules compatible with ownership. Ghost state
+is erased only after checking that it cannot affect runtime values, control flow,
+effects, or resource authority.
 
 ## Result contract
 
@@ -239,10 +295,11 @@ and enters the actual callee body with reversed argument symbols. Successful
 finite-height generation is a premise; it is distinct from evaluation fuel/depth
 and does not prove every acyclic source graph has a sufficient expansion bound.
 Theorems cover nonvacuous entry contracts, returned postconditions, and exclusion
-of traps/invalid outcomes, while permitting resource limits. They do not prove
-source call-graph validation, separate syntax-inlining equivalence, named-condition
-decomposition, source-contract erasure, Rust generation, SMT translation, or solver
-answers. The state-aware generator additionally proves loop-free mutation and
-final-environment postconditions over the local-state machine; correspondence
-with production forward analysis is unproved. No loop-invariant verifier theorem
-is included.
+of traps/invalid outcomes, while permitting resource limits. The invariant-loop
+model additionally proves safety and normal coverage at every actual machine
+budget and exact mathematical check partition. They do not prove source
+call-graph validation, separate syntax-inlining equivalence, production
+named-condition correspondence, source-contract erasure, Rust generation, SMT
+translation, or solver answers. Correspondence between either state generator
+and production forward analysis remains unproved. The invariant-loop theorem
+does not enable production loop verification or prove native code correct.

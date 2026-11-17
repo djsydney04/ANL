@@ -10,3 +10,10 @@ import APL.StateVCGExamples
 import APL.LocalStateFrame
 import APL.LoopVCGSupport
 import APL.LoopAnnotations
+import APL.LocalStateContinuation
+import APL.LoopVCG
+import APL.LoopVCGBounds
+import APL.LoopVCGSoundness
+import APL.LoopVCGContracts
+import APL.LoopVCGQueries
+import APL.LoopVCGExamples

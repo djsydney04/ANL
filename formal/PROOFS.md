@@ -338,8 +338,9 @@ immutable/shadowed/mistyped assignment rejection, malformed loop types, exact
 machine budget boundaries, short circuit, and loop-body trap propagation. V1
 resource exhaustion is not a terminal language result and proves neither
 termination nor divergence. The loop-free VCG results below add conditional
-trap freedom. No loop-invariant rule, variant, abrupt control-flow semantics,
-or native-lowering theorem is included.
+trap freedom. The later invariant generator adds conditional finite-prefix trap
+freedom for loops. No variant, abrupt control-flow semantics or native-lowering
+theorem is included.
 
 ## Loop-free local-state verification
 
@@ -400,16 +401,15 @@ forward analysis, its correspondence to this CPS generator, named-query grouping
 source-contract correspondence, SMT translation, and solver evidence remain
 unproved. Production loop-free mutable-code verification reports `smt-trusted`
 results separately from these model theorems and retains
-`termination_proved: false`. Loop-invariant reasoning
-and partial correctness of possibly divergent loops require a separate generator
-and soundness proof. The next section records the supporting foundation only.
+`termination_proved: false`. The separate invariant generator below proves
+partial correctness of possibly divergent loops in the model. It does not change
+production loop-verification support.
 
 ## Invariant-loop foundations
 
 These 32 additional theorems preserve all preceding 134 statements. They provide
-frame, fresh-symbol, and annotation infrastructure. There is no concrete loop VCG
-or theorem deriving finite-prefix trap freedom from invariant obligations yet.
-The production verifier continues to reject loops. Source invariant parsing,
+frame, fresh-symbol, and annotation infrastructure used by the separate concrete
+loop generator below. The production verifier continues to reject loops. Source invariant parsing,
 resolution, checking, and erased metadata are implemented separately; these
 model results do not prove those frontend or adapter components correct.
 
@@ -452,8 +452,9 @@ allocates one distinct identity for every mutable numeric or Boolean cell.
 
 The arbitrary-head theorem quantifies every typed actual environment preserving
 immutable cells. Different dynamic iterations may use different model extensions;
-no chosen abstract head is asserted reachable. Global allocation across a concrete
-generator's nested loops, branches, and call occurrences remains a separate proof.
+no chosen abstract head is asserted reachable. The complete generator below
+proves artifact support and separation from subsequent heads; it does not record
+a global allocation-event manifest across nested loops, branches and calls.
 
 `LoopAnnotations.Assertion` has an independently defined evaluator over current
 locals, with index zero denoting the newest binding. It has no entry-parameter or
@@ -480,21 +481,187 @@ unit allocation, and rejected shape mismatch. Annotation erasure is model-only;
 source name resolution, attachment, lowering, emitted code, and runtime fuel remain
 separate implementation boundaries.
 
+## Invariant-loop generation and partial correctness
+
+The seven modules `LocalStateContinuation`, `LoopVCG`, `LoopVCGBounds`,
+`LoopVCGSoundness`, `LoopVCGContracts`, `LoopVCGQueries`, and `LoopVCGExamples`
+add 126 audited statements while preserving the preceding 166 statements.
+They prove conditional safety of the concrete Lean invariant generator, including
+possibly divergent loops. They do not enable production loop verification.
+
+`analyze` takes a verification annotation tree, static binding context, symbolic
+locals, incoming path, fresh counter, and expansion height. It returns normal
+outcomes with values, environments and paths, a separate list of guarded checks,
+and the next counter. The height bounds syntax and callee-body expansion; it is
+not a runtime loop-unrolling bound. Generation may fail even for safe programs.
+Both branches and expanded callees must generate; no source call-graph completeness
+or fixed production-resource completeness theorem is claimed.
+
+Initialization and preservation checks each require independent invariant
+definedness and truth under their original incoming path. The established
+invariant is assumed only at an arbitrary fresh loop head. Every typed actual
+head preserving immutable cells has a representing model extension. The condition
+may mutate locals; its returned environment reaches the body or the false-exit
+outcome. The false exit need not satisfy the head invariant. Nested loops,
+short-circuit operands, and source-order call arguments use these same rules.
+Captured argument values survive later argument effects, and callee evaluation
+restores the caller environment saved after the final argument. Checks preceding
+an infinite loop remain present even if no normal outcome follows it.
+
+### Actual-machine continuation rules
+
+`EvalSpec` is an internal compositional statement about the existing
+`LocalState.run`, quantified over every transition budget and outer continuation.
+Its continuation premise is discharged by composition and, at the top level, an
+empty continuation. It is not an acceptance premise asserting program safety.
+The complete generator induction below establishes every child specification.
+
+| Theorem in `APL.LocalState.LoopVerification` | Quantified statement and assumptions |
+| --- | --- |
+| `spec_mono` | A pointwise weaker result relation preserves a subexpression specification. |
+| `literal_rule`, `local_rule` | Literals and successful local lookup satisfy their exact value/environment specifications. |
+| `assignment_rule`, `binding_rule` | RHS/initializer and body specifications compose through the actual update and scope frames; scope exit retains outer writes. |
+| `conditional_rule`, `unary_rule`, `binary_rule` | Child specifications compose through actual conditional/operator frames, including checked operators and short circuit. |
+| `call_rule` | Source-order argument specifications and a specification of the actual selected callee body compose through actual call/return frames and saved caller state. |
+| `invariant_loop_rule` | An established entry invariant, a condition specification, a true-guard body specification reestablishing the invariant, and a false-guard result relation imply safety at every actual loop budget. The proof uses induction on transition budget and permits divergence. |
+| `closed_run`, `closed_to_spec` | A subexpression specification yields closed-run safety, and safety at every closed-run budget yields the continuation specification via actual transition lifting. |
+| `spec_frame` | Well-typed functions, term and entry environment strengthen normal results with immutable-cell agreement, unchanged environment typing and declared result type. |
+| `no_finite_trap`, `no_finite_invalid` | A subexpression specification excludes any finite closed trace to trap or invalid. |
+
+### Generator and support
+
+The remaining theorem tables use namespace `APL.LoopVCG`.
+
+| Generator/assertion theorem | Quantified statement and assumptions |
+| --- | --- |
+| `sequence_counter`, `bind_counter`, `arguments_counter`, `analyze_counter` | Successful concrete composition, argument generation and term generation never decrease the fresh counter. |
+| `required_iff` | Conjoining symbolic definedness and truth is equivalent to the symbolic term evaluating to Boolean true. |
+| `assertions_truth` | Successful assertion generation has truth formula equivalent to independently interpreted invariant truth, under related environments. |
+| `assertions_group_exact` | Generated assertion checks hold exactly when the original incoming path implies the generated invariant truth conjunction. |
+| `assertions_guards` | Every generated assertion check retains the supplied incoming path; no clause assumes itself or a sibling conclusion. |
+| `assertions_established`, `invariant_defined` | Valid generated checks on a true path establish independent invariant truth, which entails defined evaluation for each clause. |
+
+| Support theorem | Quantified statement and assumptions |
+| --- | --- |
+| `lookup_bounded`, `assertion_bounded` | Lookup and successful current-local assertion instantiation preserve symbol support. |
+| `formula_bound_mono`, `type_guard_bounded`, `domain_bounded`, `fresh_head_bounded` | Formula bounds are monotone, and type guards, head domains and successful fresh heads use only their established symbol bounds. |
+| `term_mono`, `symbols_mono`, `outcome_mono`, `checks_mono` | Increasing the support bound preserves term, environment, outcome and guarded-check support. |
+| `checks_append`, `combine_supported`, `single_supported`, `add_check_supported` | Concatenation and primitive analysis assembly preserve support of all recorded artifacts. |
+| `sequence_supported`, `bind_supported` | Successful concrete sequential composition preserves support, given bounded child artifacts at their own allocation counters. |
+| `symbols_mem`, `symbols_of_mem`, `symbols_reverse`, `symbols_tail`, `update_bounded` | Symbol-list support is equivalent to member support and survives reversal, scope removal and successful bounded replacement. |
+| `spec_bounded`, `requires_bounded`, `assertions_bounded` | Successfully instantiated specifications, ordered requires formulas and independently guarded invariant clauses preserve the input bound. |
+| `unary_guard_bounded`, `division_guard_bounded`, `binary_guard_bounded`, `short_guard_bounded` | Primitive arithmetic, division and short-circuit checks use only operand symbols. |
+| `map_outcomes_supported`, `mapM_property`, `scope_supported` | Successful outcome mapping and scope removal preserve required member properties and support. |
+| `arguments_supported` | Successful source-order argument analysis preserves support for every captured argument, final environment, path and retained check. |
+| `analyze_supported`, `analyze_bounded` | Successful complete generation from bounded locals/path bounds every output value, environment, path and guarded check by the returned counter, for all constructors. |
+| `group_bounded` | Grouping supported checks preserves formula support. |
+| `subsequent_head_separation` | Every recorded artifact of a supported analysis is bounded below each identity allocated by a subsequent successful fresh head. This is not a global allocation-event manifest theorem. |
+
+### Complete operational soundness
+
+`ValidFrom n M checks` quantifies **every** model extension agreeing with `M`
+below `n`; the guarded checks must hold in all of them. It does not select one
+convenient fresh head or restrict extensions to reachable states. Head domains
+remain inside applicable paths. `Covered n M analysis value final` requires an
+actual generated outcome and such an extension representing its value and final
+environment with its path true. Input symbol/path bounds are necessary for
+preserving prior values when fresh heads vary.
+
+| Soundness theorem | Quantified statement and assumptions |
+| --- | --- |
+| `agree_refl`, `agree_trans`, `agree_restrict` | Model agreement is reflexive, composes, and restricts to smaller bounds. |
+| `valid_member`, `valid_subset`, `valid_extend` | Universal check validity applies to any retained member, passes to subsets, and transports to a later agreeing model/counter. |
+| `covered_subset`, `covered_extend` | Outcome coverage transports along outcome inclusion and model agreement. |
+| `unary_guard_value`, `binary_guard_value` | Independently valid primitive guards and denoting operands yield the actual checked operator result and its symbolic denotation. |
+| `sequence_locate`, `bind_locate`, `bind_input_checks`, `bind_context` | Concrete composition locates the analysis generated for a selected normal outcome, retains all input checks, and transports its bounded context, validity and coverage. |
+| `single_covered`, `literal_sound`, `local_sound` | Singleton outcomes, literals and local lookup establish exact normal coverage. |
+| `unary_analysis_sound`, `assignment_analysis_sound` | Valid generated operator/update checks and child specifications establish the actual machine specification. Assignment uses the RHS's final environment. |
+| `mapM_member`, `scope_covered`, `binding_analysis_sound` | Successful scope mapping relates every actual child outcome and removes only the new binding; typed child framing supplies body input types. |
+| `boolean_denotes`, `true_denotes`, `false_denotes` | Boolean checks and path truth recover exact represented condition values. |
+| `conditional_counter`, `conditional_analysis_sound` | Both generated branches have ordered counters; the branch selected by the actual condition runs in its returned environment under valid guarded checks. |
+| `binary_finish_counter`, `binary_counter`, `binary_analysis_sound` | Binary path composition preserves counter order and soundness. A skipped RHS retains the left operand's value/environment; a taken RHS preserves the captured left value across model extensions. |
+| `preserve_counter`, `action_counter`, `action_false`, `false_guard` | Loop action assembly has ordered counters and an exact unit-valued false outcome using the condition's final environment and negated guard. |
+| `loop_analysis_sound` | Successful concrete loop generation, supported inputs and condition/body soundness establish the actual invariant rule. Every typed immutable-preserving head is covered by fresh extension; initialization/preservation follow from original guarded checks. No normal return is assumed. |
+| `args_spec_mono`, `arguments_analysis_sound` | Source-order argument generation captures values immediately, threads caller state, preserves prior captures under extension, and establishes the actual argument specification. |
+| `call_analysis_sound`, `callee_requires_defined_and_true` | Expanded callee bodies use immutable reversed argument locals and restore the caller state saved after arguments; generated precondition obligations establish independent ordered requires definedness and truth. Callee postconditions are not assumed. |
+| `analyze_sound` | Well-typed erased functions, successful concrete generation and bounded input symbols/path imply `SoundAt`: related typed actual locals, true input path and `ValidFrom` establish the actual continuation specification with normal coverage. Complete height induction discharges every child soundness premise. |
+| `analyze_run_sound` | Under the same represented-input and universally valid-check premises, every actual closed-run budget either exhausts or returns a covered normal result. |
+| `analyze_steps_no_trap`, `analyze_steps_no_invalid` | Under those premises, no finite closed transition trace reaches a trap or invalid state. |
+| `analyze_steps_value` | Every finite closed normal-return trace has a generated covering outcome, including its final environment. |
+
+All top-level run and finite-trace observations start with an empty outer
+continuation; normal observations end with one. No theorem asserts a returning
+budget exists. A safe infinite loop can therefore satisfy any postcondition.
+
+### Frozen-entry contracts and exact queries
+
+`generateContract` reserves canonical declaration-order parameter symbols below
+the first fresh counter, reverses them for runtime locals, generates the body,
+and adds one independently defined-and-true postcondition check per normal
+outcome under its original path. The specification uses original parameters and
+the captured result, not final local values. `Accepted` requires ordered requires
+definedness for every typed input, existence of a typed requires-satisfying input,
+and `ValidFrom` for body and post checks on every such satisfying input. It adds
+no global satisfiability requirement for loop invariants.
+
+| Contract theorem | Quantified statement and assumptions |
+| --- | --- |
+| `parameter_symbols_bounded`, `post_check_guard` | Canonical entry symbols are below the reserved bound, and every post check keeps exactly its outcome path. |
+| `post_check_sound`, `covered_post` | Valid post requirements and represented parameters/result establish independently interpreted `Spec.eval` truth; coverage transports frozen parameter denotation across fresh extensions. |
+| `contract_spec_sound` | Successful generation, acceptance, verification-ready annotated `WellTyped`/`HasType`, typed actual parameters and true requires establish actual-machine specification with declared result type and independent postcondition. |
+| `contract_run_sound` | Under those premises, every actual closed-run budget exhausts or returns a value of the declared type satisfying the postcondition. |
+| `contract_steps_value`, `contract_steps_no_trap`, `contract_steps_no_invalid` | The corresponding finite closed traces establish the type/postcondition or exclude trap/invalid. |
+| `contract_preconditions_defined`, `contract_nonvacuous` | Acceptance implies independently interpreted ordered requires definedness on every typed input and an actual typed satisfying input. |
+
+`tagFrom` assigns one key to each check by position. `queryKeys` computes distinct
+keys, and `queryChecks` retains original guarded checks for each key. `queries`
+groups exactly those checks. The classifier may merge checks into one query or
+separate them; it does not change any guard or required formula.
+
+| Query theorem | Quantified statement and assumptions |
+| --- | --- |
+| `tag_erases`, `tag_length` | Removing tags recovers the original check list exactly, with the same length. |
+| `key_mem`, `keys_unique`, `check_mem` | The emitted keys are unique and exactly those with tagged checks; selecting a key retrieves exactly its original checks. |
+| `partition_exact`, `query_list_exact`, `tagged_partition_exact` | All emitted query formulas hold exactly when the complete original guarded-check conjunction holds, independently of normal outcome existence. |
+| `validity_partition_exact` | All grouped queries valid under every earlier-symbol-preserving extension are equivalent to `ValidFrom` for the original checks. |
+| `analyze_queries_run_sound` | This exact grouped validity yields the same actual closed-run safety and normal coverage as the complete generator theorem. |
+
+`LoopVCGExamples` includes support rejection, absent annotation rejection,
+independent false/undefined invariant clauses, ordered requires definedness,
+source-order argument effects and callee isolation, final false-guard mutation,
+a safe infinite loop with an accepted false postcondition and no finite return,
+rejection of a trap before divergence, and retention of that trap through
+arbitrary query grouping. An accepted contract with mutable shadowing and an
+effectful loop guard preserves declaration-order entry parameters, while the
+otherwise identical reversed-parameter postcondition is rejected. Each example
+is kernel checked.
+
+The model uses path-split outcomes; production uses a distinct merged-flow
+representation. Source lowering, annotation attachment, classifier-to-source
+occurrence/clause/query-name correspondence, global allocation-event manifests,
+production limits, SMT encoding and solver/model correspondence remain open.
+In particular, the formal validity premise includes mathematical models with an
+out-of-range head value behind an inactive guard. A production decoder must
+account for applicable domains or justify a different encoding; it cannot
+silently strengthen this theorem's premise. An abstract head countermodel is not
+a replayed concrete source execution. Production loop verification remains
+unsupported and no production termination claim follows.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
 theorems use exactly `propext` and `Quot.sound`; the other expression theorems
 use exactly `propext`. Every inventoried program theorem uses exactly `propext`
 and `Quot.sound`, except `Program.resume_typed`, which uses only `propext`.
-The VCG audit reports each theorem's transitive dependencies. Existing generator
-proofs use only `propext` and `Quot.sound`; the new `fresh_distinct` and
-`fresh_disjoint` lemmas also use the permitted `Classical.choice`. No project
+The VCG audit reports each theorem's transitive dependencies. Earlier generator
+proofs use only `propext` and `Quot.sound`; fresh-identity uniqueness and the
+invariant generator soundness proofs also use the permitted `Classical.choice`. No project
 axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples use
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 166 inventoried names are included. The
-check script replays 26 semantic modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 292 inventoried names are included. The
+check script replays 33 semantic modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -515,12 +682,13 @@ checker's soundness theorem does not prove the Rust frontend, checker, serialize
 or either JSON adapter correct. Source elaboration, including discarded-let
 index shifts, is tested through the actual compiler export path.
 
-FM-07 is partial: the call-free, finite call-expansion, and loop-free local-state
-generators, ordered callee precondition obligations, and contract soundness above
-are checked. Source
-call-graph validation, acyclic expansion completeness, separate syntax-inlining
-preservation, named-condition decomposition and the production/SMT/solver bridges
-remain open. Runtime verification reports therefore remain solver-trusted.
+FM-07 is partial: the call-free, finite call-expansion, loop-free local-state and
+invariant-loop model generators, ordered callee precondition obligations, contract
+soundness and the invariant generator's exact mathematical query partition are
+checked. Source call-graph validation, acyclic expansion completeness, separate
+syntax-inlining preservation, production named-condition correspondence and the
+production/SMT/solver bridges remain open. Runtime verification reports therefore
+remain solver-trusted, and production loop verification remains unsupported.
 
 FM-08 is not implemented here. There is no optimization/lowering theorem, native
 backend proof, ownership proof, or whole-language verification claim in this

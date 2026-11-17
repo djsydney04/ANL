@@ -10,7 +10,9 @@ existence of sufficient depth and fuel for a given finite reduction. Separate
 verification-condition generators prove contract postconditions and trap freedom from interpreted logical obligations for call-free terms and
 finite symbolic expansion of function bodies with callee preconditions.
 The separate state-aware generator also covers loop-free mutable locals and
-finite body expansion over the local-state machine.
+finite body expansion over the local-state machine. A separate invariant generator
+proves finite-prefix trap freedom and partial correctness for possibly divergent
+local-state loops under interpreted logical obligations.
 
 The model covers bounded `i64`, `bool`, `unit`, lexical variables, immutable
 lets, all scalar unary and binary operators, conditionals, and forward or mutually
@@ -34,8 +36,8 @@ python3 formal/test_local_state.py --rust target/debug/apl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, audits the transitive axiom dependencies of 166 theorem names, and replays
-26 semantic modules through separate `leanchecker` processes. Build warnings are errors.
+syntax, audits the transitive axiom dependencies of 292 theorem names, and replays
+33 semantic modules through separate `leanchecker` processes. Build warnings are errors.
 The axiom audit fails on anything outside `propext`, `Classical.choice`, and
 `Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
 uniqueness and disjointness lemmas use `Classical.choice`.
@@ -198,16 +200,16 @@ mutable scalar code with acyclic calls and reports `smt-trusted` results.
 Source elaboration, graph validation, the production
 forward analysis and its correspondence to this CPS generator, named query
 grouping, SMT translation, and the solver remain outside the theorem boundary.
-Production reports retain `termination_proved: false`. A generator and general
-soundness theorem for loop invariants remain a separate increment.
+Production reports retain `termination_proved: false`. The separate invariant
+generator described below is a model result; production loop verification remains
+unsupported.
 
 ## Foundations for invariant loops
 
-Three modules provide supporting model proofs for future invariant verification.
-They do not add a loop verification-condition generator or prove loop safety from
-invariant obligations. The production frontend separately accepts and erases
-typed source invariant clauses, but these proofs do not establish its correctness
-or enable production loop verification.
+Three modules provide the frame, fresh-model and annotation foundations used by
+the invariant generator below. The production frontend separately accepts and
+erases typed source invariant clauses; these model proofs do not establish that
+frontend's correctness or enable production loop verification.
 
 `LocalStateFrame` proves that a finite typed evaluation preserves immutable entry
 cells and binding types through scopes, calls, and loops. It also isolates a
@@ -220,8 +222,9 @@ to every mutable numeric or Boolean cell, and uses literal unit for mutable unit
 cells. Every typed concrete head agreeing on immutable values has a representing
 model extension that preserves all earlier symbols. Consecutive allocations have
 disjoint identities. The module also proves that grouping recorded guarded checks
-as a conjunction preserves each check. Global generator allocation and exact
-named-query completeness still require proofs.
+as a conjunction preserves each check. The complete generator adds artifact
+support and exact mathematical query partition; a global allocation-event
+manifest and source query-metadata correspondence remain separate.
 
 `LoopAnnotations` supplies pure mathematical assertions over current locals,
 newest binding first, separately from declaration-order entry/result contracts.
@@ -230,6 +233,45 @@ nonempty Boolean invariant lists. Ordinary source typing continues to accept
 unannotated loops. Erasing annotation metadata preserves the actual Lean machine
 at every identical budget, even when annotations are empty, ill typed, or false;
 that erasure theorem does not establish annotation validity or source lowering.
+
+## Invariant verification in the model
+
+`LoopVCG` implements a concrete path-split generator for annotated local-state
+terms, including nested loops, effectful conditions, short circuit and finite
+callee-body expansion. It retains guarded checks separately from normal
+outcomes, so a trap before an infinite loop cannot disappear when no return
+follows. Initialization and preservation each require independently interpreted
+invariant definedness and truth. An arbitrary loop head assumes the established
+invariant and freshens all mutable nonunit cells; immutable cells remain stable
+by the typed frame theorem. The final false guard passes its updated environment
+to the continuation without requiring the head invariant to remain true there.
+
+`LocalStateContinuation` and `LoopVCGSoundness` connect successful generation to
+actual `LocalState.run` and `Steps`. Validity quantifies every fresh model extension
+preserving earlier symbols. Complete generator induction discharges the child
+specifications. At every transition budget, execution either exhausts or returns
+a represented normal result; no finite trap or invalid trace exists under the
+stated typing, support, representation and logical-validity premises. The syntax
+expansion bound does not unroll loop iterations. No returning budget or termination
+result is asserted.
+
+`LoopVCGContracts` checks postconditions using original declaration-order parameter
+symbols and the returned value. Its typed wrapper requires verification-ready
+annotated function/body typing and typed actual inputs. Ordered requires
+definedness must hold for every typed input, a typed satisfying input must exist,
+and body/post checks must hold under all fresh extensions for satisfying inputs.
+A safe infinite loop may satisfy a false postcondition; invariants have no global
+satisfiability requirement. `LoopVCGQueries` proves that concrete tagging and
+grouping preserve all original guarded checks and their mathematical validity.
+
+These are model proofs. The production verifier still rejects loops. The formal
+path-split generator differs from production merged flows; source lowering,
+annotation attachment, named-query metadata, global allocation manifests,
+production limits, SMT encoding, solver correctness and countermodel decoding
+remain separate. Guarded head domains do not constrain an inactive head in every
+mathematical model, so decoding policies must preserve that distinction. The
+[proof inventory](PROOFS.md#invariant-loop-generation-and-partial-correctness)
+records the precise theorem premises and remaining bridges.
 
 ## Model and evidence
 
@@ -305,8 +347,9 @@ actual body under reversed argument symbols. Callee postconditions are not assum
 This proves the Lean expansion generator sound when it succeeds. It does not
 prove a source call-graph checker, that every acyclic source program has a
 sufficient expansion bound, or equivalence with a separate syntax-inlining pass.
-Named-condition decomposition, Rust generation, source-contract erasure, SMT
-encoding and solver evidence remain outside these proofs. `Accepted` means the
+The invariant generator proves a mathematical check partition; correspondence
+to production named conditions, Rust generation, source-contract erasure, SMT
+encoding and solver evidence remains outside these proofs. `Accepted` means the
 logical obligations hold and a typed satisfying input exists; a solver response
 is not itself a proof of those facts. Runtime contracts remain erased.
 

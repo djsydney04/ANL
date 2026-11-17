@@ -28,7 +28,9 @@ available. Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
 v0 model, with sufficient depth and fuel. Local state has a separate typed machine
-and finite transition/run correspondence. The [52 technical release requirements](requirements.md)
+and finite transition/run correspondence. The concrete invariant-loop model now
+proves conditional safety and partial correctness over that machine; production
+loop verification remains future work. The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
 
@@ -103,15 +105,28 @@ The [formal inventory](../formal/PROOFS.md) proves soundness of call-free genera
 and finite symbolic body expansion, including left-to-right arguments and ordered
 callee-precondition insertion, when generation succeeds. A separate state-aware
 generator proves loop-free mutation and typed contracts over the local-state
-machine. FM-07 remains partial:
-source call-graph checking, sufficient expansion bounds for acyclic programs,
-equivalence with a separate syntax-inlining pass, named-condition decomposition,
-and Rust/SMT/solver bridges remain open, including correspondence between the
-state model and production forward analysis. The production verifier rejects
+machine. The concrete invariant-loop generator additionally proves safety at every
+actual machine budget, finite normal-outcome coverage and typed contract partial
+correctness under successful generation and the documented typing, support,
+representation and universally valid-check premises. Initialization and
+preservation establish invariant definedness and truth; false-guard effects reach
+the continuation. Fresh model extensions preserve earlier symbols and typed
+frames preserve immutable cells. Contracts retain original entry parameters,
+require a typed precondition-satisfying input, and check normal-return
+postconditions. Exact mathematical query partition preserves the guarded checks.
+None of these results establishes loop termination.
+
+FM-07 remains partial: source call-graph checking, sufficient expansion bounds
+for acyclic programs, equivalence with a separate syntax-inlining pass,
+production named-condition correspondence, and Rust/SMT/solver bridges remain
+open, including correspondence between the formal continuation/path-split
+generators and production merged flows. Source annotation attachment, global
+allocation-event history, production limits and countermodel decoding also need
+their own evidence. The production verifier rejects
 loops and recursion before tool discovery. Source `invariant` clauses are accepted
 and type-checked at the loop head, then erased; their truth and definedness are
-not established. Assertions, recursive and
-loop-invariant verification, ghost code, and heap properties remain future work.
+not established. Production loop-invariant verification, assertions, recursive
+verification, ghost code, and heap properties remain future work.
 
 Complete M3 acceptance includes true and false properties, counterexamples where
 supported,

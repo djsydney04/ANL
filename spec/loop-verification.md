@@ -1,15 +1,26 @@
 # Verification of local state and loop invariants
 
 Status: loop-free local-state verification and typed, erased loop annotations are
-implemented. Invariant verification remains a proposal. This specifies two
-verification increments over the existing `local-state-2026-11-17` runtime. The
+implemented. Production invariant verification remains a proposal. This specifies
+two verification increments over the existing `local-state-2026-11-17` runtime. The
 [loop-free report contract](#loop-free-report-contract) describes current behavior.
 The [source annotation rules](#source-annotations-and-erasure) also describe
 current behavior; every annotated or unannotated loop remains unsupported by
-`verify`. The loop verification rules below are not implemented. The
-[proof inventory](../formal/PROOFS.md) records the separate loop-free and supporting
-frame, fresh-state, and annotation-erasure model proofs. Their correspondence to
-the production frontend and verifier remains unproved.
+`verify`, before tool discovery. The proposed production loop rules below are not
+implemented. The [proof inventory](../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness)
+records a concrete Lean invariant generator connected to actual `LocalState.run`
+and `Steps`: successful generation with the stated typing, support, representation
+and universally valid-check premises establishes safety at every budget and
+coverage of finite normal returns. It proves invariant initialization and
+preservation, retains final false-guard effects, uses fresh extensions and typed
+frames, and adds typed nonvacuous contracts over original entry parameters plus
+an exact mathematical check partition. It does not establish termination.
+
+The formal continuation/path-split generators differ from Rust's merged-flow
+analysis. Source annotation attachment, production named-query metadata, global
+allocation-event history, resource limits, SMT/solver/model correspondence and
+native correctness remain outside these proofs. Runtime semantics and semantic
+revisions are unchanged.
 
 The first increment verifies loop-free mutable scalar code with acyclic calls.
 The proposed second verification increment uses annotated while loops, including
