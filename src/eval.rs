@@ -93,12 +93,39 @@ impl Evaluator<'_> {
                         .ok_or(EvalError::InvalidIr)?,
                 )
                 .ok_or(EvalError::InvalidIr)?,
-            ExprKind::Let { value, body } => {
+            ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                 let value = self.expr(value, env, next)?;
                 env.push(value);
                 let result = self.expr(body, env, next);
                 env.pop();
                 result?
+            }
+            ExprKind::Assign { index, value } => {
+                let value = self.expr(value, env, next)?;
+                let position = env
+                    .len()
+                    .checked_sub(index.checked_add(1).ok_or(EvalError::InvalidIr)?)
+                    .ok_or(EvalError::InvalidIr)?;
+                let target = env.get_mut(position).ok_or(EvalError::InvalidIr)?;
+                if target.ty() != value.ty() {
+                    return Err(EvalError::InvalidIr);
+                }
+                *target = value;
+                Value::Unit
+            }
+            ExprKind::While { condition, body } => {
+                loop {
+                    match self.expr(condition, env, next)? {
+                        Value::Boolean(false) => break,
+                        Value::Boolean(true) => {
+                            if self.expr(body, env, next)? != Value::Unit {
+                                return Err(EvalError::InvalidIr);
+                            }
+                        }
+                        _ => return Err(EvalError::InvalidIr),
+                    }
+                }
+                Value::Unit
             }
             ExprKind::If {
                 condition,

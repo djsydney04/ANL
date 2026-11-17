@@ -221,6 +221,11 @@ impl<'a> Generator<'a> {
                     .ok_or_else(|| Failure::Error("invalid checked local".into()))?,
                 safe,
             },
+            ExprKind::LetMut { .. } | ExprKind::Assign { .. } | ExprKind::While { .. } => {
+                return Err(Failure::Unsupported(
+                    "local state is outside apl-verify-v0".into(),
+                ));
+            }
             ExprKind::Let { value, body } => {
                 let a = self.expr(value, env, depth + 1)?;
                 let mut inner = Vec::with_capacity(env.len() + 1);
@@ -355,6 +360,58 @@ impl<'a> Generator<'a> {
             safe: self.arena.and(&conditions)?,
         })
     }
+}
+
+pub(super) fn supported(program: &Program) -> Result<(), Failure> {
+    for function in &program.functions {
+        let mut work = vec![&function.body];
+        while let Some(expr) = work.pop() {
+            let construct = match &expr.kind {
+                ExprKind::LetMut { .. } => Some("let mut"),
+                ExprKind::Assign { .. } => Some("assignment"),
+                ExprKind::While { .. } => Some("while"),
+                ExprKind::Let { value, body } => {
+                    work.extend([body.as_ref(), value.as_ref()]);
+                    None
+                }
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => {
+                    work.extend([
+                        else_branch.as_ref(),
+                        then_branch.as_ref(),
+                        condition.as_ref(),
+                    ]);
+                    None
+                }
+                ExprKind::Unary { operand, .. } => {
+                    work.push(operand);
+                    None
+                }
+                ExprKind::Binary { left, right, .. } => {
+                    work.extend([right.as_ref(), left.as_ref()]);
+                    None
+                }
+                ExprKind::Call { arguments, .. } => {
+                    work.extend(arguments.iter().rev());
+                    None
+                }
+                ExprKind::Integer(_)
+                | ExprKind::Boolean(_)
+                | ExprKind::Unit
+                | ExprKind::Local(_) => None,
+            };
+            if let Some(construct) = construct {
+                return Err(Failure::Unsupported(format!(
+                    "{construct} in function {} is outside apl-verify-v0; mutable state and loops are not verified",
+                    function.name
+                )));
+            }
+        }
+    }
+    Ok(())
 }
 
 pub(super) fn acyclic(program: &Program) -> Result<(), Failure> {

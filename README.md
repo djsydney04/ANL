@@ -5,16 +5,18 @@ capability-controlled agent applications, with strong static types and integrate
 formal verification.
 
 The current implementation checks, interprets, and compiles a scalar language with
-`i64`, `bool`, unit, immutable bindings, conditionals, named recursive functions,
-and explicit file modules. `apl verify` checks arithmetic safety and contracts
+`i64`, `bool`, unit, immutable and initialized mutable bindings, assignment,
+structured while loops, conditionals, recursive functions, and file modules. `apl verify` checks arithmetic safety and contracts
 for pure acyclic functions using Z3 5.3.3, with results labeled `smt-trusted`.
 Ordinary compilation type-checks and erases contract annotations. The Rust CLI
 also exports and independently validates typed core JSON. Lean proofs cover
 expression and recursive-function typing,
 safety, and finite evaluator correspondence with sufficient depth and fuel.
-A separate call-free verification-condition model proves contract soundness from
-logical obligations; it does not certify the production verifier or solver.
-These proofs do not establish termination or Rust implementation correctness.
+A separate local-state model proves typing and finite machine safety for mutation
+and loops. Verification-condition proofs cover call-free terms and finite symbolic
+function-body expansion with ordered callee preconditions when generation succeeds.
+They do not certify the production verifier or solver. None of these proofs
+establishes termination or Rust implementation correctness.
 See the [proof inventory](formal/PROOFS.md) for exact scope and assumptions.
 
 From this checkout, with Rust installed through rustup:
@@ -30,12 +32,14 @@ The [getting-started guide](docs/getting-started.md) covers examples, diagnostic
 resource limits, and core import/export. The CLI also supports native `build`,
 `run`, and `emit-c` through a host C11 compiler; see
 [native compilation](docs/native-compilation.md). There is no qualified
-installable release yet. Ownership, mutable data, I/O, concurrency, recursive
-verification, and the wider language remain roadmap work.
+installable release yet. Aggregates, ownership, I/O, concurrency, loop/recursive
+verification, and the wider language remain roadmap work. `verify` rejects any
+program containing local-state constructs before starting a solver.
 
 - [Getting started](docs/getting-started.md)
 - [Native compilation](docs/native-compilation.md)
 - [Programs with modules](docs/modules.md)
+- [Mutable locals and while loops](spec/control-flow.md)
 - [Verify function contracts](docs/verification.md)
 - [Formal model and proof checks](formal/README.md)
 - [Language charter](docs/charter.md)

@@ -11,6 +11,7 @@ use serde_json::{Map, Value, json};
 use std::{collections::HashSet, fmt};
 
 pub const SEMANTIC_REVISION: &str = "m1-2026-11-16";
+pub const LOCAL_STATE_SEMANTIC_REVISION: &str = "local-state-2026-11-17";
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ImportError {
     Invalid(String),
@@ -136,20 +137,27 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("missing schema"))?;
     let fields: &[&str] = match schema {
-        "apl-core-v0" => &["schema", "semantic_revision", "functions", "entry"],
-        "apl-expr-v0" => &["schema", "semantic_revision", "expression"],
+        "apl-core-v0" | "apl-core-v1" => &["schema", "semantic_revision", "functions", "entry"],
+        "apl-expr-v0" | "apl-expr-v1" => &["schema", "semantic_revision", "expression"],
         _ => return Err(invalid("unsupported schema")),
     };
     let root = object(&value, fields)?;
-    if string(&root["semantic_revision"])? != SEMANTIC_REVISION {
+    let allow_local_state = matches!(schema, "apl-core-v1" | "apl-expr-v1");
+    let revision = if allow_local_state {
+        LOCAL_STATE_SEMANTIC_REVISION
+    } else {
+        SEMANTIC_REVISION
+    };
+    if string(&root["semantic_revision"])? != revision {
         return Err(invalid("unsupported semantic revision"));
     }
     let mut importer = Importer {
         signatures: Vec::new(),
         next_id: 0,
-        allow_calls: schema == "apl-core-v0",
+        allow_calls: matches!(schema, "apl-core-v0" | "apl-core-v1"),
+        allow_local_state,
     };
-    if schema == "apl-expr-v0" {
+    if !importer.allow_calls {
         let body = importer.expr(&root["expression"], &mut Vec::new(), 0)?;
         return Ok(Artifact {
             program: Program {
@@ -194,7 +202,14 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     let mut checked = Vec::new();
     for (id, function) in functions.iter().enumerate() {
         let (params, result) = importer.signatures[id].clone();
-        let body = importer.expr(&function["body"], &mut params.clone(), 0)?;
+        let mut env = params
+            .iter()
+            .map(|ty| Binding {
+                ty: *ty,
+                mutable: false,
+            })
+            .collect();
+        let body = importer.expr(&function["body"], &mut env, 0)?;
         if body.ty != result {
             return Err(invalid("function result type mismatch"));
         }
@@ -219,12 +234,26 @@ struct Importer {
     signatures: Vec<(Vec<Type>, Type)>,
     next_id: usize,
     allow_calls: bool,
+    allow_local_state: bool,
+}
+struct Binding {
+    ty: Type,
+    mutable: bool,
+}
+fn local_position(length: usize, index: usize) -> Result<usize, ImportError> {
+    length
+        .checked_sub(
+            index
+                .checked_add(1)
+                .ok_or_else(|| invalid("local index out of range"))?,
+        )
+        .ok_or_else(|| invalid("unbound local index"))
 }
 impl Importer {
     fn expr(
         &mut self,
         value: &Value,
-        env: &mut Vec<Type>,
+        env: &mut Vec<Binding>,
         nesting: usize,
     ) -> Result<Expr, ImportError> {
         if nesting >= MAX_DEPTH {
@@ -241,6 +270,9 @@ impl Importer {
             "unit" => &["tag", "ty"],
             "local" => &["tag", "ty", "index"],
             "let" => &["tag", "ty", "value", "body"],
+            "let_mut" if self.allow_local_state => &["tag", "ty", "value", "body"],
+            "assign" if self.allow_local_state => &["tag", "ty", "index", "value"],
+            "while" if self.allow_local_state => &["tag", "ty", "condition", "body"],
             "if" => &["tag", "ty", "condition", "then", "else"],
             "unary" => &["tag", "ty", "op", "operand"],
             "binary" => &["tag", "ty", "op", "left", "right"],
@@ -273,26 +305,64 @@ impl Importer {
             "unit" => (Type::Unit, ExprKind::Unit, 1),
             "local" => {
                 let index = natural(&obj["index"])?;
-                let position = env
-                    .len()
-                    .checked_sub(
-                        index
-                            .checked_add(1)
-                            .ok_or_else(|| invalid("local index out of range"))?,
-                    )
-                    .ok_or_else(|| invalid("unbound local index"))?;
-                (env[position], ExprKind::Local(index), 1)
+                let position = local_position(env.len(), index)?;
+                (env[position].ty, ExprKind::Local(index), 1)
             }
-            "let" => {
+            "let" | "let_mut" => {
                 let value = self.expr(&obj["value"], env, next)?;
-                env.push(value.ty);
+                env.push(Binding {
+                    ty: value.ty,
+                    mutable: tag == "let_mut",
+                });
                 let body = self.expr(&obj["body"], env, next)?;
                 env.pop();
                 let depth = value.depth.max(body.depth) + 1;
-                (
-                    body.ty,
+                let ty = body.ty;
+                let kind = if tag == "let_mut" {
+                    ExprKind::LetMut {
+                        value: Box::new(value),
+                        body: Box::new(body),
+                    }
+                } else {
                     ExprKind::Let {
                         value: Box::new(value),
+                        body: Box::new(body),
+                    }
+                };
+                (ty, kind, depth)
+            }
+            "assign" => {
+                let index = natural(&obj["index"])?;
+                let position = local_position(env.len(), index)?;
+                if !env[position].mutable {
+                    return Err(invalid("assignment target is immutable"));
+                }
+                let expected = env[position].ty;
+                let value = self.expr(&obj["value"], env, next)?;
+                if value.ty != expected {
+                    return Err(invalid("assignment value type mismatch"));
+                }
+                let depth = value.depth + 1;
+                (
+                    Type::Unit,
+                    ExprKind::Assign {
+                        index,
+                        value: Box::new(value),
+                    },
+                    depth,
+                )
+            }
+            "while" => {
+                let condition = self.expr(&obj["condition"], env, next)?;
+                let body = self.expr(&obj["body"], env, next)?;
+                if condition.ty != Type::Bool || body.ty != Type::Unit {
+                    return Err(invalid("while requires bool condition and unit body"));
+                }
+                let depth = condition.depth.max(body.depth) + 1;
+                (
+                    Type::Unit,
+                    ExprKind::While {
+                        condition: Box::new(condition),
                         body: Box::new(body),
                     },
                     depth,
@@ -413,7 +483,12 @@ pub fn export(program: &Program, entry: usize) -> Value {
         "id": id, "name": function.name, "params": function.params.iter().map(|t| t.as_str()).collect::<Vec<_>>(),
         "result": function.result.as_str(), "body": export_expr(&function.body)
     })).collect();
-    json!({"schema":"apl-core-v0", "semantic_revision":SEMANTIC_REVISION, "functions":functions, "entry":entry})
+    let schema = if program.has_local_state() {
+        "apl-core-v1"
+    } else {
+        "apl-core-v0"
+    };
+    json!({"schema":schema, "semantic_revision":program.semantic_revision(), "functions":functions, "entry":entry})
 }
 fn export_expr(expr: &Expr) -> Value {
     let mut value = match &expr.kind {
@@ -423,6 +498,15 @@ fn export_expr(expr: &Expr) -> Value {
         ExprKind::Local(index) => json!({"tag":"local", "index":index}),
         ExprKind::Let { value, body } => {
             json!({"tag":"let", "value":export_expr(value), "body":export_expr(body)})
+        }
+        ExprKind::LetMut { value, body } => {
+            json!({"tag":"let_mut", "value":export_expr(value), "body":export_expr(body)})
+        }
+        ExprKind::Assign { index, value } => {
+            json!({"tag":"assign", "index":index, "value":export_expr(value)})
+        }
+        ExprKind::While { condition, body } => {
+            json!({"tag":"while", "condition":export_expr(condition), "body":export_expr(body)})
         }
         ExprKind::If {
             condition,

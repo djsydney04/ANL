@@ -3,6 +3,13 @@
 This is the M1 compiler/formal-tool contract. Its semantic revision is
 `m1-2026-11-16`. It is not a compiler correctness proof.
 
+The [local-state v1 extension](control-flow.md#typed-core-and-interchange) adds
+mutable scalar locals, assignment, and while loops with semantic revision
+`local-state-2026-11-17`. V0 retains exactly the fields, constructors, semantics,
+and resource protocol below. A v0 document rejects the new constructors. Source
+export uses v0 for programs containing only these original constructors and v1
+when any checked function contains a local-state constructor.
+
 ## Documents
 
 A program is an object with exactly these members:

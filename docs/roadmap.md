@@ -22,11 +22,12 @@ contracts are stable. A phase number expresses dependencies, not a claim that al
 work in prior phases is finished.
 
 Current status: the scalar checker/interpreter, native C11 backend, file modules,
-strict core JSON interchange, pure acyclic contract verification, and scoped Lean
-proofs are available. Follow [getting started](getting-started.md) to run the tools and the
+initialized mutable locals, while loops, versioned core JSON interchange, pure
+acyclic contract verification, and scoped Lean proofs are available. Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
-model, with sufficient depth and fuel. The [52 technical release requirements](requirements.md)
+v0 model, with sufficient depth and fuel. Local state has a separate typed machine
+and finite transition/run correspondence. The [52 technical release requirements](requirements.md)
 remain open in their full scope, including later language, verification, and
 ecosystem capabilities.
 
@@ -96,11 +97,14 @@ definedness and satisfiability, calls the pinned Z3 5.3.3, and emits exact sourc
 tool, and query bindings. Results are `smt-trusted`; refuting models are unreplayed.
 Ordinary compilation erases contracts without dynamic checks.
 
-The [formal inventory](../formal/PROOFS.md) includes a concrete call-free generator
-and contract-logic soundness foundation. FM-07 remains partial: acyclic inlining,
-callee-precondition insertion, named-condition decomposition, and the production
-Rust/SMT/solver bridges remain open. Assertions, recursive verification, ghost
-code, and state properties still require implementation.
+The [formal inventory](../formal/PROOFS.md) proves soundness of call-free generation
+and finite symbolic body expansion, including left-to-right arguments and ordered
+callee-precondition insertion, when generation succeeds. FM-07 remains partial:
+source call-graph checking, sufficient expansion bounds for acyclic programs,
+equivalence with a separate syntax-inlining pass, named-condition decomposition,
+and Rust/SMT/solver bridges remain open. The production verifier rejects all
+local-state constructs before tool discovery. Assertions, recursive and
+loop-invariant verification, ghost code, and state properties remain future work.
 
 Complete M3 acceptance includes true and false properties, counterexamples where
 supported,
@@ -111,6 +115,14 @@ exist. Bind verification artifacts to the exact program, semantics and tool
 versions. Report the implemented trust level for each result.
 
 ## M4: practical systems language
+
+The first local-state slice implements initialized scalar `let mut`, assignment,
+and structured while statements through the interpreter, strict v1 interchange,
+validated MIR slots, and native C11 loops. The separate Lean model proves typing,
+progress/preservation, finite machine correspondence, and forward preservation of
+finite v0 evaluator outcomes. It does not establish termination, reverse divergence
+correspondence, stateful verification, or Rust/JSON/native correctness. Local
+runtime/proof checks pass; hosted checks for this increment remain pending.
 
 Implement the remainder of the type system, ownership/borrowing, data types,
 generics, closures, pattern matching, errors, effects, concurrency/async, I/O,

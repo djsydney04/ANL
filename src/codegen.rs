@@ -73,29 +73,64 @@ fn emit_block(block: &Block, text: &mut String, indent: usize) {
     let padding = "    ".repeat(indent);
     for instruction in &block.instructions {
         let target = instruction.destination;
-        if let Operation::Branch {
-            condition,
-            then_block,
-            else_block,
-        } = &instruction.kind
-        {
-            text.push_str(&format!(
-                "{padding}{} t{};\n{padding}if (t{}) {{\n",
-                c_type(target.ty),
-                target.id,
-                condition.id
-            ));
-            emit_block(then_block, text, indent + 1);
-            text.push_str(&format!(
-                "{padding}    t{} = t{};\n{padding}}} else {{\n",
-                target.id, then_block.yield_value.id
-            ));
-            emit_block(else_block, text, indent + 1);
-            text.push_str(&format!(
-                "{padding}    t{} = t{};\n{padding}}}\n",
-                target.id, else_block.yield_value.id
-            ));
-            continue;
+        match &instruction.kind {
+            Operation::Branch {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                text.push_str(&format!(
+                    "{padding}{} t{};\n{padding}if (t{}) {{\n",
+                    c_type(target.ty),
+                    target.id,
+                    condition.id
+                ));
+                emit_block(then_block, text, indent + 1);
+                text.push_str(&format!(
+                    "{padding}    t{} = t{};\n{padding}}} else {{\n",
+                    target.id, then_block.yield_value.id
+                ));
+                emit_block(else_block, text, indent + 1);
+                text.push_str(&format!(
+                    "{padding}    t{} = t{};\n{padding}}}\n",
+                    target.id, else_block.yield_value.id
+                ));
+                continue;
+            }
+            Operation::MutableScope {
+                slot,
+                initial,
+                body,
+            } => {
+                text.push_str(&format!(
+                    "{padding}{} t{};\n{padding}{{\n{padding}    {} s{} = t{};\n",
+                    c_type(target.ty),
+                    target.id,
+                    c_type(slot.ty),
+                    slot.id,
+                    initial.id
+                ));
+                emit_block(body, text, indent + 1);
+                text.push_str(&format!(
+                    "{padding}    t{} = t{};\n{padding}}}\n",
+                    target.id, body.yield_value.id
+                ));
+                continue;
+            }
+            Operation::While { condition, body } => {
+                text.push_str(&format!("{padding}for (;;) {{\n"));
+                emit_block(condition, text, indent + 1);
+                text.push_str(&format!(
+                    "{padding}    if (!t{}) break;\n{padding}    {{\n",
+                    condition.yield_value.id
+                ));
+                emit_block(body, text, indent + 2);
+                text.push_str(&format!("{padding}    }}\n{padding}}}\n"));
+            }
+            Operation::Store(slot, value) => {
+                text.push_str(&format!("{padding}s{} = t{};\n", slot.id, value.id));
+            }
+            _ => {}
         }
         let value = match &instruction.kind {
             Operation::Integer(n) if *n == i64::MIN => "INT64_MIN".into(),
@@ -128,7 +163,11 @@ fn emit_block(block: &Block, text: &mut String, indent: usize) {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            Operation::Branch { .. } => unreachable!("branch emitted above"),
+            Operation::Load(slot) => format!("s{}", slot.id),
+            Operation::Store(..) | Operation::While { .. } => "0".into(),
+            Operation::Branch { .. } | Operation::MutableScope { .. } => {
+                unreachable!("structured result emitted above")
+            }
         };
         text.push_str(&format!(
             "{padding}{} t{} = {value};\n",

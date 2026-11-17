@@ -1,24 +1,27 @@
 # Formal semantics and verification architecture
 
-Status: the pure acyclic contract verifier is implemented alongside the Lean
-4.36.0 model for semantic revision `m1-2026-11-16`. The
-[proof inventory](../../formal/PROOFS.md) records 61 checked theorems. FM-01 through
-FM-05 are discharged for the documented scalar expression/function model;
-finite program correspondence quantifies sufficient depth and fuel, without
-proving termination or completeness at the CLI's fixed depth of 256. A concrete
-call-free generator and contract logic provide a partial FM-07 foundation.
-Production verification remains `smt-trusted`: call inlining, callee-precondition
-insertion, named-condition decomposition, and Rust/SMT/solver correspondence are
-unproved, as are source/module/native lowering. The formal model, verifier and
-compiler maintain an explicit semantic revision and coverage inventory.
+Status: Lean 4.36.0 has separate models for immutable scalar functions
+(`m1-2026-11-16`) and local scalar state (`local-state-2026-11-17`). The
+[proof inventory](../../formal/PROOFS.md) records 118 checked statements: the prior
+81 immutable/verification statements and 37 local-state statements. FM-01 through
+FM-05 apply to the documented v0 model; local state has its own typing, machine
+safety, finite correspondence, and forward v0 embedding results.
+
+The immutable verification generators prove call-free and finite body-expansion
+soundness, including ordered arguments and callee preconditions, when generation
+succeeds and interpreted obligations hold. FM-07 remains partial: source call-graph
+checking, expansion completeness, separate syntax-inlining equivalence, named
+condition decomposition, and Rust/SMT/solver bridges remain open. Production
+verification stays `smt-trusted` and rejects local state. No theorem here proves
+termination, fixed-production-budget completeness, or Rust/JSON/native correctness.
 
 ## Two distinct guarantees
 
 The language metatheory concerns typing and execution rules. A theorem about the scalar core establishes only the property stated for that core. Program verification concerns a particular program and contract under explicit assumptions. Neither establishes that an unverified backend emits correct machine code.
 
-The reference semantics, compiler, verifier, and documentation share a semantic revision. Each language change identifies affected definitions, theorem statements, obligations, and tests before acceptance.
+Each checked program and its reference semantics, compiler output, verification report, and documentation identify the applicable semantic revision. Each language change identifies affected definitions, theorem statements, obligations, and tests before acceptance.
 
-## Initial semantic domain
+## Initial immutable semantic domain
 
 The M1 core has types `i64`, `bool`, and `unit`. Integer values belong to `I = {n ∈ ℤ | -2^63 ≤ n ≤ 2^63-1}`. Values are `Int(n)`, `Bool(b)`, or `Unit`. Identifiers resolve to lexical bindings and function identifiers before formal-core exchange. Types remain explicit in function parameter and result declarations.
 
@@ -67,6 +70,31 @@ InvalidInput(diagnostic)
 
 `ResourceLimit` includes fuel and stack limits and is not an APL value, trap, or proof of divergence. Differential tests compare values and trap kinds; they report resource-limited cases as inconclusive. Invalid serialized inputs fail validation before evaluation.
 
+## Local-state semantic extension
+
+[Local state](../../spec/control-flow.md) adds initialized `let_mut`, assignment,
+and while constructors in v1. Its separate machine carries the current value
+environment on evaluation and return. Scope exit removes only the newly bound
+cell, retaining updates to outer cells. Operand, branch, and argument frames pass
+current state onward; calls copy evaluated argument values and restore the caller
+state captured after those evaluations. Loop condition/body frames replace one
+another across each back edge, including the final false condition's effects.
+
+The declarative context records each scalar type and mutability permission.
+Inference is proved equivalent to that judgment. Initialized-environment update
+and scope lemmas support preservation/progress for all machine transitions,
+recursive entry safety, and exclusion of invalid states. Defined arithmetic traps
+and continued execution remain permitted. Finite `run` and the independent `Step`
+relation agree in both directions. These are model type-safety guarantees, not
+termination, trap-freedom, or production-checker proofs.
+
+Embedding a finite v0 evaluator result preserves its value or trap in a sufficiently
+budgeted v1 run. This is a forward result, without reverse termination/divergence
+correspondence. The v1 CLI counts machine transitions; Rust counts expression
+entries and separately limits nesting to 256. Equal fuel values do not imply equal
+work, and any resource-limited comparison is inconclusive. The strict v1 JSON
+adapter, source lowering, and native backend remain tested correspondence boundaries.
+
 ## Mechanization boundaries and proof obligations
 
 Lean 4 defines untyped core syntax, the typing relation, values, transitions, and an executable evaluator. A separate typing relation prevents a proof from assuming the production type checker has already established the property at issue. The representation may use de Bruijn indices for local variables, with a documented context order and capture-avoiding substitution.
@@ -105,6 +133,10 @@ Independently review theorem statements and the coverage mapping. Where supporte
 
 The first interoperable format is a JSON document with `schema: "apl-core-v0"`. The frozen [core-format contract](../../spec/core-format.md) publishes exact members and fixtures for semantic revision `m1-2026-11-16`; Rust and Lean adapters implement it. It contains a semantic revision, function table with signatures and resolved bodies, and entry function ID. Integer literals are decimal strings, avoiding host JSON-number precision loss. Local variables use de Bruijn indices with index zero denoting the newest binding; at function entry the final declared parameter has index zero. Function identifiers are integers within the table. Scalar types use `i64`, `bool`, and `unit` tags. Each expression has a constructor tag and only fields required by that constructor. Wire outcomes use `value`, `trap`, `resource_limit`, and `invalid_ir`; trap kinds use `arithmetic_overflow` and `division_by_zero`.
 
+The separate v1 format uses `local-state-2026-11-17` and adds initialized mutable
+binding, assignment, and while nodes. V0 remains unchanged, and exporters select
+v1 if any checked function contains a new constructor. V1 import additionally
+checks binding permissions and Boolean-condition/unit-body loop typing.
 Both readers validate schema version, ranges, arities, binding indices, and types. Neither reader trusts a serialized "type checked" flag. Unknown constructors or semantic revisions fail closed. Source spans remain diagnostic metadata and do not affect semantics. A source hash binds results to bytes; it is not evidence that the source-to-core translation is correct.
 
 Formal and production evaluators consume shared conformance vectors, including generated well-typed terms and deliberately malformed input. Their algorithms and arithmetic implementations remain independent. A shared buggy evaluator would weaken the comparison.
@@ -128,8 +160,10 @@ and scalar core while preserving source locations, checked-operation conditions,
 branches, and named clauses. It checks every loaded function, including private
 and unused bodies. The call graph must be acyclic, including syntactically dead
 calls. Calls require the callee's preconditions and inline its actual body;
-postconditions are never assumed as summaries. Ownership/effect analysis and
-solver-certificate checking remain planned parts of the pipeline above.
+postconditions are never assumed as summaries. Any local-state constructor in any
+loaded function is rejected before solver discovery, including unused and skipped
+code. This produces `unsupported` with no invented obligations. Ownership/effect
+analysis, loop-invariant rules, and solver-certificate checking remain planned.
 
 Contracts use mathematical integers for specification arithmetic and explicit bridges to bounded machine values. This prevents an overflow in a specification from silently changing its logical meaning. Executable expressions still produce checked `i64` results. The VCG inserts range obligations at every checked arithmetic operation, including intermediates. Division and remainder use APL's truncation rule, not a solver's default integer-division convention.
 
@@ -184,16 +218,20 @@ The implemented verifier has tests for valid and false properties, intermediate
 overflow, division faults, unsatisfiable or undefined preconditions, guarded
 paths, acyclic calls, unsupported recursion, timeouts, missing or crashing tools,
 malformed protocol output, limits, and report identities. The Linux/macOS Rust
-jobs and Lean proof/comparison job passed for
-`a7e0b38591ba76255e561cda60099bc8bc422543`
-([CI run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Passing CI
-does not discharge the remaining FM-07 obligations.
+jobs and the 81-statement Lean proof/comparison job passed for
+`1b70f10258cec050ce9d4961a6496a8fef8c6894`
+([CI run](https://github.com/djsydney04/ANL/actions/runs/44056277127)). That run
+predates local state, whose hosted checks remain pending. Passing CI does not
+discharge the remaining FM-07 or implementation-correspondence obligations.
 
-The separate Lean generator constructs concrete formulas and proves their
-soundness under independently interpreted logical obligations for call-free
-scalar terms and mathematical contracts. Its proofs cover ordered precondition
-definedness, nonvacuity, returned postconditions, and exclusion of traps/invalid
-outcomes; resource limits remain possible. They do not certify production call
-expansion, precondition insertion, named-condition decomposition, source-contract
-erasure, Rust generation, SMT serialization, or solver answers. These boundaries
-keep full FM-07 open.
+The Lean generators construct concrete formulas and prove soundness under
+independently interpreted logical obligations. Finite body expansion threads
+arguments left to right, inserts ordered callee-precondition definedness and truth,
+and enters the actual callee body with reversed argument symbols. Successful
+finite-height generation is a premise; it is distinct from evaluation fuel/depth
+and does not prove every acyclic source graph has a sufficient expansion bound.
+Theorems cover nonvacuous entry contracts, returned postconditions, and exclusion
+of traps/invalid outcomes, while permitting resource limits. They do not prove
+source call-graph validation, separate syntax-inlining equivalence, named-condition
+decomposition, source-contract erasure, Rust generation, SMT translation, or solver
+answers. No local-state or loop-invariant verifier theorem is included.

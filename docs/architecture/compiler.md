@@ -1,11 +1,11 @@
 # Compiler architecture and integration contracts
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
-adapters, validated structured MIR, C11 native backend, and pure acyclic contract
-verifier are implemented. Ownership/effects and language-server integration remain
+adapters, initialized scalar state and loops, validated structured MIR, C11 native
+backend, and pure acyclic contract verifier are implemented. Ownership/effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
-recursive-function model, not Rust implementation correctness.
+recursive-function and separate local-state models, not Rust implementation correctness.
 
 ## Pipeline
 
@@ -33,7 +33,7 @@ The compiler is a Rust library called by the CLI, with language-server integrati
 
 ## M1 caller contract
 
-The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [scalar grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `bool`, and unit, explicitly typed function parameters/results, immutable lets with optional local annotations, named function calls including recursion, conditional expressions, and the specified scalar operators. Each implemented form has an explicit formal coverage entry.
+The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [scalar grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `bool`, and unit, explicitly typed function parameters/results, immutable and initialized mutable lets with optional annotations, assignment, while statements, named recursive calls, conditionals, and scalar operators. The [local-state specification](../../spec/control-flow.md) defines permissions and state flow. Each implemented form has an explicit formal coverage entry.
 
 The CLI provides `apl check FILE` and `apl eval FILE` in M1. `check` resolves and checks every function, including unused functions, and accepts a typed library file without `main`. `eval` checks first, requires exactly one nullary `main` in the root file with result type `i64`, then displays its decimal result followed by a newline. The implemented `build`, `run`, and `emit-c` commands inherit that entry requirement. Internal expression evaluators may return `bool` and unit, but those are not executable entry types. Successful commands exit 0. Invalid source exits 1. Execution traps exit 2. Evaluation resource exhaustion exits 3 and is not reported as a language trap or divergence proof. CLI invocation or infrastructure errors exit 4.
 
@@ -46,7 +46,7 @@ An evaluation budget bounds interpreter work and call depth. The exact budget ac
 | Tokens and AST | Frontend; preserve syntax and source locations | UTF-8 byte spans refer to the source file; tokens cannot reference outside it; malformed input cannot panic | Lexer/parser negative and recovery tests, fuzzing |
 | Resolved core | Resolver; replace source names with function/local identities | Each reference is bound; functions have unique identities; parameter names are unique in their scope | Whole-program name validation |
 | Typed core | Type checker; semantic input for evaluator and verifier | Every expression has a scalar type; branch types agree; call arguments match; all operators meet operand rules | Independent core checker and rejection fixtures |
-| MIR | Compiler; expose sequencing, branches, traps, future moves/borrows/drop | Every use is defined; operands match instruction types; each block has one terminator; checks dominate partial operations; explicit effects preserve source order | Structural validator and evaluator comparison |
+| MIR | Compiler; expose sequencing, branches, loops, scalar slots, traps, future moves/borrows/drop | Temporaries have single definitions; mutable slots are initialized, typed, and scope-local; loop condition/body yield bool/unit; one terminator per block; partial operations stay checked and sequenced | Structural validator, invalid-MIR tests, and evaluator/native comparison |
 | Backend representation | Backend; implement MIR using C11 or LLVM | ABI/layout match target; no unchecked backend UB for safe core; source traps remain observable | Differential native execution and sanitizer tests |
 
 No serialized representation is trusted merely because it declares itself typed. Imports revalidate tags, numeric ranges, binding indices, call signatures and inferred types. Stable IDs are internal compiler identities; source names remain available for diagnostics. Shared interfaces use owned data and IDs rather than cross-pass references whose lifetimes couple unrelated subsystems.
@@ -62,9 +62,14 @@ diagnostics and protect all source inputs from native output publication.
 
 ## Core interchange with formal tools
 
-Use a versioned JSON document headed by `schema: "apl-core-v0"`. Its semantic content is a function table and entry function ID. Each function contains its ID, printable name, ordered parameter types, result type, and body. Module graphs export as one function table with collision-free generated names; visibility and file boundaries are not represented in this scalar interchange. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `apl dump-core FILE` exports checked source; `apl eval-core FILE` independently validates and evaluates the artifact.
+Use versioned JSON: immutable programs retain `schema: "apl-core-v0"` with
+`m1-2026-11-16`; any local-state constructor selects `apl-core-v1` with
+`local-state-2026-11-17`. The separate expression formats follow the same v0/v1
+split. V0 fields and semantics are unchanged. V1 adds `let_mut`, `assign`, and
+`while`, and its importer checks target permissions, exact types, and loop-body
+unit results. See the [state interchange rules](../../spec/control-flow.md#typed-core-and-interchange). Its semantic content is a function table and entry function ID. Each function contains its ID, printable name, ordered parameter types, result type, and body. Module graphs export as one function table with collision-free generated names; visibility and file boundaries are not represented in this scalar interchange. Constructors have explicit tags: integer, boolean, unit, local, let, if, unary, binary, and call. The frozen member names, semantic revision `m1-2026-11-16`, expression fixture format, and fixtures are published in [core-format.md](../../spec/core-format.md). `apl dump-core FILE` exports checked source; `apl eval-core FILE` independently validates and evaluates the artifact.
 
-Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID.
+Integer literals are decimal strings, avoiding host JSON precision loss. Local references use zero-based de Bruijn indices, with index 0 the most recently bound local. At function entry, the final declared parameter is index 0. A let initializer evaluates in the old environment, and its body evaluates with the new binding at index 0. Function IDs index the complete table, permitting forward and recursive calls. Spans and printable names are metadata and do not change semantics. Expression statements lower to discarded lets, with local indices adjusted to preserve binding and evaluation order. Expression-only proof fixtures use a separate expression fixture format; a program artifact's entry is always a function ID. New state in any checked function, including an unused one, selects v1 for the whole export.
 
 The Rust exporter and Lean importer are trusted adapters until separately verified. The Lean side independently validates the imported program. A malformed artifact returns `invalid_ir`, not a proved result. The comparison protocol records `value`, `trap`, or `resource_limit`; successful values include their scalar type and canonical representation. Traps include `arithmetic_overflow` or `division_by_zero` and optional source metadata. A negative or exhausted budget is a tool condition.
 
@@ -77,6 +82,14 @@ Function arguments and non-short-circuit operands evaluate left to right. `&&` a
 Signed `i64` arithmetic is checked in every build configuration. Overflow in addition, subtraction, multiplication, or unary negation traps. Division and remainder trap on zero and on `MIN / -1` or `MIN % -1`. Division truncates toward zero. No debug/release semantic switch exists. The type checker rejects arithmetic on booleans and mixed scalar equality. No implicit numeric conversion exists in M1.
 
 The C11 backend emits one temporary per ordered subexpression as needed. It never relies on C argument evaluation order. Checked helpers test preconditions before performing signed operations. Builtins can be used only under an explicitly supported compiler contract; the portable helper path has its own tests. A trap calls a defined runtime handler before the invalid operation. Raw user identifiers never become unescaped C source or shell commands.
+
+Mutable locals lower to initialized function-local slots, and reading a mutable
+binding emits a load at that exact evaluation point. Scope exit preserves outer
+slot updates and removes inner slots; slots never escape as arguments or yields.
+A while lowers to a C11 loop that reexecutes its condition block before each test.
+Each iteration creates fresh body slots. Separate statements preserve load/store,
+argument, and trap order. The validator rejects uninitialized, mistyped, duplicate,
+or out-of-scope slots before emission.
 
 The planned LLVM backend must preserve the same checks and use overflow intrinsics or equivalent validated lowering. It cannot attach `nsw`, `nuw`, or other strengthening attributes without their preconditions. LLVM's [IR contracts](https://llvm.org/docs/LangRef.html) and [UB model](https://llvm.org/docs/UndefinedBehavior.html) are backend obligations, not APL language semantics.
 
@@ -99,10 +112,14 @@ The linker driver receives structured arguments through a process API. It checks
 It checks ordered precondition definedness, satisfiability, runtime arithmetic
 safety, callee preconditions, and postconditions. Calls inline the actual body;
 recursive graphs are unsupported, and callee postconditions are never assumed.
+Any `let_mut`, assignment, or while in any function is rejected before tool
+discovery or query generation, including unused bodies and unselected branches.
 The [verification specification](../../spec/verification.md) defines the supported
 fragment, bounds, and exact report schema.
 
-Reports bind retained source snapshots, compiler and solver identities, limits,
+Reports identify the checked program's executable revision, including v1 for
+unsupported stateful programs; source-error reports use null when no checked
+program exists. Reports bind retained source snapshots, compiler and solver identities, limits,
 exact SMT commands, obligation locations, and per-obligation results. The driver
 uses Z3 5.3.3 with a shared deadline and bounded protocol I/O. Only an aggregate
 `verified` result succeeds, always labeled `smt-trusted`; candidate countermodels

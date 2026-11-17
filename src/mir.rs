@@ -10,6 +10,12 @@ pub(crate) struct Temp {
     pub ty: Type,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Slot {
+    pub id: usize,
+    pub ty: Type,
+}
+
 #[derive(Debug)]
 pub(crate) struct Program {
     pub functions: Vec<Function>,
@@ -22,6 +28,7 @@ pub(crate) struct Function {
     pub result: Type,
     pub body: Block,
     pub temp_count: usize,
+    pub slot_count: usize,
 }
 
 #[derive(Debug)]
@@ -44,6 +51,17 @@ pub(crate) enum Operation {
     Unary(UnaryOp, Temp),
     Binary(BinaryOp, Temp, Temp),
     Call(usize, Vec<Temp>),
+    MutableScope {
+        slot: Slot,
+        initial: Temp,
+        body: Block,
+    },
+    Load(Slot),
+    Store(Slot, Temp),
+    While {
+        condition: Block,
+        body: Block,
+    },
     Branch {
         condition: Temp,
         then_block: Block,
@@ -65,15 +83,19 @@ type Result<T> = std::result::Result<T, InvalidMir>;
 pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
     let mut functions = Vec::with_capacity(source.functions.len());
     for function in &source.functions {
-        let mut builder = Builder { next: 0 };
+        let mut builder = Builder {
+            next: 0,
+            next_slot: 0,
+        };
         let params: Vec<_> = function.params.iter().map(|ty| builder.temp(*ty)).collect();
-        let mut locals = params.clone();
+        let mut locals = params.iter().copied().map(Binding::Value).collect();
         let body = builder.block(&function.body, &mut locals)?;
         functions.push(Function {
             params,
             result: function.result,
             body,
             temp_count: builder.next,
+            slot_count: builder.next_slot,
         });
     }
     let program = Program { functions, entry };
@@ -81,8 +103,15 @@ pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
     Ok(program)
 }
 
+#[derive(Clone, Copy)]
+enum Binding {
+    Value(Temp),
+    Mutable(Slot),
+}
+
 struct Builder {
     next: usize,
+    next_slot: usize,
 }
 impl Builder {
     fn temp(&mut self, ty: Type) -> Temp {
@@ -90,7 +119,7 @@ impl Builder {
         self.next += 1;
         temp
     }
-    fn block(&mut self, expr: &Expr, locals: &mut Vec<Temp>) -> Result<Block> {
+    fn block(&mut self, expr: &Expr, locals: &mut Vec<Binding>) -> Result<Block> {
         let mut instructions = Vec::new();
         let yield_value = self.expr(expr, locals, &mut instructions)?;
         Ok(Block {
@@ -101,7 +130,7 @@ impl Builder {
     fn expr(
         &mut self,
         expr: &Expr,
-        locals: &mut Vec<Temp>,
+        locals: &mut Vec<Binding>,
         instructions: &mut Vec<Instruction>,
     ) -> Result<Temp> {
         let kind = match &expr.kind {
@@ -113,18 +142,57 @@ impl Builder {
                     .len()
                     .checked_sub(index.checked_add(1).ok_or(InvalidMir("unbound local"))?)
                     .ok_or(InvalidMir("unbound local"))?;
-                return locals
+                match locals
                     .get(index)
                     .copied()
-                    .ok_or(InvalidMir("unbound local"));
+                    .ok_or(InvalidMir("unbound local"))?
+                {
+                    Binding::Value(temp) => return Ok(temp),
+                    Binding::Mutable(slot) => Operation::Load(slot),
+                }
             }
             ExprKind::Let { value, body } => {
                 let value = self.expr(value, locals, instructions)?;
-                locals.push(value);
+                locals.push(Binding::Value(value));
                 let result = self.expr(body, locals, instructions);
                 locals.pop();
                 return result;
             }
+            ExprKind::LetMut { value, body } => {
+                let initial = self.expr(value, locals, instructions)?;
+                let slot = Slot {
+                    id: self.next_slot,
+                    ty: initial.ty,
+                };
+                self.next_slot += 1;
+                locals.push(Binding::Mutable(slot));
+                let body = self.block(body, locals);
+                locals.pop();
+                Operation::MutableScope {
+                    slot,
+                    initial,
+                    body: body?,
+                }
+            }
+            ExprKind::Assign { index, value } => {
+                let index = locals
+                    .len()
+                    .checked_sub(
+                        index
+                            .checked_add(1)
+                            .ok_or(InvalidMir("unbound assignment"))?,
+                    )
+                    .ok_or(InvalidMir("unbound assignment"))?;
+                let Binding::Mutable(slot) = locals[index] else {
+                    return Err(InvalidMir("assignment target is immutable"));
+                };
+                let value = self.expr(value, locals, instructions)?;
+                Operation::Store(slot, value)
+            }
+            ExprKind::While { condition, body } => Operation::While {
+                condition: self.block(condition, locals)?,
+                body: self.block(body, locals)?,
+            },
             ExprKind::If {
                 condition,
                 then_branch,
@@ -195,6 +263,8 @@ fn validate(program: &Program) -> Result<()> {
             program,
             definitions: vec![None; function.temp_count],
             visible: vec![false; function.temp_count],
+            slots: vec![None; function.slot_count],
+            visible_slots: vec![false; function.slot_count],
         };
         for param in &function.params {
             validator.define(*param)?;
@@ -205,6 +275,9 @@ fn validate(program: &Program) -> Result<()> {
         if validator.definitions.iter().any(Option::is_none) {
             return Err(InvalidMir("temporary table contains undefined entries"));
         }
+        if validator.slots.iter().any(Option::is_none) {
+            return Err(InvalidMir("slot table contains undefined entries"));
+        }
     }
     Ok(())
 }
@@ -213,6 +286,8 @@ struct Validator<'a> {
     program: &'a Program,
     definitions: Vec<Option<Type>>,
     visible: Vec<bool>,
+    slots: Vec<Option<Type>>,
+    visible_slots: Vec<bool>,
 }
 impl Validator<'_> {
     fn define(&mut self, temp: Temp) -> Result<()> {
@@ -236,6 +311,16 @@ impl Validator<'_> {
             ));
         }
         Ok(temp.ty)
+    }
+    fn use_slot(&self, slot: Slot) -> Result<Type> {
+        if self.slots.get(slot.id) != Some(&Some(slot.ty))
+            || self.visible_slots.get(slot.id) != Some(&true)
+        {
+            return Err(InvalidMir(
+                "slot use is undefined, out of scope, or mistyped",
+            ));
+        }
+        Ok(slot.ty)
     }
     fn block(&mut self, block: &Block) -> Result<Type> {
         for instruction in &block.instructions {
@@ -271,6 +356,43 @@ impl Validator<'_> {
                         }
                     }
                     function.result
+                }
+                Operation::MutableScope {
+                    slot,
+                    initial,
+                    body,
+                } => {
+                    if self.use_temp(*initial)? != slot.ty {
+                        return Err(InvalidMir("slot initializer type mismatch"));
+                    }
+                    let definition = self
+                        .slots
+                        .get_mut(slot.id)
+                        .ok_or(InvalidMir("slot out of range"))?;
+                    if definition.is_some() {
+                        return Err(InvalidMir("slot defined twice"));
+                    }
+                    *definition = Some(slot.ty);
+                    self.visible_slots[slot.id] = true;
+                    let ty = self.block(body)?;
+                    self.visible_slots[slot.id] = false;
+                    ty
+                }
+                Operation::Load(slot) => self.use_slot(*slot)?,
+                Operation::Store(slot, value) => {
+                    if self.use_slot(*slot)? != self.use_temp(*value)? {
+                        return Err(InvalidMir("slot store type mismatch"));
+                    }
+                    Type::Unit
+                }
+                Operation::While { condition, body } => {
+                    if self.block(condition)? != Type::Bool {
+                        return Err(InvalidMir("loop condition is not bool"));
+                    }
+                    if self.block(body)? != Type::Unit {
+                        return Err(InvalidMir("loop body is not unit"));
+                    }
+                    Type::Unit
                 }
                 Operation::Branch {
                     condition,
@@ -360,5 +482,188 @@ mod tests {
         p.functions[1].params[0].ty = Type::Bool;
         assert!(validate(&p).is_err());
         assert!(lower(&source, usize::MAX).is_err());
+    }
+
+    fn mutable_program() -> Program {
+        lower(
+            &crate::compile("fn main()->i64 {let mut x=1;x}").unwrap(),
+            0,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn validator_rejects_uninitialized_escaping_and_mistyped_slots() {
+        assert!(validate(&mutable_program()).is_ok());
+        let slot = Slot {
+            id: 0,
+            ty: Type::I64,
+        };
+        for (before_scope, store) in [(false, false), (true, false), (false, true), (true, true)] {
+            let mut p = mutable_program();
+            p.functions[0].temp_count += 1;
+            let instruction = Instruction {
+                destination: Temp {
+                    id: 3,
+                    ty: if store { Type::Unit } else { Type::I64 },
+                },
+                kind: if store {
+                    Operation::Store(
+                        slot,
+                        Temp {
+                            id: 0,
+                            ty: Type::I64,
+                        },
+                    )
+                } else {
+                    Operation::Load(slot)
+                },
+            };
+            if before_scope {
+                p.functions[0].body.instructions.insert(1, instruction);
+            } else {
+                p.functions[0].body.instructions.push(instruction);
+            }
+            assert!(validate(&p).is_err());
+        }
+        let mut p = mutable_program();
+        p.functions[0].body.yield_value = Temp {
+            id: 1,
+            ty: Type::I64,
+        };
+        assert!(validate(&p).is_err(), "scope-local temporary escaped");
+        for count in [0, 2] {
+            let mut p = mutable_program();
+            p.functions[0].slot_count = count;
+            assert!(validate(&p).is_err());
+        }
+        let mut p = mutable_program();
+        let Operation::MutableScope { slot, .. } = &mut p.functions[0].body.instructions[1].kind
+        else {
+            panic!("scope")
+        };
+        slot.ty = Type::Bool;
+        assert!(validate(&p).is_err(), "initializer must match slot type");
+        let mut p = mutable_program();
+        let Operation::MutableScope { body, .. } = &mut p.functions[0].body.instructions[1].kind
+        else {
+            panic!("scope")
+        };
+        body.instructions[0].kind = Operation::Load(Slot {
+            id: 0,
+            ty: Type::Bool,
+        });
+        assert!(validate(&p).is_err(), "load cannot change slot type");
+        let mut p = mutable_program();
+        let Operation::MutableScope { body, .. } = &mut p.functions[0].body.instructions[1].kind
+        else {
+            panic!("scope")
+        };
+        let boolean = Temp {
+            id: 3,
+            ty: Type::Bool,
+        };
+        body.instructions.insert(
+            0,
+            Instruction {
+                destination: boolean,
+                kind: Operation::Boolean(true),
+            },
+        );
+        body.instructions[1].kind = Operation::Store(
+            Slot {
+                id: 0,
+                ty: Type::I64,
+            },
+            boolean,
+        );
+        p.functions[0].temp_count += 1;
+        assert!(validate(&p).is_err(), "store must match slot type");
+    }
+
+    #[test]
+    fn validator_rejects_duplicate_slot_definitions_across_scopes() {
+        let mut p = mutable_program();
+        let Operation::MutableScope {
+            slot,
+            initial,
+            body,
+        } = &mut p.functions[0].body.instructions[1].kind
+        else {
+            panic!("scope")
+        };
+        body.instructions[0].kind = Operation::MutableScope {
+            slot: *slot,
+            initial: *initial,
+            body: Block {
+                instructions: vec![],
+                yield_value: *initial,
+            },
+        };
+        assert!(validate(&p).is_err());
+    }
+
+    #[test]
+    fn validator_keeps_loop_blocks_scoped_and_checks_their_yield_types() {
+        fn loop_program() -> Program {
+            lower(
+                &crate::compile("fn main()->i64 {while (false) {} 42}").unwrap(),
+                0,
+            )
+            .unwrap()
+        }
+        assert!(validate(&loop_program()).is_ok());
+        let mut p = loop_program();
+        let Operation::While { condition, .. } = &mut p.functions[0].body.instructions[0].kind
+        else {
+            panic!("loop")
+        };
+        condition.instructions[0].kind = Operation::Integer(0);
+        condition.instructions[0].destination.ty = Type::I64;
+        condition.yield_value.ty = Type::I64;
+        assert!(validate(&p).is_err(), "condition must yield bool");
+        let mut p = loop_program();
+        let Operation::While { body, .. } = &mut p.functions[0].body.instructions[0].kind else {
+            panic!("loop")
+        };
+        body.instructions[0].kind = Operation::Boolean(true);
+        body.instructions[0].destination.ty = Type::Bool;
+        body.yield_value.ty = Type::Bool;
+        assert!(validate(&p).is_err(), "body must yield unit");
+        let mut p = loop_program();
+        let Operation::While { condition, body } = &mut p.functions[0].body.instructions[0].kind
+        else {
+            panic!("loop")
+        };
+        body.yield_value = condition.yield_value;
+        assert!(
+            validate(&p).is_err(),
+            "condition temporary leaked into body"
+        );
+        let mut p = loop_program();
+        p.functions[0].body.yield_value = Temp {
+            id: 1,
+            ty: Type::Unit,
+        };
+        assert!(validate(&p).is_err(), "body temporary escaped loop");
+
+        let source = crate::compile("fn main()->i64 {while ({let mut x=false;x}) {} 42}").unwrap();
+        let mut p = lower(&source, 0).unwrap();
+        let loaded = Temp {
+            id: p.functions[0].temp_count,
+            ty: Type::Bool,
+        };
+        let Operation::While { body, .. } = &mut p.functions[0].body.instructions[0].kind else {
+            panic!("loop")
+        };
+        body.instructions.push(Instruction {
+            destination: loaded,
+            kind: Operation::Load(Slot {
+                id: 0,
+                ty: Type::Bool,
+            }),
+        });
+        p.functions[0].temp_count += 1;
+        assert!(validate(&p).is_err(), "condition slot leaked into body");
     }
 }

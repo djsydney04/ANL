@@ -1,6 +1,22 @@
 import APL.Wire
+import APL.LocalStateWire
 
 open APL
+
+def executeText (text : String) (fuel : Nat) : Except Program.Error Val :=
+  let decoded : Except String (Sum Wire.Input LocalStateWire.Input) := do
+    if text.utf8ByteSize > 1048576 then throw "input file size limit"
+    Wire.lexicalCheck text.toList
+    let document ← Lean.Json.parse text
+    let schema ← (← Wire.field document "schema").getStr?
+    if schema == "apl-core-v1" || schema == "apl-expr-v1" then
+      return .inr (← LocalStateWire.document document)
+    else
+      return .inl (← Wire.document document)
+  match decoded with
+  | .ok (.inl input) => Wire.execute input fuel
+  | .ok (.inr input) => LocalStateWire.execute input fuel
+  | .error message => .error (Wire.decodeError message)
 
 def main (args : List String) : IO UInt32 := do
   let (path, fuel) ← match args with
@@ -20,9 +36,7 @@ def main (args : List String) : IO UInt32 := do
   let bytes ← try IO.FS.readBinFile path catch e => IO.eprintln e.toString; return 4
   let r := match String.fromUTF8? bytes with
     | none => .error .invalid
-    | some text => match Wire.decode text with
-      | .ok input => Wire.execute input fuel
-      | .error message => .error (Wire.decodeError message)
+    | some text => executeText text fuel
   IO.println (Wire.outcome r).compress
   return match r with
     | .ok _ => 0

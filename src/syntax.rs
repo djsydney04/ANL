@@ -267,8 +267,19 @@ pub enum Statement {
     Let {
         name: String,
         span: Span,
+        mutable: bool,
         annotation: Option<(Type, Span)>,
         value: Expr,
+    },
+    Assign {
+        name: String,
+        span: Span,
+        value: Expr,
+    },
+    While {
+        condition: Expr,
+        body: Expr,
+        span: Span,
     },
     Discard(Expr),
 }
@@ -455,6 +466,32 @@ impl Parser {
         self.recursion -= 1;
         result
     }
+    fn while_statement(&self) -> bool {
+        if !matches!(&self.current().kind, TokenKind::Ident(name) if name == "while")
+            || self.tokens.get(self.pos + 1).map(|token| &token.kind) != Some(&TokenKind::LParen)
+        {
+            return false;
+        }
+        let mut depth = 0;
+        for (offset, token) in self.tokens[self.pos + 1..].iter().enumerate() {
+            match token.kind {
+                TokenKind::LParen => depth += 1,
+                TokenKind::RParen => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return self
+                            .tokens
+                            .get(self.pos + offset + 2)
+                            .map(|token| &token.kind)
+                            == Some(&TokenKind::LBrace);
+                    }
+                }
+                TokenKind::Eof => break,
+                _ => {}
+            }
+        }
+        false
+    }
     fn block_inner(&mut self) -> Result<Expr, Diagnostic> {
         let start = self.expect(TokenKind::LBrace, "{")?.span;
         let mut statements = Vec::new();
@@ -462,6 +499,14 @@ impl Parser {
         let mut depth = 1;
         while !self.at(&TokenKind::RBrace) {
             if self.eat(&TokenKind::Let) {
+                let mutable = matches!(&self.current().kind, TokenKind::Ident(name) if name == "mut")
+                    && matches!(
+                        self.tokens.get(self.pos + 1).map(|token| &token.kind),
+                        Some(TokenKind::Ident(_))
+                    );
+                if mutable {
+                    self.bump();
+                }
                 let (name, span) = self.name()?;
                 let annotation = if self.eat(&TokenKind::Colon) {
                     Some(self.ty()?)
@@ -475,9 +520,33 @@ impl Parser {
                 statements.push(Statement::Let {
                     name,
                     span,
+                    mutable,
                     annotation,
                     value,
                 });
+            } else if self.while_statement() {
+                let start = self.bump().span;
+                self.expect(TokenKind::LParen, "( after while")?;
+                let condition = self.expression()?;
+                self.expect(TokenKind::RParen, ") after while condition")?;
+                let body = self.block()?;
+                depth = depth.max(condition.depth.max(body.depth) + 2);
+                let span = start.join(body.span);
+                statements.push(Statement::While {
+                    condition,
+                    body,
+                    span,
+                });
+            } else if matches!(&self.current().kind, TokenKind::Ident(_))
+                && self.tokens.get(self.pos + 1).map(|token| &token.kind)
+                    == Some(&TokenKind::Assign)
+            {
+                let (name, span) = self.name()?;
+                self.bump();
+                let value = self.expression()?;
+                depth = depth.max(value.depth + 2);
+                self.expect(TokenKind::Semi, "; after assignment")?;
+                statements.push(Statement::Assign { name, span, value });
             } else {
                 let value = self.expression()?;
                 depth = depth.max(value.depth + 1);

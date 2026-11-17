@@ -2,8 +2,10 @@
 
 Status: implemented first verification increment. Production results are
 solver-trusted; the [proof inventory](../formal/PROOFS.md) records the separate
-model theorems and remaining correspondence obligations. The executable scalar
-semantics remain `m1-2026-11-16`; the verification rules are `apl-verify-v0`.
+model theorems and remaining correspondence obligations. The supported executable
+scalar semantics are `m1-2026-11-16`; the verification rules are `apl-verify-v0`.
+Programs using the `local-state-2026-11-17` extension are reported with that
+revision and rejected as unsupported before solver discovery.
 
 ## Source contracts
 
@@ -64,7 +66,8 @@ Every ordinary source command parses, resolves, and type-checks the contracts.
 metadata and preserve existing runtime behavior, including arithmetic traps.
 They do not insert dynamic precondition or postcondition checks and do not invoke
 a solver. `dump-core` exports the erased executable body in the existing scalar
-format. Importing that core does not recover contracts or verification evidence.
+format for the executable revision selected by the complete checked program.
+Importing that core does not recover contracts or verification evidence.
 
 The first increment does not add `assert`, `assume`, ghost statements, or runtime
 contract traps. Runtime assertions require a separate semantic revision, core
@@ -82,8 +85,14 @@ acyclic function-call graph. The verifier checks this graph before generating
 conditions. Any recursive component makes the whole verification attempt
 `unsupported`, including an unused or syntactically unreachable recursive call.
 This limitation applies to verification; ordinary compilation still supports
-recursion. No loop, heap, ownership, effect, concurrency, or foreign-call property
-is covered.
+recursion. A separate preflight visits every checked function body and rejects
+`let_mut`, `assign`, or `while` before compiler hashing, solver discovery, and
+query generation. This includes unused functions and unselected branches. It
+reports `unsupported` with exit 7, identifies the construct, and emits no query
+obligations. No mutable-state, loop, heap, ownership, effect, concurrency, or
+foreign-call property is covered. A later loop verifier needs a symbolic-state
+invariant rule covering initialization, preservation, condition and body trap
+freedom, and exit postconditions. Finite unrolling is not verification.
 
 ## Verification conditions
 
@@ -233,7 +242,10 @@ for content hashes.
 An unsuccessful preflight report may leave tool identities null when discovery
 or hashing has not run. Null means unavailable or not measured; it is not an
 identity claim. Source snapshots and typed function metadata remain present when
-available, and no query records are invented. A `verified` report requires all
+available, and no query records are invented. The executable semantic revision
+comes from the complete checked program, including stateful programs rejected
+as unsupported. When source loading, parsing, or checking fails, no checked
+program exists and `semantic_revision` is null. A `verified` report requires all
 compiler, solver, source, and query bindings above.
 
 Every result has `trust: "smt-trusted"`. The report states that type checking ran,

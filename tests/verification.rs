@@ -66,6 +66,7 @@ fn real_solver_checks_contracts_arithmetic_scopes_and_heterogeneous_parameters()
     let fixture = Fixture::new();
     let (output, report) = fixture.verify("fn inc(x:i64)->i64 requires x<9223372036854775807; ensures(r) r==x+1; {x+1} fn main()->i64 ensures(r)r==42;{inc(41)}");
     status(&output, &report, 0, "verified");
+    assert_eq!(report["semantic_revision"], "m1-2026-11-16");
     for source in [
         "fn same(p:bool,x:i64,u:unit)->i64 ensures(r)r==x;{let y={let x=7;x};let z=if p {()}else{()};x} fn main()->i64 ensures(r)r==42;{same(false,42,())}",
         "fn f(x:i64)->i64 requires x!=0; requires 10/x>1; ensures(r)r==10/x;{10/x}",
@@ -214,12 +215,71 @@ fn unsupported_empty_source_errors_and_missing_tools_never_succeed() {
     let (o, r) = verify(&path, &missing, 30_000);
     status(&o, &r, 1, "error");
     assert_eq!(r["type_checked"], false);
+    assert!(r["semantic_revision"].is_null());
     let path = fixture.file("main.apl", "fn main()->i64{42}");
     let (o, r) = verify(&path, &missing, 30_000);
     status(&o, &r, 4, "error");
     let (o, r) = verify(&fixture.0.join("missing.apl"), &missing, 30_000);
     status(&o, &r, 4, "error");
 }
+#[test]
+#[cfg(unix)]
+fn local_state_preflight_rejects_unused_and_dead_forms_without_starting_solver() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new();
+    let marker = fixture.0.join("invoked");
+    let solver = fixture.file(
+        "solver",
+        &format!(
+            "#!/bin/sh\nprintf invoked > '{}'\nexit 99\n",
+            marker.display()
+        ),
+    );
+    fs::set_permissions(&solver, fs::Permissions::from_mode(0o755)).unwrap();
+    for (source, construct) in [
+        ("fn main()->i64 {let mut x=42;x}", "let mut"),
+        (
+            "fn main()->i64 {42} fn unused()->i64 {let mut x=0;x=1;x}",
+            "let mut",
+        ),
+        (
+            "fn main()->i64 {if false {let mut x=0;x}else{42}}",
+            "let mut",
+        ),
+        ("fn main()->i64 {while (false) {} 42}", "while"),
+        (
+            "fn main()->i64 {if true {42}else{while (true) {} 0}}",
+            "while",
+        ),
+        (
+            "fn main()->i64 {42} fn unused()->unit {while (true) {}}",
+            "while",
+        ),
+    ] {
+        let path = fixture.file("main.apl", source);
+        let (output, report) = verify(&path, &solver, 30_000);
+        status(&output, &report, 7, "unsupported");
+        assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
+        assert!(
+            report["message"].as_str().unwrap().contains(construct),
+            "{report}"
+        );
+        assert_eq!(report["type_checked"], true);
+        assert!(report["compiler"].is_null());
+        assert!(report["solver"].is_null());
+        assert!(report["obligations"].as_array().unwrap().is_empty());
+        assert!(!marker.exists(), "unsupported program started a solver");
+    }
+    let path = fixture.file("main.apl", "mod helper; fn main()->i64 {42}");
+    fixture.file("helper.apl", "fn unused()->unit {while (false) {}}");
+    let (output, report) = verify(&path, &solver, 30_000);
+    status(&output, &report, 7, "unsupported");
+    assert_eq!(report["semantic_revision"], "local-state-2026-11-17");
+    assert_eq!(report["sources"].as_array().unwrap().len(), 2);
+    assert!(report["obligations"].as_array().unwrap().is_empty());
+    assert!(!marker.exists());
+}
+
 #[cfg(unix)]
 fn fake(fixture: &Fixture, mode: &str) -> PathBuf {
     use std::os::unix::fs::PermissionsExt;

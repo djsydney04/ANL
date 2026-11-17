@@ -1,12 +1,15 @@
 # Trust boundaries and guarantee ledger
 
-Status: evidence ledger for scalar semantic revision `m1-2026-11-16`, with the
-wider language still planned. Rust source checking, interpretation, modules,
-native compilation, pure acyclic contract verification, and strict core
-import/export have executable conformance coverage. Lean's expression and recursive-function models have kernel-checked
+Status: evidence ledger for immutable scalar revision `m1-2026-11-16` and the
+separate `local-state-2026-11-17` extension, with the wider language still planned. Rust source checking, interpretation, modules,
+native compilation, local scalar state and loops, pure acyclic contract
+verification, and strict v0/v1 interchange have executable conformance coverage. Lean's expression and recursive-function models have kernel-checked
 theorems, including finite evaluator correspondence with sufficient depth and
-fuel. A call-free verification-condition model proves contract soundness under
-logical obligations; the production verifier remains `smt-trusted`. Rust and
+fuel. The local-state model has separate initialized-cell typing, current-state
+machine safety, finite run/reduction correspondence, and forward finite v0 outcome
+preservation. Verification-condition proofs include finite body expansion and
+callee preconditions when generation succeeds; the production verifier remains
+`smt-trusted`. Rust and
 source/module/backend correctness proofs and a qualified release remain open.
 Architecture review alone cannot change a component to verified.
 
@@ -14,6 +17,7 @@ Current evidence is available in the [source conformance tests](../../tests/conf
 [API and I/O boundary tests](../../tests/boundaries.rs),
 [native tests](../../tests/native.rs), [module tests](../../tests/modules.rs),
 [contract tests](../../tests/contracts.rs), [verifier tests](../../tests/verification.rs),
+[local-state tests](../../tests/control_flow.rs),
 [formal build and comparison instructions](../../formal/README.md), and
 [theorem inventory](../../formal/PROOFS.md). The inventory names the exact theorem
 statements, Lean 4.36.0 toolchain, axiom dependencies, and remaining obligations.
@@ -33,13 +37,13 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Language definitions and theorem statements | Whether checked mathematics describes intended APL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
 | Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the expression and program inventory is checked by clean builds, transitive axiom audit, and kernel replay. Actual dependencies are recorded in the inventory. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
-| Formal evaluator compilation and JSON reader | Executed reference results | Executable tests compare values, traps, and input rejection. Finite expression and program evaluator correspondence is proved in both directions; program completeness quantifies sufficient depth and fuel. Typed program results cannot be invalid. Neither termination nor completeness at fixed CLI limits is established. Running compiled Lean still trusts its compilation and runtime, and the JSON adapter is tested rather than proved. |
-| Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs and file modules, including scope, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
+| Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. Typed model runs cannot reach invalid. V1 transition budgets differ from Rust expression/depth limits; resource comparisons are inconclusive. JSON adapters and Lean compilation/runtime remain trusted or tested boundaries. |
+| Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs, file modules, and initialized local state, including scope, permissions, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
-| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier is implemented and independently tested for pure acyclic functions. A separate Lean call-free generator and contract logic are proved sound under interpreted obligations. Call expansion, callee-precondition insertion, named decomposition, and production correspondence remain unproved (partial FM-07). |
+| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier is independently tested for pure acyclic immutable functions and rejects local state before tools run. Lean proves call-free and finite symbolic body-expansion soundness, including callee preconditions, when generation succeeds. Source acyclicity/expansion completeness, separate AST-inlining equivalence, named decomposition, and production bridges remain open (partial FM-07). |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Z3 5.3.3 is pinned. The driver records exact tool/query hashes, bounds time and I/O, validates status/models, and requires successful process termination. Real-solver and failure-protocol tests passed in Linux/macOS CI at `a7e0b38591ba76255e561cda60099bc8bc422543` ([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Results remain `smt-trusted`; models are unreplayed and no certificate checker is implemented. |
-| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR, with tested scope, ordering, branches, and traps. These validators do not prove translation correctness. APL optimization passes remain unimplemented. |
+| Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR with initialized scalar slots and loops. Tests cover scope, ordering, state changes, branches, and traps. These validators do not prove translation correctness. APL optimization passes remain unimplemented. |
 | C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. Native and module checks passed macOS AArch64 and Linux x86-64 CI at `19d726c`; compiler, linker, and host behavior remain trusted. LLVM is planned. |
 | Runtime and allocator | Cleanup, layout, I/O, concurrency, and memory safety | Scalar arithmetic/trap/output helpers are implemented and tested. Heap allocation, resource cleanup, source I/O, and concurrency runtimes remain unimplemented; they require contracts, sanitizers, and independent unsafe-code review. |
 | Unsafe APL and foreign libraries | Any safe abstraction that depends on them | Explicit contracts, versioned dependencies, and reviewed wrappers. Foreign violations can invalidate dependent safety claims. |
@@ -57,10 +61,13 @@ Do not collapse these labels into a generic green check. The named Lean
 expression and recursive-function theorems discharge FM-01 through FM-05 for that
 model. Completeness requires sufficient depth and fuel; it does not prove
 termination or completeness at fixed CLI limits. Rust/model correspondence proofs
-(FM-06) and lowering proofs (FM-08) remain open. FM-07 has a checked call-free
-foundation, but production verification is not kernel checked: call inlining,
-callee preconditions, named decomposition, Rust generation, SMT translation, and
-solver answers remain trusted or tested boundaries. Module visibility is checked
+(FM-06) and lowering proofs (FM-08) remain open. The separate local-state proofs
+cover their typed machine and forward finite v0 embedding; they do not prove
+reverse divergence correspondence or identical production resource limits.
+FM-07 includes sound finite body expansion with callee preconditions when
+generation succeeds. Source acyclicity/expansion completeness, separate syntax
+inlining, named decomposition, Rust generation, SMT translation, and solver answers
+remain unproved boundaries; production verification is not kernel checked. Module visibility is checked
 by Rust before flattening to scalar core; the model's function theorems do not
 prove that source-level boundary.
 
@@ -75,7 +82,9 @@ Proof status is per semantic revision. Changing grammar elaboration, arithmetic,
 ## Verification and external assumptions
 
 The current verifier checks every loaded function and rejects recursive call
-graphs. It checks callee preconditions and expands actual bodies, without using
+graphs and local-state constructors. State rejection occurs before tool discovery,
+even for unused functions or unselected branches. A checked stateful report names
+its v1 revision; a source failure has no established revision and reports null. It checks callee preconditions and expands actual bodies, without using
 postconditions as summaries. Ordered definedness checks prevent self-justifying
 preconditions, and separate satisfiability checks reject vacuous contracts.
 Ordinary compilation type-checks and erases clauses without proving or dynamically

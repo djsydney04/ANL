@@ -18,6 +18,7 @@ struct Signature {
 struct Binding {
     name: Option<String>,
     ty: Type,
+    mutable: bool,
     span: Span,
 }
 struct Checker {
@@ -120,6 +121,7 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
                 env.push(Binding {
                     name: Some(parameter.name),
                     ty: parameter.ty,
+                    mutable: false,
                     span: parameter.span,
                 });
             }
@@ -445,6 +447,7 @@ impl Checker {
                         syntax::Statement::Let {
                             name,
                             span,
+                            mutable,
                             annotation,
                             value,
                         } => {
@@ -468,18 +471,107 @@ impl Checker {
                             env.push(Binding {
                                 name: Some(name),
                                 ty: value.ty,
+                                mutable,
                                 span,
                             });
-                            initializers.push(value);
+                            initializers.push((value, mutable));
+                        }
+                        syntax::Statement::Assign { name, span, value } => {
+                            let position = env
+                                .iter()
+                                .rposition(|binding| binding.name.as_ref() == Some(&name))
+                                .ok_or_else(|| {
+                                    Diagnostic::new(
+                                        span,
+                                        format!("undefined assignment target `{name}`"),
+                                    )
+                                })?;
+                            let target = &env[position];
+                            if !target.mutable {
+                                return Err(Diagnostic::new(
+                                    span,
+                                    format!("cannot assign to immutable binding `{name}`"),
+                                )
+                                .related(target.span, "immutable binding declared here"));
+                            }
+                            let expected = target.ty;
+                            let declaration = target.span;
+                            let index = env.len() - position - 1;
+                            let value = self.expr(value, env)?;
+                            expect_type(
+                                value.ty,
+                                expected,
+                                value.span,
+                                declaration,
+                                "assignment target declared here",
+                            )?;
+                            let expression_span = span.join(value.span);
+                            let depth = value.depth + 1;
+                            let value = self.node(
+                                Type::Unit,
+                                ExprKind::Assign {
+                                    index,
+                                    value: Box::new(value),
+                                },
+                                expression_span,
+                                depth,
+                            )?;
+                            env.push(Binding {
+                                name: None,
+                                ty: Type::Unit,
+                                mutable: false,
+                                span: expression_span,
+                            });
+                            initializers.push((value, false));
+                        }
+                        syntax::Statement::While {
+                            condition,
+                            body,
+                            span,
+                        } => {
+                            let condition = self.expr(condition, env)?;
+                            expect_type(
+                                condition.ty,
+                                Type::Bool,
+                                condition.span,
+                                span,
+                                "while condition requires bool",
+                            )?;
+                            let body = self.expr(body, env)?;
+                            expect_type(
+                                body.ty,
+                                Type::Unit,
+                                body.span,
+                                span,
+                                "while body requires unit; discard a result with a semicolon",
+                            )?;
+                            let depth = condition.depth.max(body.depth) + 1;
+                            let value = self.node(
+                                Type::Unit,
+                                ExprKind::While {
+                                    condition: Box::new(condition),
+                                    body: Box::new(body),
+                                },
+                                span,
+                                depth,
+                            )?;
+                            env.push(Binding {
+                                name: None,
+                                ty: Type::Unit,
+                                mutable: false,
+                                span,
+                            });
+                            initializers.push((value, false));
                         }
                         syntax::Statement::Discard(value) => {
                             let value = self.expr(value, env)?;
                             env.push(Binding {
                                 name: None,
                                 ty: value.ty,
+                                mutable: false,
                                 span: value.span,
                             });
-                            initializers.push(value);
+                            initializers.push((value, false));
                         }
                     }
                 }
@@ -498,17 +590,21 @@ impl Checker {
                     )?
                 };
                 env.truncate(outer);
-                for value in initializers.into_iter().rev() {
+                for (value, mutable) in initializers.into_iter().rev() {
                     let depth = value.depth.max(body.depth) + 1;
-                    body = self.node(
-                        body.ty,
+                    let ty = body.ty;
+                    let kind = if mutable {
+                        ExprKind::LetMut {
+                            value: Box::new(value),
+                            body: Box::new(body),
+                        }
+                    } else {
                         ExprKind::Let {
                             value: Box::new(value),
                             body: Box::new(body),
-                        },
-                        span,
-                        depth,
-                    )?;
+                        }
+                    };
+                    body = self.node(ty, kind, span, depth)?;
                 }
                 return Ok(body);
             }

@@ -430,7 +430,7 @@ fn lexer_and_parser_reject_malformed_or_unsupported_source() {
         "fn f(x: i64) -> i64 { x } fn main() -> i64 { f(1,) }",
         "fn main() -> i64 { if 1 < 2 < 3 { 1 } else { 0 } }",
         "fn main() -> i64 { if true == false == false { 1 } else { 0 } }",
-        "fn main() -> i64 { let mut x = 1; x }",
+        "fn main() -> i64 { let mut x: i64; x }",
         "fn main() -> i64 { return 1; }",
         "fn main() -> i64 { while true {} 1 }",
         "fn main() -> i64 { let x = 1; x = 2; x }",

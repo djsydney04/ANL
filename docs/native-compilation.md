@@ -1,8 +1,9 @@
 # Native scalar compilation
 
 APL can build the checked scalar language into a host machine-code executable
-through a C11 compiler. Programs may use the [file module system](modules.md);
-the checked graph lowers to one C11 translation unit. Separate-object compilation
+through a C11 compiler. Initialized mutable scalar locals, assignment, and
+structured `while` statements are supported. Programs may use the
+[file module system](modules.md); the checked graph lowers to one C11 translation unit. Separate-object compilation
 and the remaining full-language requirements are pending. The backend and its
 runtime helpers are tested, not formally verified.
 
@@ -34,8 +35,9 @@ builds preserve existing output files and remove their staging directory.
 standard streams, and removes the temporary files when the child exits. It
 returns the child's status. A host signal termination is reported as an
 infrastructure failure with status 4. Native recursion uses the host stack and
-has no interpreter fuel or nesting limit. Host resource failure is outside the
-scalar language semantics; it is not a language arithmetic trap or a proof of
+has no interpreter fuel or nesting limit. A `while` loop uses constant host
+stack space with respect to its iteration count and has no native fuel limit.
+Host resource failure is outside the scalar language semantics; it is not a language arithmetic trap or a proof of
 divergence. Process termination or a machine crash can leave temporary files.
 
 The native wrapper prints the complete signed `i64` result and a newline, then
@@ -56,6 +58,11 @@ typed temporaries. Each block sequences instructions and ends in one `Yield`
 terminator. A branch instruction contains two blocks and assigns its destination
 from the selected block's yield. `&&` and `||` become branches. Function calls
 refer to a complete signature table, allowing forward and mutual recursion.
+Mutable locals use separate typed slots. `MutableScope` initializes one slot,
+executes its lexical body, and copies the result to a temporary. Each mutable
+read emits `Load`; assignment evaluates its right-hand side before `Store`.
+`While` contains a Boolean condition block and a unit body block. The condition
+runs before every iteration, including the final false test.
 
 The validator checks every function and both sides of every branch. Every use
 must name an already-defined, visible temporary with the recorded type. Every
@@ -66,6 +73,12 @@ their result declarations, and the executable entry is nullary and returns
 Residual short-circuit binary operations are rejected. Validation precedes C
 emission, including for programs supplied through the Rust library API.
 
+Every slot has one unique, in-range definition and a matching initializer type.
+Loads and stores must use a visible slot with the recorded type. A slot is visible
+only within its `MutableScope` body; no address or slot can be passed or yielded.
+Condition and body temporaries and slots cannot escape their blocks or cross the
+loop back edge. Each iteration initializes its body-local slots afresh.
+
 Arithmetic instructions have checked semantics, including their named traps.
 The MIR contains no unchecked partial signed arithmetic instruction. In emitted
 C, portable helpers check their preconditions before addition, subtraction,
@@ -74,8 +87,12 @@ trap, as do zero divisors. Helpers use no compiler-specific overflow builtins.
 
 Instruction order becomes C statement order. Calls and binary operations receive
 previously computed scalar temporaries, so C's argument evaluation order cannot
-change APL's first trap. Branch bodies remain conditional. Discarded expressions
-still produce instructions and execute their traps. Internal symbols use numeric
+change APL's first trap. Mutable reads are scalar snapshots, so later argument
+mutations cannot change earlier argument values. A callee receives scalar copies
+and cannot mutate caller slots. Mutable scopes emit lexical C blocks; loops emit
+actual C loops with the condition computation inside the loop. Loads and stores
+are separate sequenced statements. Branch bodies remain conditional. Discarded
+expressions still produce instructions and execute their traps. Internal symbols use numeric
 IDs; source identifiers and source text are never inserted into C identifiers or
 shell commands. The internal scalar ABI uses `int64_t`, `bool`, and an
 `unsigned char` zero value for unit. It is not a stable foreign-function ABI.
@@ -86,8 +103,12 @@ shell commands. The internal scalar ABI uses `int64_t`, `bool`, and an
 `-O2`, comparing independently specified values and traps with the reference
 evaluator. Cases include signed limits, arithmetic sign combinations, first-trap
 ordering, discarded traps, branch selection, scopes, unit and bool calls,
-forward calls, and mutual recursion. CLI tests check machine-code file headers,
-full-width results, output preservation, missing tool diagnostics, source-path
+forward calls, mutual recursion, lexical mutation, snapshot reads, ordered
+argument effects, isolated callee state, fresh loop locals, effectful conditions,
+short-circuit effects, nested loops, and a 300000-iteration loop. State cases also
+round-trip through the strict v1 importer. Forged MIR tests reject invalid slot
+initialization, types, scope, and loop-block yields. CLI tests check machine-code
+file headers, full-width results, output preservation, missing tool diagnostics, source-path
 protection, and temporary cleanup. The suite runs emitted arithmetic cases under
 the undefined-behavior sanitizer when the installed toolchain supports it; an
 unavailable sanitizer is reported explicitly.

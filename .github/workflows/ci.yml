@@ -93,4 +93,6 @@ jobs:
       - name: Build compiler for differential execution
         run: cargo +1.99.1 build --locked
       - name: Compare formal and production evaluators
-        run: python3 formal/test.py --rust target/debug/apl
+        run: |
+          python3 formal/test.py --rust target/debug/apl
+          python3 formal/test_local_state.py --rust target/debug/apl

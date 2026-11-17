@@ -20,7 +20,6 @@ const MAX_QUERY_BYTES: usize = 1_048_576;
 const MAX_TOTAL_QUERY_BYTES: usize = 16_777_216;
 const MAX_QUERIES: usize = 1024;
 const SCHEMA: &str = "apl-verify-v0";
-const SEMANTICS: &str = "m1-2026-11-16";
 
 #[derive(Clone, Debug)]
 pub struct VerifyOptions {
@@ -85,7 +84,7 @@ impl VerificationReport {
             1
         };
         Self {
-            data: json!({"schema":SCHEMA,"semantic_revision":SEMANTICS,"status":"error","trust":"smt-trusted","type_checked":false,"tested":false,"dynamic_checks":false,"compiler":null,"solver":null,"sources":null,"functions":null,"obligations":[],"message":error.render("<source>", ""),"source_error":true,"resource_limit":error.resource_limit}),
+            data: json!({"schema":SCHEMA,"semantic_revision":null,"status":"error","trust":"smt-trusted","type_checked":false,"tested":false,"dynamic_checks":false,"compiler":null,"solver":null,"sources":null,"functions":null,"obligations":[],"message":error.render("<source>", ""),"source_error":true,"resource_limit":error.resource_limit}),
             exit,
         }
     }
@@ -213,7 +212,7 @@ pub fn verify_file(
     let deadline = Instant::now() + Duration::from_millis(options.timeout_ms);
     let mut report = VerificationReport {
         data: json!({
-            "schema":SCHEMA,"semantic_revision":SEMANTICS,"status":"verified","trust":"smt-trusted",
+            "schema":SCHEMA,"semantic_revision":program.semantic_revision(),"status":"verified","trust":"smt-trusted",
             "scope":{"functions":"all_loaded","arithmetic_safety":true,"partial_correctness":true,"termination_proved":false,"model_proof":"FM-07 open or partial; call inlining and Rust/SMT correspondence are not proved","native_correctness":false},
             "type_checked":true,"tested":false,"dynamic_checks":false,"contracts_erased":true,
             "limits":{"timeout_ms":options.timeout_ms,"expanded_nodes":MAX_NODES,"expansion_depth":256,"queries":MAX_QUERIES,"query_bytes":MAX_QUERY_BYTES,"total_query_bytes":MAX_TOTAL_QUERY_BYTES,"solver_stdout_bytes":1_048_576,"solver_stderr_bytes":65_536},
@@ -235,7 +234,7 @@ pub fn verify_file(
         report.data["message"] = json!("no functions were supplied; nothing was verified");
         return Ok(report);
     }
-    if let Err(error) = formula::acyclic(&program) {
+    if let Err(error) = formula::supported(&program).and_then(|()| formula::acyclic(&program)) {
         fail(&mut report, error);
         return Ok(report);
     }

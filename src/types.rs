@@ -138,6 +138,18 @@ pub enum ExprKind {
         value: Box<Expr>,
         body: Box<Expr>,
     },
+    LetMut {
+        value: Box<Expr>,
+        body: Box<Expr>,
+    },
+    Assign {
+        index: usize,
+        value: Box<Expr>,
+    },
+    While {
+        condition: Box<Expr>,
+        body: Box<Expr>,
+    },
     If {
         condition: Box<Expr>,
         then_branch: Box<Expr>,
@@ -262,6 +274,38 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn has_local_state(&self) -> bool {
+        fn contains(expr: &Expr) -> bool {
+            match &expr.kind {
+                ExprKind::LetMut { .. } | ExprKind::Assign { .. } | ExprKind::While { .. } => true,
+                ExprKind::Let { value, body } => contains(value) || contains(body),
+                ExprKind::If {
+                    condition,
+                    then_branch,
+                    else_branch,
+                } => contains(condition) || contains(then_branch) || contains(else_branch),
+                ExprKind::Unary { operand, .. } => contains(operand),
+                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
+                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
+                ExprKind::Integer(_)
+                | ExprKind::Boolean(_)
+                | ExprKind::Unit
+                | ExprKind::Local(_) => false,
+            }
+        }
+        self.functions
+            .iter()
+            .any(|function| contains(&function.body))
+    }
+
+    pub fn semantic_revision(&self) -> &'static str {
+        if self.has_local_state() {
+            crate::core::LOCAL_STATE_SEMANTIC_REVISION
+        } else {
+            crate::core::SEMANTIC_REVISION
+        }
+    }
+
     /// Attach this program's immutable source map to a diagnostic, including
     /// evaluator traps. Programs imported from core JSON have no source map.
     pub fn source_diagnostic(&self, diagnostic: Diagnostic) -> Diagnostic {

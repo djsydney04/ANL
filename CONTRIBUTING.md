@@ -3,8 +3,9 @@
 Start with the [architecture](docs/architecture/overview.md) and
 [language requirements](docs/requirements.md). The repository currently contains
 the scalar checker/interpreter, native C11 backend, file modules, core JSON
-adapters, a pure acyclic contract verifier, and a Lean model with expression,
-recursive-function, and call-free verification-condition proofs. Follow
+adapters, initialized mutable scalar locals and loops, a pure acyclic contract
+verifier, and separate immutable/local-state Lean models. Verification-condition
+proofs cover call-free terms and finite symbolic function-body expansion. Follow
 [getting started](docs/getting-started.md) to build and run source programs; the
 [proof inventory](formal/PROOFS.md) records finite model correspondence in both
 directions and the remaining source, Rust, module, and backend proof boundaries.
@@ -34,12 +35,16 @@ tools as described in
 ```sh
 formal/check.sh
 python3 formal/test.py --rust target/release/apl
+python3 formal/test_local_state.py --rust target/release/apl
 ```
 
 The proof check rebuilds the model, audits theorem dependencies, and replays
 declarations through Lean's kernel. The comparison command executes the Rust and
 Lean tools against specified outcomes; passing comparisons do not prove the Rust
-implementation correct.
+implementation correct. The local-state model counts transitions, while Rust
+counts expression entries and has a separate depth bound; resource-limited cases
+are inconclusive comparisons. The proof inventory separates v0 theorems from the
+new state machine and its forward finite-outcome embedding.
 
 ## Propose a language change
 
@@ -70,11 +75,12 @@ that it has passed on that platform; inspect the run for the revision under revi
 
 The workflow includes native execution, module tests, arithmetic sanitizer
 probes, and contract/verifier regressions with the pinned real solver and controlled
-protocol-failure responders. At `a7e0b38591ba76255e561cda60099bc8bc422543`,
+protocol-failure responders. At `1b70f10258cec050ce9d4961a6496a8fef8c6894`,
 the Linux and macOS Rust jobs and the Lean proof/comparison job all passed
-([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Later checks
-cover broader property testing, fuzzing, security, installation, and release
-artifact integrity.
+([run](https://github.com/djsydney04/ANL/actions/runs/44056277127)), including the
+81-theorem immutable/call-verification inventory. This run predates local state;
+its hosted checks remain pending. Later checks cover broader property testing,
+fuzzing, security, installation, and release artifact integrity.
 
 Use reproducible tool versions and lockfiles. Keep workflow permissions read-only
 unless a specific operation requires more. Keep secrets out of logs and source

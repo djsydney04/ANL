@@ -1,6 +1,6 @@
 # Checked theorem inventory
 
-Semantic revision: `m1-2026-11-16`. Proof tool: Lean 4.36.0, official release
+Semantic revisions: `m1-2026-11-16` and `local-state-2026-11-17`. Proof tool: Lean 4.36.0, official release
 commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. The checking command is
 `formal/check.sh` from the repository root with the pinned Lean tools on `PATH`.
 It rebuilds all source, runs `APL/Audit.lean`, and replays the semantic modules
@@ -282,6 +282,64 @@ syntax-inlining transformation. Named-condition decomposition, Rust generation,
 source-contract erasure, SMT translation and solver evidence remain unproved.
 Full FM-07 remains partial.
 
+## Local state extension
+
+The following 37 theorems belong to `APL.LocalState`, a separate model for
+`local-state-2026-11-17`. The preceding 81 theorem statements remain v0 artifacts.
+Here `Γ` contains `(type, mutable)` bindings; an `Env` contains initialized scalar
+values only. `EnvTyped env Γ` equates their ordered type lists. `HasType` and
+`ArgsTyped` are independent inductive judgments. `WellTyped fs` requires every
+function body to type check under immutable parameters and the complete signature
+table, allowing recursion without assuming termination.
+
+Both evaluation and value-return states carry the current environment.
+`Frame.Typed` relates an input context and value type to an output context and
+value type. Scope frames remove one binding; call-return frames carry a typed
+saved caller environment. Every other frame passes through the current context.
+`KontTyped` composes these judgments. The state-typing judgment is structural and
+does not assume evaluation safety. Trap states have every result type; invalid
+states have no typing constructor.
+
+| Theorem in `APL.LocalState` | Quantified statement and assumptions |
+| --- | --- |
+| `infer_complete`, `infer_sound` | Declarative typing and successful inference imply one another, including permissions, assignment, loops and calls. |
+| `type_unique` | Two typings of the same term under one signature table and context have equal result types. |
+| `signatures_lookup`, `signatures_lookup_inv` | Function-table lookup and the corresponding signature-table lookup agree. |
+| `checked_functions` | Successful inference of every declared function body establishes `WellTyped`. |
+| `env_cons`, `env_tail` | Introducing a value of its declared type and removing the newest cell preserve ordered environment typing. |
+| `env_lookup` | A context lookup and `EnvTyped` identify an initialized runtime value of that type. |
+| `update_typed` | An existing context cell of the replacement value's type guarantees a successful update with the same environment typing. This lemma permits either static permission; the assignment typing rule separately requires mutability. |
+| `update_other` | A successful update leaves each differently indexed cell unchanged. |
+| `immutable_unchanged` | If the selected context cell is mutable and another is immutable, successful update leaves the immutable cell unchanged. |
+| `step_complete`, `step_sound`, `step_iff` | The executable transition and the independently enumerated `Step` relation agree in both directions, including invalid untyped states. |
+| `deterministic` | Any two one-step successors of one state are equal. |
+| `stopped_iff` | The executable transition is absent exactly at a terminal value/trap or an invalid state. |
+| `run_sound`, `run_complete`, `run_iff` | A successful finite run is a finite reduction to a stopped state, and every such reduction has a sufficient transition budget. No typing or termination assumption. |
+| `resume_typed` | A typed primitive result, initialized environment and continuation yield a typed resumed configuration. |
+| `preservation` | `WellTyped fs`, structural state typing and any `Step` imply typing of the successor. Covers all 37 transition constructors, including argument effects, scope removal, call isolation and loop back edges. |
+| `progress` | A typed state is a terminal value/trap or has a `Step` successor. |
+| `steps_preserve`, `safety` | Under `WellTyped fs`, finite reductions preserve typing and end in a terminal state or one with a successor. |
+| `no_invalid` | A typed state in a well-typed function table cannot reduce to invalid. |
+| `finite_run_safe` | Under those typing premises, any completed run returns a value of the requested type with empty continuation, or one of the defined arithmetic traps. The final value environment is existentially quantified. |
+| `entry_typed`, `entry_safety` | A zero-parameter entry has a typed invocation state; under `WellTyped fs`, its finite reductions satisfy safety. |
+| `embed_typed`, `embed_signatures`, `embed_wellTyped` | Embedding a v0 term/function table preserves signatures and declarative typing, making all old bindings immutable. |
+| `embed_value_steps`, `embed_trap_steps`, `embed_invalid_steps` | Every finite old `Program.eval` value, trap or invalid result has a reduction of the embedded term/functions to the same outcome. Value evaluation restores the original environment even through nested scopes and calls. |
+| `embed_value_run`, `embed_trap_run` | Every finite old evaluator value/trap has a sufficient new transition budget returning the same value/trap. No equality of budgets or fixed-limit completeness is asserted. |
+
+The v0 embedding result is forward outcome preservation, including recursive
+calls whenever they have a finite old evaluation. Reverse termination/divergence
+correspondence has not been proved. The new machine's `run` theorem itself is
+bidirectional for finite reductions. Neither result proves correspondence with
+Rust or C.
+
+Kernel-checked examples include surviving outer mutation, final false condition
+effects, ordered argument mutation, isolated callee changes, recursive functions,
+immutable/shadowed/mistyped assignment rejection, malformed loop types, exact
+machine budget boundaries, short circuit, and loop-body trap propagation. V1
+resource exhaustion is not a terminal language result and proves neither
+termination nor divergence. No local-state VCG, loop-invariant rule, variant,
+abrupt control-flow semantics, or native-lowering theorem is included.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
@@ -295,7 +353,7 @@ trust axiom, or disabled kernel check is admitted. Kernel-reduced smoke examples
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 81 inventoried names are included.
+Its allowable set is explicit, and all 118 inventoried names are included.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -303,8 +361,8 @@ not establish that the formal definitions match every intended APL rule.
 
 ## Explicit gaps
 
-FM-01 through FM-05 are discharged for the documented scalar expression/function
-model. This does not establish termination, trap freedom, completeness at fixed
+FM-01 through FM-05 are discharged for the documented v0 scalar expression/function
+model; the local-state extension has the separate scoped results above. This does not establish termination, trap freedom, completeness at fixed
 CLI resource limits, or correctness of source/module elaboration, Rust checking,
 JSON adapters or native compilation. The expression syntax intentionally has no
 call constructor; program terms use a separate type to make that boundary visible.

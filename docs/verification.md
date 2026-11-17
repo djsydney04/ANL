@@ -78,8 +78,12 @@ that division and remainder are overflow traps in executable code.
 ## Understand the result
 
 The verifier checks every loaded function, including private and unused functions.
-A function with no explicit contracts still gets an arithmetic-safety check. A
-library does not need `main`. An empty program reports that nothing was requested.
+A function with no explicit contracts still gets an arithmetic-safety check.
+Any `let mut`, assignment, or `while` in any checked body makes the complete
+attempt `unsupported`, including unused functions and unselected branches.
+This preflight runs before compiler hashing, solver discovery, or query creation.
+The diagnostic identifies the unsupported construct. A library does not need
+`main`. An empty program reports that nothing was requested.
 
 Calls check argument evaluation and callee preconditions, then analyze the actual
 callee body. The verifier does not assume a callee's postconditions as axioms.
@@ -94,7 +98,7 @@ their executable meaning.
 | 4 | Invocation, solver protocol, tool, or I/O failure |
 | 5 | Refuted property or unsatisfiable preconditions |
 | 6 | Solver uncertainty, timeout, or verification analysis limit |
-| 7 | Unsupported recursion or an empty function graph |
+| 7 | Unsupported recursion, mutable state, loops, or an empty function graph |
 
 A refuting solver model is labeled `replayed: false`. It is a candidate
 counterexample, not an execution trace. A later error does not erase already
@@ -105,8 +109,10 @@ function identities, exact tool hashes and versions, limits, obligation location
 SMT commands and hashes, outcomes, and candidate input assignments. Completed
 query records include `get-value` when needed and `exit`; incomplete records are
 marked `query_complete: false`. A source failure still produces one error report,
-with unavailable bindings left null. Diagnostics also identify invalid source on
-stderr.
+with unavailable bindings left null. `semantic_revision` is the checked
+program's executable revision, including `local-state-2026-11-17` for rejected
+stateful programs. It is null for source errors because no checked program
+exists. Diagnostics also identify invalid source on stderr.
 
 Preflight rejection or an empty function graph can also leave tool identities
 null because discovery and hashing have not run. Null means unavailable or not
@@ -122,8 +128,11 @@ or option requires another verification attempt.
 Ordinary `check`, `eval`, `build`, and `run` type-check contracts and erase them.
 They neither run a solver nor insert dynamic contract checks. `dump-core` exports
 only the executable scalar program; importing it does not recover contracts.
-`assert`, ghost code, loops, heap properties, and recursive verification remain
-later work.
+`assert`, ghost code, mutable-state and loop verification, heap properties, and
+recursive verification remain later work. Ordinary evaluation and native
+compilation support the [local-state extension](../spec/control-flow.md).
+Loop verification will require invariant obligations over mutable state;
+finite unrolling cannot establish verification success.
 
 The status `verified` establishes the requested arithmetic-safety and
 partial-correctness obligations under the recorded SMT encoding and solver

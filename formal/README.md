@@ -1,7 +1,7 @@
 # APL formal core
 
-This directory implements the `m1-2026-11-16` scalar function model in Lean
-4.36.0. It includes untyped syntax, declarative typing, independently checked
+This directory implements the `m1-2026-11-16` scalar function model and the
+separate `local-state-2026-11-17` extension in Lean 4.36.0. It includes untyped syntax, declarative typing, independently checked
 inference functions, and small-step evaluation machines. Type uniqueness,
 preservation and progress cover scalar expressions and recursive global
 functions. Finite evaluator correspondence is proved in both directions for
@@ -28,6 +28,7 @@ formal/check.sh
 python3 formal/test.py
 cargo build --locked
 python3 formal/test.py --rust target/debug/apl
+python3 formal/test_local_state.py --rust target/debug/apl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
@@ -75,12 +76,12 @@ all functions and branches, including unused ones. Serialized `ty` annotations
 are checked against inference. De Bruijn index zero denotes the newest local;
 at function entry it denotes the final declared parameter.
 
-Expression documents run `APL.run`, the evaluator covered by the expression
+V0 expression documents run `APL.run`, the evaluator covered by the expression
 proofs. Each machine transition consumes one unit, and recognizing the terminal
 state consumes one additional unit. A literal therefore needs two fuel units.
 Fuel zero always yields `resource_limit`.
 
-Program documents run `APL.Program.eval`, a separate executable evaluator that
+V0 program documents run `APL.Program.eval`, a separate executable evaluator that
 supports named and mutually recursive calls. It charges one unit immediately
 before evaluating each expression, with a global decreasing budget and a
 256-expression nesting bound. Entry invocation is free; only evaluated arguments,
@@ -99,6 +100,65 @@ The CLI bounds files at 1,048,576 bytes, JSON nesting at 256, expression trees a
 `resource_limit`, except an out-of-range index is invalid IR. Different tools can
 hit different bounds. Resource-limited comparisons are inconclusive about
 language behavior; they do not establish divergence or type safety.
+
+## Local scalar state
+
+The v1 adapter accepts `apl-expr-v1` and `apl-core-v1` only with revision
+`local-state-2026-11-17`. It adds initialized `let_mut`, assignment and structured
+while loops according to [the local state specification](../spec/control-flow.md).
+Old lets and parameters remain immutable. Imported expressions, including all
+branches and unused function bodies, are checked before execution. V0 documents
+still use their original adapter, evaluator and revision.
+
+`APL.LocalState` is a separate machine. Its evaluation and return configurations
+carry the current value environment. Operands, conditions, arguments and branches
+consume that current environment. A binding pushes then pops one initialized
+cell. Scope exit preserves changes to older cells. Arguments evaluate in order;
+a call copies their values into a fresh parameter frame, then restores the caller
+state captured after argument evaluation. Mutability belongs to the static
+context, so runtime cells do not contain permissions or aliases. Loop condition
+and body frames replace one another at each back edge. The final false condition
+retains its effects.
+
+The independent `Step` relation and executable `step` agree in both directions.
+The finite `run` corresponds exactly to finite reductions ending at a stopped
+state. Progress and preservation cover every constructor, scope transition,
+recursive call and loop back edge. Well-typed programs cannot reach invalid
+states; they may return a typed value, trap, or continue indefinitely. These are
+type-safety results, not termination or trap-freedom results.
+
+V1 CLI fuel counts machine transitions. A terminal state needs no extra unit to
+recognize; a literal needs one unit and `while false { () }` needs three. The
+machine uses a transition budget instead of Rust's expression-entry fuel and
+separate expression nesting bound. Exhaustion in either implementation is
+inconclusive. The model does not claim identical resource boundaries. Input size,
+JSON nesting, expression depth and index validation remain as described above.
+
+`LocalStateEmbedding` preserves v0 typing and proves that any finite v0 evaluator
+value or trap has a matching v1 reduction and a sufficiently budgeted v1 run with
+the same value or trap kind. Pure embedded terms also return their original
+value environment. This is a forward preservation theorem; it does not equate
+budgets or prove reverse divergence correspondence.
+
+The v1 files separate concerns as follows:
+
+- `LocalState.lean` defines terms, permissions, cell updates, configurations,
+  independent reductions, and the finite executable machine.
+- `LocalStateTyping.lean` proves inference equivalence, cell typing under update
+  and scope removal, and preservation of every other cell by an assignment.
+- `LocalStateRun.lean` proves executable/reduction correspondence and determinism.
+- `LocalStateSafety.lean` proves configuration preservation, progress, finite
+  safety, and recursive entry safety.
+- `LocalStateEmbedding.lean` proves the v0 embedding statements above.
+- `LocalStateExamples.lean` checks ordered argument mutation, isolated callees,
+  effectful loop conditions, recursive calls, permission errors and budget edges
+  by kernel reduction or simplification.
+- `LocalStateWire.lean` and `test_local_state.py` provide strict v1 decoding and
+  CLI conformance tests. The JSON adapter, production Rust implementation and
+  native compilation remain tested boundaries, not consequences of these proofs.
+
+Verification-condition generators continue to operate on the immutable v0 model.
+There is no local-state contract or loop-invariant proof rule in this increment.
 
 ## Model and evidence
 

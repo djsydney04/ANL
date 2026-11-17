@@ -1,8 +1,9 @@
-(* APL scalar grammar with erased contract annotations.
+(* APL scalar grammar with erased contract annotations and local state.
    Complete language grammar is intentionally not claimed here.
    Semantics and static restrictions: docs/architecture/type-system.md.
    Module declarations, public functions and qualified paths: spec/modules.md.
    Contract types, scope and verification: spec/verification.md.
+   Mutable locals, assignment, and while: spec/control-flow.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
    The lexer uses maximal munch for operators and identifiers.
@@ -19,8 +20,12 @@ parameter       = identifier, ":", type ;
 type            = "i64" | "bool" | "unit" ;
 
 block           = "{", { statement }, [ expression ], "}" ;
-statement       = let_statement | expression, ";" ;
-let_statement   = "let", identifier, [ ":", type ], "=", expression, ";" ;
+statement       = let_statement | assignment_statement | while_statement
+                | expression, ";" ;
+let_statement   = "let", [ "mut" ], identifier, [ ":", type ],
+                  "=", expression, ";" ;
+assignment_statement = identifier, "=", expression, ";" ;
+while_statement = "while", "(", expression, ")", block ;
 
 expression      = disjunction ;
 disjunction     = conjunction, { "||", conjunction } ;
@@ -62,6 +67,12 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    accepted in comments only. Unknown characters produce lexical errors.
    Keywords: fn let if else true false i64 bool unit.
    requires and ensures are contextual only after a function result type.
+   mut is contextual after let only when followed by an identifier.
+   while is contextual at a statement boundary only when its matching
+   parenthesized condition is followed by a block. Existing while calls and
+   identifiers remain valid. A while statement has no trailing semicolon.
+   Assignments require a mutable local of the same type as the right operand.
+   While conditions have bool type and bodies have unit type.
    Specification integers are unbounded, with at most 4096 decimal digits per
    literal. Contract expressions cannot call functions, use blocks, or use if.
    Each contract clause must have bool type; ordinary execution erases clauses.

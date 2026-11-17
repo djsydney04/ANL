@@ -1,7 +1,7 @@
 //! Execute real host binaries and compare independent scalar expectations and the
 //! reference evaluator. These checks are evidence, not a compiler-correctness proof.
 use apl::{
-    codegen,
+    codegen, core,
     eval::{self, EvalError, Value},
 };
 use std::{
@@ -86,7 +86,21 @@ fn assert_native(source: &str, expected: Result<i64, &str>, sanitizer: bool) {
     let program = apl::compile(source).unwrap();
     let entry = program.entry().unwrap();
     let c = codegen::emit_c(&program, entry).unwrap();
-    let reference = eval::evaluate(&program, entry, 100_000);
+    let reference = eval::evaluate(&program, entry, 10_000_000);
+    if program.has_local_state() {
+        let wire = core::export(&program, entry);
+        assert_eq!(wire["schema"], "apl-core-v1");
+        let imported = core::import(&wire.to_string()).unwrap();
+        assert_eq!(
+            core::outcome(&eval::evaluate(
+                &imported.program,
+                imported.entry,
+                10_000_000
+            )),
+            core::outcome(&reference),
+            "imported state semantics differ: {source}"
+        );
+    }
     match (expected, reference) {
         (Ok(want), Ok(Value::Integer(got))) => assert_eq!(got, want, "{source}"),
         (Err(want), Err(EvalError::Trap { kind, .. })) => {
@@ -204,6 +218,95 @@ fn control_flow_calls_scopes_and_scalar_abi_match_reference() {
         "if () != () || (true == false) || (2 < 1) { 0 } else { 42 }",
     ] {
         expression(expr, Ok(42), false);
+    }
+}
+
+#[test]
+fn mutable_scopes_loop_back_edges_and_argument_order_match_core_and_native() {
+    for (source, expected) in [
+        ("fn main()->i64 { let mut x=1; { x=x+2; }; x }", 3),
+        (
+            "fn main()->i64 { let mut x=1; let old=x; x=3; old*10+x }",
+            13,
+        ),
+        (
+            "fn main()->i64 { let mut x=1; let a={x=3;x}+{x=x+4;x}; a*10+x }",
+            107,
+        ),
+        (
+            "fn main()->i64 { let mut x=0; while ({x=x+1;x<4}) {} x }",
+            4,
+        ),
+        (
+            "fn main()->i64 { let mut x=0; while ({x=x+1;x<10}) {x=x+2;} x }",
+            10,
+        ),
+        (
+            "fn main()->i64 { let mut x=1; let a=pack({x=x+1;x},{x=x*3;x},{x=x+1;x}); a*10+x } fn pack(a:i64,b:i64,c:i64)->i64 {100*a+10*b+c}",
+            2677,
+        ),
+        (
+            "fn main()->i64 {let mut x=7;let r=change(x,x);r*10+x} fn change(a:i64,b:i64)->i64 {let mut a=a;a=99;a+b}",
+            1067,
+        ),
+        (
+            "fn main()->i64 {let mut x=1;x={let mut y=9;x=x+2;let z=y;x+z};x}",
+            12,
+        ),
+        (
+            "fn main()->i64 {let mut i=0;let mut sum=0;while (i<10) {let mut fresh=0;fresh=fresh+1;sum=sum+fresh;i=i+1;}sum}",
+            10,
+        ),
+        (
+            "fn main()->i64 {let mut x=0; false && {x=1;true};true || {x=2;false};x}",
+            0,
+        ),
+        (
+            "fn main()->i64 {let mut x=0;{x=1;true} && {x=x+2;true};{x=x+3;false} || {x=x+4;true};x}",
+            10,
+        ),
+        (
+            "fn main()->i64 {let mut x=1;{let x=9;x};while (false) {x=2;}x}",
+            1,
+        ),
+        (
+            "fn main()->i64 {let mut i=0;let mut n=0;while (i<3) {let mut j=0;while (j<2) {n=n+1;j=j+1;}i=i+1;}n}",
+            6,
+        ),
+        (
+            "fn main()->i64 {let mut b=false;let mut u=();b=true;u=();if b && u==() {42}else{0}}",
+            42,
+        ),
+        (
+            "fn main()->i64 {let mut x=0;while (x<300000) {x=x+1;}x}",
+            300000,
+        ),
+    ] {
+        assert_native(source, Ok(expected), false);
+    }
+}
+
+#[test]
+fn stateful_conditions_bodies_and_assignment_rhs_preserve_first_traps() {
+    for (source, tag) in [
+        (
+            "fn main()->i64 {let mut x=0;while ({x=x+1;1/0==0}) {} 9223372036854775807+1}",
+            "division_by_zero",
+        ),
+        (
+            "fn main()->i64 {let mut x=0;while (x<1) {x=x+1;1/0;}9223372036854775807+1}",
+            "division_by_zero",
+        ),
+        (
+            "fn main()->i64 {let mut x=0;x={x=x+1;9223372036854775807+1};1/0}",
+            "arithmetic_overflow",
+        ),
+        (
+            "fn main()->i64 {let mut x=9223372036854775807;while (true) {x=x+1;}0}",
+            "arithmetic_overflow",
+        ),
+    ] {
+        assert_native(source, Err(tag), false);
     }
 }
 

@@ -1,8 +1,9 @@
 # APL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar core,
-native C11 compiler, file modules, pure acyclic contract verification, and scoped
-expression, recursive-function, and verification-condition proofs.
+native C11 compiler, file modules, initialized scalar state and loops, pure acyclic
+contract verification, and scoped immutable, local-state, and verification-condition
+proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
 the complete-language release requirements open.
@@ -54,8 +55,10 @@ dependent types, effects, capabilities, typestate, sessions and higher-kinded ty
 
 ## Executable core and semantic contract
 
-M1 is a strongly typed scalar/function core with `i64`, `bool`, unit, immutable
-bindings, blocks, conditionals, scalar operators and named recursive functions.
+The original M1 core has `i64`, `bool`, unit, immutable bindings, blocks,
+conditionals, scalar operators, and named recursive functions. The separate
+[local-state revision](../../spec/control-flow.md) adds initialized mutable locals,
+assignment, and structured while statements without references or shared cells.
 The [grammar](../../spec/grammar.ebnf) defines the scalar syntax, extended by the
 [module specification](../../spec/modules.md) for files and visibility. The executable
 entry is nullary `main` returning `i64`. Library checking does not require an entry.
@@ -68,8 +71,8 @@ limits in tooling are distinct from traps and divergence.
 
 The core bounds the first implementation and proof task. It is not the planned
 release feature set. Native compilation, modules, and opt-in pure acyclic contract
-verification extend that core today; mutable data, memory, and concurrency remain
-later increments.
+verification and local scalar state extend that core today; aggregates, heap
+ownership, and concurrency remain later increments.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
 `dump-core`, and `eval-core`. It checks every function in the imported source
@@ -78,8 +81,10 @@ imported [core JSON](../../spec/core-format.md). [Getting started](../getting-st
 provides commands and executable examples. Lean's [proof inventory](../../formal/PROOFS.md)
 records expression and recursive-function typing, preservation, progress, and
 finite evaluator correspondence in both directions with sufficient depth and
-fuel. This proves neither termination nor completeness at fixed CLI limits.
-No theorem proves the Rust implementation or source/module/native lowering.
+fuel for v0. The separate local-state model has typed current environments,
+progress/preservation, finite transition/run correspondence, and forward finite
+v0 outcome preservation. These prove neither termination nor completeness at
+fixed production limits. No theorem proves Rust or source/module/native lowering.
 
 ## Compiler and formal-methods architecture
 
@@ -110,7 +115,7 @@ but creates a correspondence obligation. No proof automatically crosses the
 parser, serializer, type checker, runtime or backend boundary.
 
 The typed core uses resolved identities and explicit types. MIR exposes evaluation
-order, branches, traps, and later moves/borrows/drop. Each IR has a validator.
+order, branches, loops, initialized mutable slots, traps, and later moves/borrows/drop. Each IR has a validator.
 Imported artifacts are untrusted input even if they contain type annotations.
 The shared exchange format uses decimal strings for integers and de Bruijn indices
 for locals, with a semantic revision that invalidates stale results.
@@ -129,11 +134,13 @@ checked intermediate ranges and truncating division. Preconditions must be
 defined and satisfiable. Z3 5.3.3 results are `smt-trusted`, and countermodels remain
 unreplayed. Compilation erases the typed clauses without proving them.
 
-A separate Lean call-free generator and contract logic have soundness proofs
-under interpreted logical obligations. FM-07 remains partial: call inlining,
-callee-precondition insertion, named decomposition, and the Rust/SMT/solver bridges
-are unproved. Recursion, assertions, loops, heap state, concurrency, and ghost
-code require further implementation and proof coverage.
+Lean proves soundness for call-free generation and finite symbolic body expansion
+with ordered arguments and callee preconditions when generation succeeds.
+FM-07 remains partial: source call-graph checking, expansion completeness for
+acyclic programs, separate syntax-inlining equivalence, named decomposition, and
+Rust/SMT/solver bridges remain open. The production verifier rejects local-state
+constructs before tools run. Loop invariants, recursive verification, assertions,
+heap properties, concurrency, and ghost code need further verification support.
 
 [Compiler contracts](compiler.md), [formal architecture](formal-methods.md) and
 [trust boundaries](trust.md) define pass interfaces, theorem coverage, verification

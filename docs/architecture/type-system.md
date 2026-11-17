@@ -1,6 +1,10 @@
 # Type-system and scalar-core specification
 
-Status: design proposal. This specifies intended behavior; implementation and proof status must be reported separately. The initial grammar is [grammar.ebnf](../../spec/grammar.ebnf).
+Status: scalar types, functions, modules, typed contracts, initialized mutable
+locals, and while loops are implemented. The broader types, ownership, and
+effects below remain design proposals. The [grammar](../../spec/grammar.ebnf),
+[local-state rules](../../spec/control-flow.md), and [proof inventory](../../formal/PROOFS.md)
+separate source behavior from model guarantees and implementation correspondence.
 
 ## Language model
 
@@ -8,9 +12,9 @@ APL is a strict, statically typed, expression-oriented systems language. Functio
 
 The complete language requires primitive integers and floating-point numbers, Unicode scalar characters, UTF-8 text, arrays, slices, tuples, records, nominal algebraic data types, exhaustive matches, generics, closures, modules, explicit errors, mutation, and ownership. These remain delivery requirements even when a milestone supports a smaller subset.
 
-## M1 executable boundary
+## Executable scalar boundary
 
-M1 supports these forms only:
+The current runtime supports these scalar forms:
 
 | Form | Contract |
 | --- | --- |
@@ -19,6 +23,9 @@ M1 supports these forms only:
 | `unit` | One value, written `()` |
 | `fn name(x: T, ...) -> U { ... }` | Declared parameter and result types, named calls, recursion |
 | `let x = e;` or `let x: T = e;` | Immutable, monomorphic local binding |
+| `let mut x = e;` or `let mut x: T = e;` | Initialized mutable local with a fixed scalar type |
+| `x = e;` | Assign the nearest mutable local after evaluating an identically typed right-hand side |
+| `while (c) { body }` | Boolean condition, unit-valued body, repeated in the current local state |
 | `{ statements; final_expression }` | Lexical scope; omitted final expression has type `unit` |
 | `if c { a } else { b }` | `c: bool`; both branches have the same type |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, and unary `-`, on `i64` only |
@@ -26,11 +33,23 @@ M1 supports these forms only:
 | Boolean operations | `!`, short-circuit `&&`, and short-circuit `||` |
 | Expression statement | Evaluate an expression, discard its scalar result, retain its trap behavior |
 
-An executable contains exactly one `fn main() -> i64`. Other functions may return any M1 type. Every function body is checked, including unreachable or unused functions. Duplicate function names or parameter names are errors. A block rejects duplicate local binding names in that block. Inner blocks may shadow outer names. A local name shadows a same-named global function, so calling that local scalar is a type error.
+An executable's root file contains exactly one `fn main() -> i64`. Other functions may return any scalar type. Every loaded function body is checked, including unreachable or unused functions. Duplicate function names within a file or parameter names are errors. A block rejects duplicate local binding names in that block. Inner blocks may shadow outer names. A local name shadows a same-named global function, so calling that local scalar is a type error.
 
 Calls may refer to later function declarations. Arity and each argument type must match the declared signature. Function identifiers cannot be stored, returned, or passed as values in M1. That restriction is removed with the higher-order-function milestone rather than emulated with unchecked pointers.
 
-M1 excludes mutable bindings, loops, early `return`, user-defined data types, allocation, references, generics, modules, I/O, concurrency, contracts, and source-level unsafe code. Rejected syntax receives an explicit diagnostic. These exclusions bound M1; they do not remove final-release requirements.
+[File modules](../../spec/modules.md) add private/public declarations and qualified
+names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
+type-checked and erased during ordinary execution. Their optional verifier rejects
+stateful programs. Early `return`, `break`, `continue`, `for`, user-defined data,
+allocation, references, generics, I/O, concurrency, and source-level unsafe code
+remain unsupported; they remain full-language delivery requirements.
+
+Parameters and ordinary lets are immutable. `let mut x = x;` can make a mutable
+copy of a parameter; the initializer runs before the new binding enters scope.
+Assignment checks the nearest binding's mutability and exact type, so an immutable
+shadow prevents assignment to an outer mutable cell. Scalar reads and function
+arguments copy values without exposing storage aliases. Every loop iteration
+creates fresh body locals; exiting a scope removes only its own bindings.
 
 ## Scalar evaluation rules
 
@@ -42,13 +61,13 @@ The canonical interchange tags for these traps are `arithmetic_overflow` and `di
 
 The lexer retains the unsigned decimal magnitude of an integer token without converting through a host signed integer. An unnegated literal must be at most `H`. The syntactic form `-9223372036854775808` is admitted as `L`; negating that value again traps. Parentheses around the positive out-of-range magnitude do not make it legal. Underscores, radix prefixes, and numeric suffixes are absent from M1.
 
-`if` evaluates its condition and exactly one branch. `let` evaluates its initializer in the old environment, then extends the environment for subsequent statements. The initializer cannot refer to its own binding. A nested block restores the outer environment on exit. An expression statement still evaluates even when its value is discarded.
+`if` evaluates its condition and exactly one branch. `let` evaluates its initializer in the old environment, then extends the environment for subsequent statements. The initializer cannot refer to its own binding. A nested block removes its own bindings on exit while preserving updates to outer mutable locals. An expression statement still evaluates even when its value is discarded.
 
-A program may diverge through recursion. The reference interpreter uses a documented fuel budget and returns `OutOfFuel` when that budget is exhausted. `OutOfFuel` is not a language trap, proof of divergence, or proof of safety. A native stack or allocation failure is a host resource failure, outside the scalar semantics. Future verified termination claims require a separate proof.
+A program may diverge through recursion or a while loop. The reference interpreter uses a documented fuel budget and reports `resource_limit` when that budget is exhausted. This is not a language trap, proof of divergence, or proof of safety. A native stack or allocation failure is a host resource failure, outside the scalar semantics. Future verified termination claims require a separate proof.
 
 ## Typing judgments
 
-`Sigma` maps function names to declared parameter and result types. `Gamma` maps local names to types. `Sigma; Gamma |- e => T` synthesizes a type; `Sigma; Gamma |- e <= T` checks an expected type. Checking succeeds when synthesis produces the same type in M1. Later closures use genuinely checking-directed rules.
+`Sigma` maps function names to declared parameter and result types. `Gamma` maps local names to types and, in the local-state extension, immutable/mutable permissions. `Sigma; Gamma |- e => T` synthesizes a type; `Sigma; Gamma |- e <= T` checks an expected type. Checking succeeds when synthesis produces the same type in M1. Later closures use checking-directed rules.
 
 The declarative core has these representative rules:
 

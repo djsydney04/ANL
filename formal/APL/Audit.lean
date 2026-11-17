@@ -1,4 +1,5 @@
 import APL.VCGCallsExamples
+import APL.LocalStateExamples
 import Lean
 
 open Lean Elab Command in
@@ -41,7 +42,44 @@ run_elab do
     ``APL.VCG.calls_contract_nonvacuous,
     ``APL.VCG.calls_contract_steps_value,
     ``APL.VCG.calls_contract_steps_no_trap,
-    ``APL.VCG.calls_contract_steps_no_invalid]
+    ``APL.VCG.calls_contract_steps_no_invalid,
+    ``APL.LocalState.infer_complete,
+    ``APL.LocalState.infer_sound,
+    ``APL.LocalState.type_unique,
+    ``APL.LocalState.signatures_lookup,
+    ``APL.LocalState.signatures_lookup_inv,
+    ``APL.LocalState.checked_functions,
+    ``APL.LocalState.env_cons,
+    ``APL.LocalState.env_tail,
+    ``APL.LocalState.env_lookup,
+    ``APL.LocalState.update_typed,
+    ``APL.LocalState.update_other,
+    ``APL.LocalState.immutable_unchanged,
+    ``APL.LocalState.step_complete,
+    ``APL.LocalState.step_sound,
+    ``APL.LocalState.step_iff,
+    ``APL.LocalState.deterministic,
+    ``APL.LocalState.stopped_iff,
+    ``APL.LocalState.run_sound,
+    ``APL.LocalState.run_complete,
+    ``APL.LocalState.run_iff,
+    ``APL.LocalState.resume_typed,
+    ``APL.LocalState.preservation,
+    ``APL.LocalState.progress,
+    ``APL.LocalState.steps_preserve,
+    ``APL.LocalState.safety,
+    ``APL.LocalState.no_invalid,
+    ``APL.LocalState.finite_run_safe,
+    ``APL.LocalState.entry_typed,
+    ``APL.LocalState.entry_safety,
+    ``APL.LocalState.embed_typed,
+    ``APL.LocalState.embed_signatures,
+    ``APL.LocalState.embed_wellTyped,
+    ``APL.LocalState.embed_value_steps,
+    ``APL.LocalState.embed_trap_steps,
+    ``APL.LocalState.embed_invalid_steps,
+    ``APL.LocalState.embed_value_run,
+    ``APL.LocalState.embed_trap_run]
   let allowed := #[``propext, ``Classical.choice, ``Quot.sound]
   for name in names do
     let axioms ← collectAxioms name

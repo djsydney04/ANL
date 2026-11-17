@@ -2,11 +2,11 @@
 
 APL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
-arithmetic, booleans, unit, immutable bindings, lexical blocks, conditionals,
-named recursive functions, and explicit file modules. An optional verifier checks
-arithmetic safety and contracts for pure acyclic functions. Source-level I/O,
-mutable state, collections, ownership, concurrency, and recursive verification
-remain in the [roadmap](roadmap.md).
+arithmetic, booleans, unit, immutable and initialized mutable bindings, assignment,
+while loops, lexical blocks, conditionals, recursive functions, and file modules.
+An optional verifier checks arithmetic safety and contracts for pure acyclic
+functions without local-state constructs. Collections, ownership, source-level
+I/O, concurrency, and loop/recursive verification remain in the [roadmap](roadmap.md).
 
 ## Build and run
 
@@ -60,6 +60,40 @@ executable. See [native compilation](native-compilation.md) for output paths,
 traps, tool failures, and emitted C. Native execution uses the host stack without
 the interpreter's artificial fuel and nesting budgets.
 
+## Update locals in a loop
+
+Use `let mut` for an initialized scalar whose value may change. Parameters and
+ordinary `let` bindings remain immutable. A loop has a parenthesized Boolean
+condition and a unit-valued body:
+
+```text
+fn main() -> i64 {
+    let mut i = 0;
+    let mut sum = 0;
+    while (i < 100) {
+        i = i + 1;
+        sum = sum + i;
+    }
+    sum
+}
+```
+
+Assignment requires a semicolon; a while statement ends at its closing brace.
+The final expression `sum` returns `5050`. The checked-in examples run as follows:
+
+```sh
+./target/release/apl eval examples/control-flow/sum.apl
+./target/release/apl run examples/control-flow/sum.apl
+./target/release/apl eval examples/control-flow/gcd.apl
+```
+
+The first two commands print `5050`; the last prints `21`. Inner scopes preserve
+updates to outer locals, and each loop iteration creates fresh body locals.
+Calls copy scalar arguments into a fresh frame, so callee-local updates cannot
+change caller variables. This introduces no references or shared cells. See the
+[local-state specification](../spec/control-flow.md) for exact evaluation order,
+typing, and limits. `break`, `continue`, early `return`, and `for` are not supported.
+
 ## Use several source files
 
 ```sh
@@ -88,7 +122,10 @@ selects an executable explicitly. `--timeout-ms N` sets the whole attempt's budg
 after source checking; its default is 30000 milliseconds. The verifier checks every
 loaded function, including unused functions, for defined and satisfiable
 preconditions, checked-arithmetic safety, and each postcondition. Calls must form
-an acyclic graph; recursion reports `unsupported`.
+an acyclic graph. Recursion, `let mut`, assignment, or `while` anywhere in the
+loaded graph report `unsupported`, even in unused functions or skipped branches.
+Local-state rejection happens before solver discovery and creates no obligations.
+Ordinary interpretation and native compilation still support those constructs.
 
 `requires` and `ensures` clauses use mathematical integers. Runtime expressions
 still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
@@ -109,6 +146,8 @@ The conformance suite executes each of these files and checks its full result.
 | [scopes.apl](../examples/scopes.apl) | Inner shadowing, old-environment initializers, discarded unit results | 78 |
 | [modules/main.apl](../examples/modules/main.apl) | File namespaces and public functions | 42 |
 | [contracts/increment.apl](../examples/contracts/increment.apl) | Preconditions and a result postcondition | 42 |
+| [control-flow/sum.apl](../examples/control-flow/sum.apl) | Mutable accumulation in a while loop | 5050 |
+| [control-flow/gcd.apl](../examples/control-flow/gcd.apl) | Iterative Euclid's algorithm | 21 |
 
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.
@@ -137,7 +176,14 @@ traps retain canonical trap tags. For a deliberately trapping example, run
 `100000`. The interpreter charges one unit before each core expression evaluation.
 Skipped branches and short-circuited operands cost nothing. Calls charge their
 arguments and bodies normally, and discarded statements lower to lets. Evaluation
-nesting is independently limited to 256 active expressions.
+nesting is independently limited to 256 active expressions. A while constructor
+is charged once; each repeated condition and body uses its normal expression
+fuel. Iterations do not accumulate interpreter nesting depth. Native loops have
+no interpreter fuel budget.
+
+The Lean v1 model instead counts machine transitions. Finite values and trap kinds
+can be compared across tools, but exhausted budgets are inconclusive; equal fuel
+numbers do not mean equal available work.
 
 Each source file and JSON input is limited to 1 MiB, source tokens per file to
 100000, and core expression depth to 128. Parsing has a separate 128-level
@@ -163,15 +209,19 @@ The black-box suite runs the actual CLI and generated executables against
 independent expected values and trap kinds. It
 covers source and interchange rejection, whole-program checking, arithmetic,
 sequencing, scopes, recursion, short-circuiting, module visibility, source
-protection, and bounded resource failures. Native, module, contract, and verifier
-tests passed [Linux and macOS CI](https://github.com/djsydney04/ANL/actions/runs/44051779446)
-at revision `a7e0b38591ba76255e561cda60099bc8bc422543`, including real-solver and
-protocol-failure checks. The Lean proof/comparison job also passed. This is
+protection, local-state sequencing, and bounded resource failures. The earlier
+immutable/call-verification revision `1b70f10258cec050ce9d4961a6496a8fef8c6894`
+passed [Linux/macOS Rust and Lean CI](https://github.com/djsydney04/ANL/actions/runs/44056277127).
+That run predates local state; its hosted checks remain pending. These checks are
 development evidence, not installation or release qualification.
 
 `apl dump-core FILE` exports checked source into the versioned JSON format, and
 `apl eval-core FILE [--fuel N]` independently validates a core artifact and emits
-a JSON outcome. A modular program exports as one resolved scalar function table;
+a JSON outcome. Programs using only immutable constructors still export the
+unchanged `apl-core-v0` revision `m1-2026-11-16`. Any local-state constructor,
+including one in an unused function, selects `apl-core-v1` revision
+`local-state-2026-11-17`. Each importer checks its own schema and revision.
+A modular program exports as one resolved scalar function table;
 file boundaries and visibility are checked before export. Rust library users
 choose `apl::compile_file(path)` for imports or pure `apl::compile(source)` for
 in-memory source without imports. These tools expose the model boundary for
