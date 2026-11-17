@@ -1,13 +1,16 @@
-//! Guarded obligations and normal-return flow for annotated invariant loops.
+//! Guarded obligations and merged normal-return flow for products and annotated loops.
 use super::{
     Failure, MAX_NODES, MAX_QUERIES, VerificationReport,
-    formula::{Generator, Id, Pending, StateBudget, Symbolic, sort},
+    formula::{Generator, Id, ParameterPlan, Pending, StateBudget, SymbolRef, Symbolic, sort},
     location,
     solver::ModelSymbol,
 };
 use crate::{
     diagnostic::Span,
-    types::{BinaryOp, Expr, ExprKind, LocalAssertion, LocalAssertionKind, Program, Type},
+    types::{
+        BinaryOp, Expr, ExprKind, LocalAssertion, LocalAssertionKind, Program, ScalarType,
+        SpecExpr, SpecExprKind, TupleShape, Type, UnaryOp,
+    },
 };
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -16,6 +19,8 @@ pub(super) fn contains(program: &Program) -> bool {
     fn walk(e: &Expr) -> bool {
         match &e.kind {
             ExprKind::While { .. } => true,
+            ExprKind::Tuple(fields) => fields.iter().any(walk),
+            ExprKind::Project { value, .. } => walk(value),
             ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                 walk(value) || walk(body)
             }
@@ -40,11 +45,36 @@ fn invalid(message: &str) -> Failure {
 
 fn assertion_type(
     e: &LocalAssertion,
-    env: &[(Type, bool)],
+    env: &[(Type, bool, usize)],
     budget: &mut StateBudget,
 ) -> Result<Type, Failure> {
     budget.charge(1)?;
     let ty = match &e.kind {
+        LocalAssertionKind::Tuple(fields) => {
+            let Type::Tuple(shape) = e.ty.value_type() else {
+                return Err(invalid("invalid invariant tuple type"));
+            };
+            if fields.len() != shape.fields().len() {
+                return Err(invalid("invalid invariant tuple length"));
+            }
+            for (field, ty) in fields.iter().zip(shape.fields()) {
+                budget.charge(1)?;
+                if assertion_type(field, env, budget)? != ty.as_type() {
+                    return Err(invalid("invalid invariant tuple field"));
+                }
+            }
+            Type::Tuple(shape)
+        }
+        LocalAssertionKind::Project { value, index } => {
+            let Type::Tuple(shape) = assertion_type(value, env, budget)? else {
+                return Err(invalid("invalid invariant projection"));
+            };
+            shape
+                .fields()
+                .get(*index)
+                .ok_or_else(|| invalid("invalid invariant projection index"))?
+                .as_type()
+        }
         LocalAssertionKind::Integer(_) => Type::I64,
         LocalAssertionKind::Boolean(_) => Type::Bool,
         LocalAssertionKind::Unit => Type::Unit,
@@ -67,7 +97,7 @@ fn assertion_type(
             )
             .ok_or_else(|| invalid("invalid invariant binary type"))?,
     };
-    if e.ty.scalar_type() != ty {
+    if e.ty.value_type() != ty {
         return Err(invalid("invalid invariant result type"));
     }
     Ok(ty)
@@ -77,7 +107,12 @@ pub(super) fn preflight(
     program: &Program,
     report: &mut VerificationReport,
     budget: &mut StateBudget,
-) -> Result<(), Failure> {
+) -> Result<BindingLayouts, Failure> {
+    let products = report.data["schema"] == "anl-verify-v3";
+    let mut layouts = Vec::new();
+    if products {
+        budget.reserve(&mut layouts, program.functions.len())?;
+    }
     let contracts = program
         .contracts
         .as_ref()
@@ -96,9 +131,12 @@ pub(super) fn preflight(
         budget: &'a mut StateBudget,
         edges: &'a mut Vec<usize>,
         loops: &'a mut Vec<Value>,
+        layout: &'a mut Vec<(usize, usize)>,
+        next_binding: usize,
+        products: bool,
     }
     impl Walk<'_> {
-        fn expr(&mut self, e: &Expr, env: &mut Vec<(Type, bool)>) -> Result<(), Failure> {
+        fn expr(&mut self, e: &Expr, env: &mut Vec<(Type, bool, usize)>) -> Result<(), Failure> {
             self.budget.charge(1)?;
             *self.count += 1;
             if *self.count > MAX_NODES {
@@ -107,10 +145,38 @@ pub(super) fn preflight(
                 ));
             }
             match &e.kind {
+                ExprKind::Tuple(fields) => {
+                    for field in fields {
+                        self.expr(field, env)?;
+                    }
+                }
+                ExprKind::Project { value, .. } => self.expr(value, env)?,
                 ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                     self.expr(value, env)?;
                     self.budget.reserve(env, 1)?;
-                    env.push((value.ty, matches!(e.kind, ExprKind::LetMut { .. })));
+                    let mutable = matches!(e.kind, ExprKind::LetMut { .. });
+                    let id = self.next_binding;
+                    if self.products {
+                        self.budget.charge(1)?;
+                        let contract =
+                            &self.program.contracts.as_ref().expect("contracts")[self.function];
+                        let binding = contract
+                            .bindings
+                            .get(id)
+                            .ok_or_else(|| invalid("missing source let binding"))?;
+                        if binding.ty != value.ty
+                            || binding.mutable != mutable
+                            || binding.parent.map(|id| id.0) != env.last().map(|cell| cell.2)
+                        {
+                            return Err(invalid(
+                                "source let binding identity/type/permission mismatch",
+                            ));
+                        }
+                        self.budget.reserve(self.layout, 1)?;
+                        self.layout.push((e.id, id));
+                        self.next_binding += 1;
+                    }
+                    env.push((value.ty, mutable, id));
                     self.expr(body, env)?;
                     env.pop();
                 }
@@ -155,7 +221,7 @@ pub(super) fn preflight(
                         )));
                     }
                     let mut parent = annotation.head;
-                    for &(ty, mutable) in env.iter().rev() {
+                    for &(ty, mutable, binding_id) in env.iter().rev() {
                         self.budget.charge(1)?;
                         let id = parent.ok_or_else(|| {
                             invalid("loop head context is shorter than checked scope")
@@ -164,7 +230,10 @@ pub(super) fn preflight(
                             .bindings
                             .get(id.0)
                             .ok_or_else(|| invalid("invalid source binding ID"))?;
-                        if binding.ty != ty || binding.mutable != mutable {
+                        if binding.ty != ty
+                            || binding.mutable != mutable
+                            || (self.products && id.0 != binding_id)
+                        {
                             return Err(invalid("loop head context permission/type mismatch"));
                         }
                         parent = binding.parent;
@@ -205,21 +274,79 @@ pub(super) fn preflight(
             if binding.parent.is_some_and(|p| p.0 >= index) {
                 return Err(invalid("invalid source binding parent"));
             }
-            bindings.push(json!({"id":index,"parent":binding.parent.map(|p|p.0),"name":binding.name,"type":binding.ty.as_str(),"mutable":binding.mutable,"location":location(program,binding.span)}));
+            let mut record = json!({"id":index,"parent":binding.parent.map(|p|p.0),"name":binding.name,"type":binding.ty.as_str(),"mutable":binding.mutable,"location":location(program,binding.span)});
+            if report.data["schema"] == "anl-verify-v3" {
+                budget.charge(type_width(binding.ty))?;
+                record["type"] = json!(binding.ty);
+            }
+            bindings.push(record);
         }
         let mut env = Vec::new();
         budget.reserve(&mut env, function.params.len())?;
-        env.extend(function.params.iter().map(|t| (*t, false)));
+        env.extend(
+            function
+                .params
+                .iter()
+                .enumerate()
+                .map(|(i, t)| (*t, false, i)),
+        );
+        if products && !contract.loops.is_empty() {
+            for (index, ty) in function.params.iter().enumerate() {
+                budget.charge(1)?;
+                let binding = contract
+                    .bindings
+                    .get(index)
+                    .ok_or_else(|| invalid("missing source parameter binding"))?;
+                if binding.ty != *ty
+                    || binding.mutable
+                    || binding.parent.map(|id| id.0) != index.checked_sub(1)
+                {
+                    return Err(invalid(
+                        "source parameter identity/type/permission mismatch",
+                    ));
+                }
+            }
+        }
+        if products {
+            for clause in &contract.requires {
+                if specification_type(&clause.expr, &function.params, None, budget)? != Type::Bool {
+                    return Err(invalid("precondition is not Boolean"));
+                }
+            }
+            for clause in &contract.ensures {
+                if specification_type(
+                    &clause.expr,
+                    &function.params,
+                    Some(function.result),
+                    budget,
+                )? != Type::Bool
+                {
+                    return Err(invalid("postcondition is not Boolean"));
+                }
+            }
+        }
         let mut loops = Vec::new();
-        Walk {
+        let mut layout = Vec::new();
+        let mut walk = Walk {
             program,
             function: id,
             count: &mut count,
             budget,
             edges: &mut edges[id],
             loops: &mut loops,
+            layout: &mut layout,
+            next_binding: function.params.len(),
+            products: products && !contract.loops.is_empty(),
+        };
+        walk.expr(&function.body, &mut env)?;
+        if products {
+            if !contract.loops.is_empty() && walk.next_binding != contract.bindings.len() {
+                return Err(invalid("source binding table contains unmatched entries"));
+            }
+            budget.charge(layout.len().saturating_mul(20))?;
+            layout.sort_unstable();
+            layouts.push(layout);
         }
-        .expr(&function.body, &mut env)?;
         if loops.len() != contract.loops.len() {
             return Err(invalid("loop metadata contains an unmatched node"));
         }
@@ -262,11 +389,69 @@ pub(super) fn preflight(
         }
     }
     if visited != program.functions.len() {
-        return Err(Failure::Unsupported(
-            "recursive function calls are outside apl-loop-verify-v1".into(),
-        ));
+        return Err(Failure::Unsupported(if products {
+            "recursive function calls are outside anl-flat-products-verify-v1".into()
+        } else {
+            "recursive function calls are outside apl-loop-verify-v1".into()
+        }));
     }
-    Ok(())
+    Ok(layouts)
+}
+
+fn type_width(ty: Type) -> usize {
+    match ty {
+        Type::Tuple(shape) => shape.fields().len(),
+        _ => 1,
+    }
+}
+#[derive(Debug)]
+enum SymValue {
+    Scalar(ScalarType, Id),
+    Tuple(TupleShape, Box<[Id]>),
+}
+impl SymValue {
+    fn scalar(&self) -> Result<Id, Failure> {
+        match self {
+            Self::Scalar(_, id) => Ok(*id),
+            Self::Tuple(..) => Err(invalid("product used as a scalar formula")),
+        }
+    }
+    fn ty(&self) -> Type {
+        match self {
+            Self::Scalar(ty, _) => ty.as_type(),
+            Self::Tuple(shape, _) => Type::Tuple(*shape),
+        }
+    }
+    fn validate(&self, ty: Type) -> Result<(), Failure> {
+        if self.ty() != ty {
+            return Err(invalid("symbolic value shape mismatch"));
+        }
+        if let Self::Tuple(shape, fields) = self
+            && fields.len() != shape.fields().len()
+        {
+            return Err(invalid("symbolic tuple length mismatch"));
+        }
+        Ok(())
+    }
+    fn from_scalar(ty: Type, value: Id) -> Result<Self, Failure> {
+        Ok(Self::Scalar(
+            ty.scalar()
+                .ok_or_else(|| invalid("product used as scalar type"))?,
+            value,
+        ))
+    }
+}
+struct ProductSymbolic {
+    value: SymValue,
+    safe: Id,
+}
+impl ProductSymbolic {
+    fn scalar(self) -> Result<Symbolic, Failure> {
+        Ok(Symbolic {
+            value: self.value.scalar()?,
+            safe: self.safe,
+        })
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -285,15 +470,14 @@ enum CellKey {
     Parameter(usize),
     Let(usize),
 }
-#[derive(Clone, Copy)]
 struct Cell {
-    value: Id,
+    value: SymValue,
     ty: Type,
     mutable: bool,
     key: CellKey,
 }
 struct Flow {
-    value: Id,
+    value: SymValue,
     env: Vec<Cell>,
     normal: Id,
 }
@@ -322,7 +506,9 @@ pub(super) struct Artifact {
     pub pending: Vec<LoopPending>,
     pub heads: Vec<ModelSymbol>,
 }
-struct Analysis<'g, 'p, 'r> {
+type BindingLayouts = Vec<Vec<(usize, usize)>>;
+struct Analysis<'g, 'p, 'r, 'l> {
+    layouts: &'l [Vec<(usize, usize)>],
     genr: &'g mut Generator<'p>,
     report: &'r mut VerificationReport,
     root: usize,
@@ -330,7 +516,300 @@ struct Analysis<'g, 'p, 'r> {
     groups: BTreeMap<Key, Vec<usize>>,
     heads: Vec<ModelSymbol>,
 }
-impl Analysis<'_, '_, '_> {
+impl Analysis<'_, '_, '_, '_> {
+    fn product_route(&self) -> bool {
+        self.report.data["schema"] == "anl-verify-v3"
+    }
+    fn product(&mut self, shape: TupleShape, fields: Vec<Id>) -> Result<SymValue, Failure> {
+        if fields.len() != shape.fields().len() {
+            return Err(invalid("symbolic tuple length mismatch"));
+        }
+        self.genr.arena.work(fields.len())?;
+        Ok(SymValue::Tuple(shape, fields.into_boxed_slice()))
+    }
+    fn copy_value(&mut self, value: &SymValue) -> Result<SymValue, Failure> {
+        match value {
+            SymValue::Scalar(ty, id) => Ok(SymValue::Scalar(*ty, *id)),
+            SymValue::Tuple(shape, fields) => {
+                value.validate(Type::Tuple(*shape))?;
+                let mut copied = Vec::new();
+                self.genr.arena.reserve(&mut copied, fields.len())?;
+                for field in fields {
+                    self.genr.arena.work(1)?;
+                    copied.push(*field);
+                }
+                self.product(*shape, copied)
+            }
+        }
+    }
+    fn tuple(
+        &mut self,
+        ty: Type,
+        values: Vec<ProductSymbolic>,
+    ) -> Result<ProductSymbolic, Failure> {
+        let Type::Tuple(shape) = ty else {
+            return Err(invalid("invalid symbolic tuple type"));
+        };
+        if shape.fields().len() != values.len() {
+            return Err(invalid("symbolic tuple length mismatch"));
+        }
+        let mut fields = Vec::new();
+        let mut guards = Vec::new();
+        self.genr.arena.reserve(&mut fields, values.len())?;
+        self.genr.arena.reserve(&mut guards, values.len())?;
+        for (value, ty) in values.into_iter().zip(shape.fields()) {
+            self.genr.arena.work(1)?;
+            value.value.validate(ty.as_type())?;
+            fields.push(value.value.scalar()?);
+            guards.push(value.safe);
+        }
+        Ok(ProductSymbolic {
+            value: self.product(shape, fields)?,
+            safe: self.genr.arena.and(&guards)?,
+        })
+    }
+    fn project(
+        &mut self,
+        base: ProductSymbolic,
+        index: usize,
+        ty: Type,
+    ) -> Result<ProductSymbolic, Failure> {
+        self.genr.arena.work(1)?;
+        let SymValue::Tuple(shape, fields) = base.value else {
+            return Err(invalid("symbolic projection requires a tuple"));
+        };
+        if fields.len() != shape.fields().len()
+            || shape.fields().get(index).map(|s| s.as_type()) != Some(ty)
+        {
+            return Err(invalid("symbolic projection shape/index mismatch"));
+        }
+        Ok(ProductSymbolic {
+            value: SymValue::from_scalar(ty, fields[index])?,
+            safe: base.safe,
+        })
+    }
+    fn unary(
+        &mut self,
+        op: UnaryOp,
+        a: ProductSymbolic,
+        machine: bool,
+    ) -> Result<ProductSymbolic, Failure> {
+        a.value.validate(op.input())?;
+        let result = self.genr.unary(op, a.scalar()?, machine)?;
+        Ok(ProductSymbolic {
+            value: SymValue::from_scalar(op.input(), result.value)?,
+            safe: result.safe,
+        })
+    }
+    fn binary(
+        &mut self,
+        op: BinaryOp,
+        a: ProductSymbolic,
+        b: ProductSymbolic,
+        ty: Type,
+        machine: bool,
+    ) -> Result<ProductSymbolic, Failure> {
+        if op.result(a.value.ty(), b.value.ty()) != Some(ty) {
+            return Err(invalid("invalid symbolic binary shape"));
+        }
+        if let SymValue::Tuple(shape, left) = &a.value {
+            let SymValue::Tuple(right_shape, right) = &b.value else {
+                return Err(invalid("symbolic equality shape mismatch"));
+            };
+            if shape != right_shape
+                || left.len() != shape.fields().len()
+                || right.len() != left.len()
+                || !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
+            {
+                return Err(invalid("invalid symbolic product equality"));
+            }
+            let mut comparisons = Vec::new();
+            self.genr.arena.reserve(&mut comparisons, left.len())?;
+            for ((x, y), field) in left.iter().zip(right).zip(shape.fields()) {
+                self.genr.arena.work(1)?;
+                let equality = if *field == ScalarType::Unit {
+                    self.genr.arena.truth()?
+                } else {
+                    self.genr
+                        .arena
+                        .app("Bool", format!("(= n{x} n{y})"), &[*x, *y])?
+                };
+                comparisons.push(equality);
+            }
+            let equal = self.genr.arena.and(&comparisons)?;
+            let value = if op == BinaryOp::Ne {
+                self.genr.arena.not(equal)?
+            } else {
+                equal
+            };
+            let safe = self.genr.arena.and(&[a.safe, b.safe])?;
+            return Ok(ProductSymbolic {
+                value: SymValue::Scalar(ScalarType::Bool, value),
+                safe,
+            });
+        }
+        let result = self
+            .genr
+            .binary(op, a.scalar()?, b.scalar()?, ty, machine)?;
+        Ok(ProductSymbolic {
+            value: SymValue::from_scalar(ty, result.value)?,
+            safe: result.safe,
+        })
+    }
+    fn ite(
+        &mut self,
+        ty: Type,
+        condition: Id,
+        yes: &SymValue,
+        no: &SymValue,
+    ) -> Result<SymValue, Failure> {
+        yes.validate(ty)?;
+        no.validate(ty)?;
+        match (yes, no) {
+            (SymValue::Scalar(_, a), SymValue::Scalar(_, b)) => {
+                SymValue::from_scalar(ty, self.scalar_ite(ty, condition, *a, *b)?)
+            }
+            (SymValue::Tuple(shape, a), SymValue::Tuple(_, b)) => {
+                let mut fields = Vec::new();
+                self.genr.arena.reserve(&mut fields, a.len())?;
+                for ((a, b), ty) in a.iter().zip(b).zip(shape.fields()) {
+                    self.genr.arena.work(1)?;
+                    fields.push(self.scalar_ite(ty.as_type(), condition, *a, *b)?);
+                }
+                self.product(*shape, fields)
+            }
+            _ => Err(invalid("symbolic merge shape mismatch")),
+        }
+    }
+    fn parameters(&mut self, types: &[Type]) -> Result<(Vec<SymValue>, Id), Failure> {
+        if !self.product_route() {
+            let (values, domain) = self.genr.parameters(types)?;
+            let values = values
+                .into_iter()
+                .zip(types)
+                .map(|(id, ty)| SymValue::from_scalar(*ty, id))
+                .collect::<Result<Vec<_>, _>>()?;
+            return Ok((values, domain));
+        }
+        let plan = ParameterPlan::new(types, self.genr.arena.budget()?)?;
+        self.report.data["functions"][self.root]["parameter_leaf_slots"] = json!(plan.slots);
+        self.report.data["functions"][self.root]["initial_logical_bound"] = json!(plan.slots);
+        self.genr.arena.work(3)?;
+        self.report.data["functions"][self.root]["head_display_start"] =
+            json!(plan.head_display_start);
+        let slots = plan.slots;
+        self.genr.arena.product_parameters = Some(plan);
+        let mut values = Vec::new();
+        let mut domain = Vec::new();
+        self.genr.arena.reserve(&mut values, types.len())?;
+        self.genr.arena.reserve(&mut domain, slots)?;
+        let mut offset = 0;
+        for ty in types {
+            let mut fields = Vec::new();
+            self.genr.arena.reserve(&mut fields, type_width(*ty))?;
+            for _ in 0..type_width(*ty) {
+                self.genr.arena.work(1)?;
+                let leaf = self
+                    .genr
+                    .arena
+                    .product_parameters
+                    .as_ref()
+                    .expect("parameter plan")
+                    .leaves[offset];
+                offset += 1;
+                let value = if leaf.ty == Type::Unit {
+                    self.genr.arena.int("0")?
+                } else {
+                    self.genr
+                        .arena
+                        .leaf(sort(leaf.ty)?, leaf.name(), Some(SymbolRef::Parameter))?
+                };
+                if leaf.ty == Type::I64 {
+                    domain.push(self.genr.arena.range(value)?);
+                }
+                fields.push(value);
+            }
+            values.push(match ty {
+                Type::Tuple(shape) => self.product(*shape, fields)?,
+                _ => SymValue::from_scalar(*ty, fields[0])?,
+            });
+        }
+        if offset != slots {
+            return Err(invalid("parameter leaf layout mismatch"));
+        }
+        Ok((values, self.genr.arena.and(&domain)?))
+    }
+
+    fn fresh_leaf(
+        &mut self,
+        ty: Type,
+        field: Option<usize>,
+        site: LoopSite,
+        binding: usize,
+        record_index: usize,
+        domain: &mut Vec<Id>,
+    ) -> Result<Id, Failure> {
+        if ty == Type::Unit {
+            return self.genr.arena.int("0");
+        }
+        if ty.scalar().is_none() {
+            return Err(invalid("head leaf must be scalar"));
+        }
+        let (id, value) = self.genr.arena.head(ty)?;
+        self.genr.arena.work(8)?;
+        let LoopSite {
+            frame: Frame {
+                function,
+                expansion,
+            },
+            node,
+            occurrence,
+        } = site;
+        let mut origin = json!({"kind":"loop_head","source_function_id":function,"loop_node_id":node,"expansion_id":expansion,"occurrence_id":occurrence,"binding_id":binding});
+        let mut record = json!({"symbol":format!("h{id}"),"type":ty.as_str(),"binding_id":binding});
+        if self.product_route() {
+            self.genr.arena.work(2)?;
+            let plan = self
+                .genr
+                .arena
+                .product_parameters
+                .as_ref()
+                .ok_or_else(|| invalid("missing product parameter plan"))?;
+            let local_head = id
+                .checked_sub(plan.head_display_start)
+                .ok_or_else(|| invalid("head display identity precedes function start"))?;
+            let logical_id = plan
+                .slots
+                .checked_add(local_head)
+                .ok_or_else(|| invalid("logical head identity overflow"))?;
+            origin["logical_id"] = json!(logical_id);
+            record["logical_id"] = json!(logical_id);
+        }
+        if let Some(field) = field {
+            self.genr.arena.work(2)?;
+            origin["field_index"] = json!(field);
+            record["field_index"] = json!(field);
+        }
+        self.genr.arena.reserve(&mut self.heads, 1)?;
+        self.heads.push(ModelSymbol {
+            name: format!("h{id}"),
+            ty,
+            origin,
+            head: Some(id),
+        });
+        let symbols = self.report.data["loop_occurrences"][record_index]["head_symbols"]
+            .as_array_mut()
+            .expect("head symbols");
+        self.genr.arena.reserve(symbols, 1)?;
+        symbols.push(record);
+        if ty == Type::I64 {
+            if self.product_route() {
+                self.genr.arena.reserve(domain, 1)?;
+            }
+            domain.push(self.genr.arena.range(value)?);
+        }
+        Ok(value)
+    }
     fn group(&mut self, key: Key) -> Result<(), Failure> {
         if !self.groups.contains_key(&key) {
             let budget = self.genr.arena.budget()?;
@@ -396,18 +875,25 @@ impl Analysis<'_, '_, '_> {
         self.genr.arena.reserve(&mut result, env.len())?;
         for cell in env {
             self.genr.arena.work(1)?;
-            result.push(*cell);
+            result.push(Cell {
+                value: self.copy_value(&cell.value)?,
+                ty: cell.ty,
+                mutable: cell.mutable,
+                key: cell.key,
+            });
         }
         Ok(result)
     }
-    fn entry(&mut self, values: &[Id], types: &[Type]) -> Result<Vec<Cell>, Failure> {
+    fn entry(&mut self, values: &[SymValue], types: &[Type]) -> Result<Vec<Cell>, Failure> {
         if values.len() != types.len() {
             return Err(invalid("symbolic call arity mismatch"));
         }
         let mut env = Vec::new();
         self.genr.arena.reserve(&mut env, values.len())?;
-        for (index, (&value, &ty)) in values.iter().zip(types).enumerate() {
+        for (index, (value, &ty)) in values.iter().zip(types).enumerate() {
             self.genr.arena.work(1)?;
+            value.validate(ty)?;
+            let value = self.copy_value(value)?;
             env.push(Cell {
                 value,
                 ty,
@@ -417,7 +903,7 @@ impl Analysis<'_, '_, '_> {
         }
         Ok(env)
     }
-    fn ite(&mut self, ty: Type, condition: Id, yes: Id, no: Id) -> Result<Id, Failure> {
+    fn scalar_ite(&mut self, ty: Type, condition: Id, yes: Id, no: Id) -> Result<Id, Failure> {
         if ty == Type::Unit {
             return self.genr.arena.int("0");
         }
@@ -425,7 +911,7 @@ impl Analysis<'_, '_, '_> {
             return Ok(yes);
         }
         self.genr.arena.app(
-            sort(ty),
+            sort(ty)?,
             format!("(ite n{condition} n{yes} n{no})"),
             &[condition, yes, no],
         )
@@ -439,9 +925,9 @@ impl Analysis<'_, '_, '_> {
             if a.ty != b.ty || a.mutable != b.mutable || a.key != b.key {
                 return Err(invalid("symbolic branch binding mismatch"));
             }
-            b.value = self.ite(a.ty, condition, a.value, b.value)?;
+            b.value = self.ite(a.ty, condition, &a.value, &b.value)?;
         }
-        let value = self.ite(ty, condition, yes.value, no.value)?;
+        let value = self.ite(ty, condition, &yes.value, &no.value)?;
         let normal = self.genr.arena.app(
             "Bool",
             format!("(or n{} n{})", yes.normal, no.normal),
@@ -458,32 +944,100 @@ impl Analysis<'_, '_, '_> {
         expr: &LocalAssertion,
         env: &[Cell],
         depth: usize,
-    ) -> Result<Symbolic, Failure> {
+    ) -> Result<ProductSymbolic, Failure> {
         self.genr.visit(depth)?;
         let safe = self.genr.arena.truth()?;
         let value = match &expr.kind {
-            LocalAssertionKind::Integer(n) => self.genr.arena.int(n)?,
-            LocalAssertionKind::Boolean(b) => self.genr.arena.bool(*b)?,
-            LocalAssertionKind::Unit => self.genr.arena.int("0")?,
+            LocalAssertionKind::Integer(n) => {
+                SymValue::Scalar(ScalarType::I64, self.genr.arena.int(n)?)
+            }
+            LocalAssertionKind::Boolean(b) => {
+                SymValue::Scalar(ScalarType::Bool, self.genr.arena.bool(*b)?)
+            }
+            LocalAssertionKind::Unit => {
+                SymValue::Scalar(ScalarType::Unit, self.genr.arena.int("0")?)
+            }
             LocalAssertionKind::Local(i) => {
                 self.genr.arena.work(1)?;
-                env.len()
+                let cell = env
+                    .len()
                     .checked_sub(i + 1)
                     .and_then(|j| env.get(j))
-                    .ok_or_else(|| invalid("invalid invariant local"))?
-                    .value
+                    .ok_or_else(|| invalid("invalid invariant local"))?;
+                self.copy_value(&cell.value)?
             }
             LocalAssertionKind::Unary { op, operand } => {
                 let a = self.assertion(operand, env, depth + 1)?;
-                return self.genr.unary(*op, a, false);
+                return self.unary(*op, a, false);
             }
             LocalAssertionKind::Binary { op, left, right } => {
                 let a = self.assertion(left, env, depth + 1)?;
                 let b = self.assertion(right, env, depth + 1)?;
-                return self.genr.binary(*op, a, b, expr.ty.scalar_type(), false);
+                return self.binary(*op, a, b, expr.ty.value_type(), false);
+            }
+            LocalAssertionKind::Tuple(fields) => {
+                let mut values = Vec::new();
+                self.genr.arena.reserve(&mut values, fields.len())?;
+                for field in fields {
+                    values.push(self.assertion(field, env, depth + 1)?);
+                }
+                return self.tuple(expr.ty.value_type(), values);
+            }
+            LocalAssertionKind::Project { value, index } => {
+                let base = self.assertion(value, env, depth + 1)?;
+                return self.project(base, *index, expr.ty.value_type());
             }
         };
-        Ok(Symbolic { value, safe })
+        value.validate(expr.ty.value_type())?;
+        Ok(ProductSymbolic { value, safe })
+    }
+    fn spec(
+        &mut self,
+        expr: &SpecExpr,
+        params: &[SymValue],
+        result: Option<&SymValue>,
+        depth: usize,
+    ) -> Result<ProductSymbolic, Failure> {
+        self.genr.visit(depth)?;
+        let safe = self.genr.arena.truth()?;
+        let value = match &expr.kind {
+            SpecExprKind::Integer(n) => SymValue::Scalar(ScalarType::I64, self.genr.arena.int(n)?),
+            SpecExprKind::Boolean(b) => {
+                SymValue::Scalar(ScalarType::Bool, self.genr.arena.bool(*b)?)
+            }
+            SpecExprKind::Unit => SymValue::Scalar(ScalarType::Unit, self.genr.arena.int("0")?),
+            SpecExprKind::Param(i) => self.copy_value(
+                params
+                    .get(*i)
+                    .ok_or_else(|| invalid("invalid checked contract parameter"))?,
+            )?,
+            SpecExprKind::Result => {
+                self.copy_value(result.ok_or_else(|| invalid("result outside postcondition"))?)?
+            }
+            SpecExprKind::Unary { op, operand } => {
+                let a = self.spec(operand, params, result, depth + 1)?;
+                return self.unary(*op, a, false);
+            }
+            SpecExprKind::Binary { op, left, right } => {
+                let a = self.spec(left, params, result, depth + 1)?;
+                let b = self.spec(right, params, result, depth + 1)?;
+                return self.binary(*op, a, b, expr.ty.value_type(), false);
+            }
+            SpecExprKind::Tuple(fields) => {
+                let mut values = Vec::new();
+                self.genr.arena.reserve(&mut values, fields.len())?;
+                for field in fields {
+                    values.push(self.spec(field, params, result, depth + 1)?);
+                }
+                return self.tuple(expr.ty.value_type(), values);
+            }
+            SpecExprKind::Project { value, index } => {
+                let base = self.spec(value, params, result, depth + 1)?;
+                return self.project(base, *index, expr.ty.value_type());
+            }
+        };
+        value.validate(expr.ty.value_type())?;
+        Ok(ProductSymbolic { value, safe })
     }
     fn invariant(
         &mut self,
@@ -508,7 +1062,7 @@ impl Analysis<'_, '_, '_> {
         self.genr.arena.reserve(&mut truths, clauses.len())?;
         for (index, clause) in clauses.iter().enumerate() {
             let a = self.assertion(&clause.expr, env, depth + 1)?;
-            let required = self.genr.arena.and(&[a.safe, a.value])?;
+            let required = self.genr.arena.and(&[a.safe, a.value.scalar()?])?;
             if let Some(preserved) = preserve {
                 self.genr.arena.work(4)?;
                 self.check(Key::Invariant(occurrence,preserved,index),normal,required,clause.span,Frame{function,expansion},
@@ -529,28 +1083,65 @@ impl Analysis<'_, '_, '_> {
     ) -> Result<Flow, Failure> {
         self.genr.visit(depth)?;
         let value = match &expr.kind {
-            ExprKind::Tuple(_) | ExprKind::Project { .. } => {
-                return Err(Failure::Unsupported(
-                    "flat products are outside scalar verification".into(),
-                ));
+            ExprKind::Tuple(fields) => {
+                let Type::Tuple(shape) = expr.ty else {
+                    return Err(invalid("invalid checked tuple type"));
+                };
+                if fields.len() != shape.fields().len() {
+                    return Err(invalid("invalid checked tuple length"));
+                }
+                let mut captured = Vec::new();
+                self.genr.arena.reserve(&mut captured, fields.len())?;
+                let mut path = normal;
+                for (field, ty) in fields.iter().zip(shape.fields()) {
+                    self.genr.arena.work(1)?;
+                    let flow = self.expr(field, function, expansion, env, path, depth + 1)?;
+                    flow.value.validate(ty.as_type())?;
+                    captured.push(flow.value.scalar()?);
+                    env = flow.env;
+                    path = flow.normal;
+                }
+                return Ok(Flow {
+                    value: self.product(shape, captured)?,
+                    env,
+                    normal: path,
+                });
             }
-            ExprKind::Integer(n) => self.genr.arena.int(&if *n < 0 {
-                format!("(- {})", n.unsigned_abs())
-            } else {
-                n.to_string()
-            })?,
-            ExprKind::Boolean(b) => self.genr.arena.bool(*b)?,
-            ExprKind::Unit => self.genr.arena.int("0")?,
+            ExprKind::Project { value, index } => {
+                let flow = self.expr(value, function, expansion, env, normal, depth + 1)?;
+                let base = ProductSymbolic {
+                    value: flow.value,
+                    safe: flow.normal,
+                };
+                let selected = self.project(base, *index, expr.ty)?;
+                return Ok(Flow {
+                    value: selected.value,
+                    env: flow.env,
+                    normal: flow.normal,
+                });
+            }
+            ExprKind::Integer(n) => SymValue::Scalar(
+                ScalarType::I64,
+                self.genr.arena.int(&if *n < 0 {
+                    format!("(- {})", n.unsigned_abs())
+                } else {
+                    n.to_string()
+                })?,
+            ),
+            ExprKind::Boolean(b) => SymValue::Scalar(ScalarType::Bool, self.genr.arena.bool(*b)?),
+            ExprKind::Unit => SymValue::Scalar(ScalarType::Unit, self.genr.arena.int("0")?),
             ExprKind::Local(i) => {
                 self.genr.arena.work(1)?;
-                env.len()
+                let cell = env
+                    .len()
                     .checked_sub(i + 1)
                     .and_then(|j| env.get(j))
-                    .ok_or_else(|| invalid("invalid checked local"))?
-                    .value
+                    .ok_or_else(|| invalid("invalid checked local"))?;
+                self.copy_value(&cell.value)?
             }
             ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                 let mut initial = self.expr(value, function, expansion, env, normal, depth + 1)?;
+                initial.value.validate(value.ty)?;
                 self.genr.arena.reserve(&mut initial.env, 1)?;
                 initial.env.push(Cell {
                     value: initial.value,
@@ -588,8 +1179,9 @@ impl Analysis<'_, '_, '_> {
                 if !target.mutable || target.ty != value.ty {
                     return Err(invalid("invalid assignment permission/type"));
                 }
+                result.value.validate(target.ty)?;
                 target.value = result.value;
-                result.value = self.genr.arena.int("0")?;
+                result.value = SymValue::Scalar(ScalarType::Unit, self.genr.arena.int("0")?);
                 return Ok(result);
             }
             ExprKind::If {
@@ -599,8 +1191,8 @@ impl Analysis<'_, '_, '_> {
             } => {
                 let c = self.expr(condition, function, expansion, env, normal, depth + 1)?;
                 let yes_env = self.copy(&c.env)?;
-                let yes_path = self.genr.arena.and(&[c.normal, c.value])?;
-                let no_condition = self.genr.arena.not(c.value)?;
+                let yes_path = self.genr.arena.and(&[c.normal, c.value.scalar()?])?;
+                let no_condition = self.genr.arena.not(c.value.scalar()?)?;
                 let no_path = self.genr.arena.and(&[c.normal, no_condition])?;
                 let yes = self.expr(
                     then_branch,
@@ -611,14 +1203,14 @@ impl Analysis<'_, '_, '_> {
                     depth + 1,
                 )?;
                 let no = self.expr(else_branch, function, expansion, c.env, no_path, depth + 1)?;
-                return self.merge(c.value, yes, no, expr.ty);
+                return self.merge(c.value.scalar()?, yes, no, expr.ty);
             }
             ExprKind::Unary { op, operand } => {
                 let a = self.expr(operand, function, expansion, env, normal, depth + 1)?;
                 let safe = self.genr.arena.truth()?;
-                let result = self.genr.unary(
+                let result = self.unary(
                     *op,
-                    Symbolic {
+                    ProductSymbolic {
                         value: a.value,
                         safe,
                     },
@@ -645,35 +1237,35 @@ impl Analysis<'_, '_, '_> {
                 let a = self.expr(left, function, expansion, env, normal, depth + 1)?;
                 if matches!(op, BinaryOp::And | BinaryOp::Or) {
                     let skip_env = self.copy(&a.env)?;
-                    let not_left = self.genr.arena.not(a.value)?;
+                    let not_left = self.genr.arena.not(a.value.scalar()?)?;
                     let (execute, skip) = if *op == BinaryOp::And {
-                        (a.value, not_left)
+                        (a.value.scalar()?, not_left)
                     } else {
-                        (not_left, a.value)
+                        (not_left, a.value.scalar()?)
                     };
                     let path = self.genr.arena.and(&[a.normal, execute])?;
                     let skip_path = self.genr.arena.and(&[a.normal, skip])?;
                     let b = self.expr(right, function, expansion, a.env, path, depth + 1)?;
                     let skipped = Flow {
-                        value: a.value,
+                        value: self.copy_value(&a.value)?,
                         env: skip_env,
                         normal: skip_path,
                     };
                     return if *op == BinaryOp::And {
-                        self.merge(a.value, b, skipped, Type::Bool)
+                        self.merge(a.value.scalar()?, b, skipped, Type::Bool)
                     } else {
-                        self.merge(a.value, skipped, b, Type::Bool)
+                        self.merge(a.value.scalar()?, skipped, b, Type::Bool)
                     };
                 }
                 let b = self.expr(right, function, expansion, a.env, a.normal, depth + 1)?;
                 let safe = self.genr.arena.truth()?;
-                let result = self.genr.binary(
+                let result = self.binary(
                     *op,
-                    Symbolic {
+                    ProductSymbolic {
                         value: a.value,
                         safe,
                     },
-                    Symbolic {
+                    ProductSymbolic {
                         value: b.value,
                         safe,
                     },
@@ -721,11 +1313,11 @@ impl Analysis<'_, '_, '_> {
                     .reserve(&mut clauses, contract.requires.len())?;
                 let mut truth = self.genr.arena.truth()?;
                 for (index, clause) in contract.requires.iter().enumerate() {
-                    let pre = self.genr.spec(&clause.expr, &values, None, depth + 1)?;
+                    let pre = self.spec(&clause.expr, &values, None, depth + 1)?;
                     defined.push(self.genr.arena.implies(truth, pre.safe)?);
-                    truth = self.genr.arena.and(&[truth, pre.value])?;
+                    truth = self.genr.arena.and(&[truth, pre.value.scalar()?])?;
                     self.genr.arena.work(4)?;
-                    clauses.push(json!({"index":index,"location":location(self.genr.program,clause.span),"defined":format!("n{}",pre.safe),"truth":format!("n{}",pre.value)}));
+                    clauses.push(json!({"index":index,"location":location(self.genr.program,clause.span),"defined":format!("n{}",pre.safe),"truth":format!("n{}",pre.value.scalar()?)}));
                 }
                 let defined = self.genr.arena.and(&defined)?;
                 let required = self.genr.arena.and(&[defined, truth])?;
@@ -748,6 +1340,8 @@ impl Analysis<'_, '_, '_> {
                 let child = self.expansion(*callee, Some(expansion), Some(expr))?;
                 let result =
                     self.expr(&callee_fn.body, *callee, child, callee_env, path, depth + 1)?;
+                result.value.validate(callee_fn.result)?;
+                result.value.validate(expr.ty)?;
                 return Ok(Flow {
                     value: result.value,
                     env,
@@ -792,29 +1386,74 @@ impl Analysis<'_, '_, '_> {
                     let binding = parent.ok_or_else(|| invalid("missing loop head binding"))?;
                     let source = &contract.bindings[binding.0];
                     parent = source.parent;
+                    if self.product_route() {
+                        let expected = match cell.key {
+                            CellKey::Parameter(index) => index,
+                            CellKey::Let(node) => {
+                                let layout = self
+                                    .layouts
+                                    .get(function)
+                                    .ok_or_else(|| invalid("missing source binding layout"))?;
+                                self.genr
+                                    .arena
+                                    .work(1 + layout.len().checked_ilog2().unwrap_or(0) as usize)?;
+                                let index = layout
+                                    .binary_search_by_key(&node, |(node, _)| *node)
+                                    .map_err(|_| invalid("missing source let identity"))?;
+                                layout[index].1
+                            }
+                        };
+                        if binding.0 != expected {
+                            return Err(invalid("loop head source binding identity mismatch"));
+                        }
+                    }
                     if cell.ty != source.ty || cell.mutable != source.mutable {
                         return Err(invalid("loop head binding mismatch"));
                     }
-                    if cell.mutable && cell.ty != Type::Unit {
-                        let (id, value) = self.genr.arena.head(cell.ty)?;
-                        cell.value = value;
-                        self.genr.arena.work(8)?;
-                        let origin = json!({"kind":"loop_head","source_function_id":function,"loop_node_id":expr.id,"expansion_id":expansion,"occurrence_id":occurrence,"binding_id":binding.0});
-                        self.genr.arena.reserve(&mut self.heads, 1)?;
-                        self.heads.push(ModelSymbol {
-                            name: format!("h{id}"),
-                            ty: cell.ty,
-                            origin,
-                            head: Some(id),
-                        });
-                        let symbols =
-                            self.report.data["loop_occurrences"][record_index]["head_symbols"]
-                                .as_array_mut()
-                                .expect("head symbols");
-                        self.genr.arena.reserve(symbols, 1)?;
-                        symbols.push(json!({"symbol":format!("h{id}"),"type":cell.ty.as_str(),"binding_id":binding.0}));
-                        if cell.ty == Type::I64 {
-                            domain.push(self.genr.arena.range(value)?);
+                    if cell.mutable {
+                        cell.value.validate(cell.ty)?;
+                        if let Type::Tuple(shape) = cell.ty {
+                            let mut fields = Vec::new();
+                            self.genr.arena.reserve(&mut fields, shape.fields().len())?;
+                            self.genr.arena.reserve(&mut domain, shape.fields().len())?;
+                            for (field, ty) in shape.fields().iter().enumerate() {
+                                self.genr.arena.work(1)?;
+                                fields.push(self.fresh_leaf(
+                                    ty.as_type(),
+                                    Some(field),
+                                    LoopSite {
+                                        frame: Frame {
+                                            function,
+                                            expansion,
+                                        },
+                                        node: expr.id,
+                                        occurrence,
+                                    },
+                                    binding.0,
+                                    record_index,
+                                    &mut domain,
+                                )?);
+                            }
+                            cell.value = self.product(shape, fields)?;
+                        } else if cell.ty != Type::Unit {
+                            cell.value = SymValue::from_scalar(
+                                cell.ty,
+                                self.fresh_leaf(
+                                    cell.ty,
+                                    None,
+                                    LoopSite {
+                                        frame: Frame {
+                                            function,
+                                            expansion,
+                                        },
+                                        node: expr.id,
+                                        occurrence,
+                                    },
+                                    binding.0,
+                                    record_index,
+                                    &mut domain,
+                                )?,
+                            )?;
                         }
                     }
                 }
@@ -840,7 +1479,10 @@ impl Analysis<'_, '_, '_> {
                 let condition =
                     self.expr(condition, function, expansion, env, head_path, depth + 1)?;
                 let body_env = self.copy(&condition.env)?;
-                let body_path = self.genr.arena.and(&[condition.normal, condition.value])?;
+                let body_path = self
+                    .genr
+                    .arena
+                    .and(&[condition.normal, condition.value.scalar()?])?;
                 let body = self.expr(body, function, expansion, body_env, body_path, depth + 1)?;
                 self.invariant(
                     LoopSite {
@@ -856,15 +1498,16 @@ impl Analysis<'_, '_, '_> {
                     body.normal,
                     depth,
                 )?;
-                let false_value = self.genr.arena.not(condition.value)?;
+                let false_value = self.genr.arena.not(condition.value.scalar()?)?;
                 let normal = self.genr.arena.and(&[condition.normal, false_value])?;
                 return Ok(Flow {
-                    value: self.genr.arena.int("0")?,
+                    value: SymValue::Scalar(ScalarType::Unit, self.genr.arena.int("0")?),
                     env: condition.env,
                     normal,
                 });
             }
         };
+        value.validate(expr.ty)?;
         Ok(Flow { value, env, normal })
     }
 }
@@ -873,11 +1516,13 @@ pub(super) fn obligations(
     genr: &mut Generator<'_>,
     function: usize,
     report: &mut VerificationReport,
+    layouts: &[Vec<(usize, usize)>],
 ) -> Result<Artifact, Failure> {
     genr.arena.tracking();
     let f = &genr.program.functions[function];
     let contract = &genr.program.contracts.as_ref().expect("contracts")[function];
     let mut analysis = Analysis {
+        layouts,
         genr,
         report,
         root: function,
@@ -886,9 +1531,9 @@ pub(super) fn obligations(
         heads: Vec::new(),
     };
     let expansion = analysis.expansion(function, None, None)?;
-    let (params, mut assumptions) = analysis.genr.parameters(&f.params)?;
+    let (params, mut assumptions) = analysis.parameters(&f.params)?;
     for (index, clause) in contract.requires.iter().enumerate() {
-        let pre = analysis.genr.spec(&clause.expr, &params, None, 0)?;
+        let pre = analysis.spec(&clause.expr, &params, None, 0)?;
         analysis.genr.arena.work(2)?;
         analysis.check(
             Key::Pre(index),
@@ -904,17 +1549,19 @@ pub(super) fn obligations(
         assumptions = analysis
             .genr
             .arena
-            .and(&[assumptions, pre.safe, pre.value])?;
+            .and(&[assumptions, pre.safe, pre.value.scalar()?])?;
     }
     analysis.group(Key::Reachable)?;
     analysis.group(Key::Body)?;
     let env = analysis.entry(&params, &f.params)?;
     let body = analysis.expr(&f.body, function, expansion, env, assumptions, 0)?;
+    body.value.validate(f.result)?;
     for (index, clause) in contract.ensures.iter().enumerate() {
-        let post = analysis
+        let post = analysis.spec(&clause.expr, &params, Some(&body.value), 0)?;
+        let required = analysis
             .genr
-            .spec(&clause.expr, &params, Some(body.value), 0)?;
-        let required = analysis.genr.arena.and(&[post.safe, post.value])?;
+            .arena
+            .and(&[post.safe, post.value.scalar()?])?;
         analysis.genr.arena.work(2)?;
         analysis.check(
             Key::Post(index),
@@ -1003,17 +1650,39 @@ pub(super) fn manifest(
 ) -> Result<Vec<ModelSymbol>, Failure> {
     let relevant = genr.arena.relevant_heads(assertion)?;
     let mut symbols = Vec::new();
-    genr.arena
-        .reserve(&mut symbols, params.len() + relevant.len())?;
-    for (index, &ty) in params.iter().enumerate() {
-        genr.arena.work(1)?;
-        if ty != Type::Unit {
-            symbols.push(ModelSymbol {
-                name: format!("p{index}"),
-                ty,
-                origin: json!({"kind":"parameter","index":index}),
-                head: None,
-            });
+    if let Some(plan) = &genr.arena.product_parameters {
+        let count = plan.leaves.len();
+        genr.arena.reserve(&mut symbols, count + relevant.len())?;
+        for index in 0..count {
+            genr.arena.work(6)?;
+            let leaf = genr
+                .arena
+                .product_parameters
+                .as_ref()
+                .expect("parameter plan")
+                .leaves[index];
+            if leaf.ty != Type::Unit {
+                symbols.push(ModelSymbol {
+                    name: leaf.name(),
+                    ty: leaf.ty,
+                    origin: leaf.origin(),
+                    head: None,
+                });
+            }
+        }
+    } else {
+        genr.arena
+            .reserve(&mut symbols, params.len() + relevant.len())?;
+        for (index, &ty) in params.iter().enumerate() {
+            genr.arena.work(1)?;
+            if ty != Type::Unit {
+                symbols.push(ModelSymbol {
+                    name: format!("p{index}"),
+                    ty,
+                    origin: json!({"kind":"parameter","index":index}),
+                    head: None,
+                });
+            }
         }
     }
     let mut selected = relevant.into_iter().peekable();
@@ -1039,6 +1708,102 @@ pub(super) fn manifest(
     Ok(symbols)
 }
 
+pub(super) fn has_products(program: &Program) -> bool {
+    fn spec(e: &SpecExpr) -> bool {
+        if matches!(e.ty.value_type(), Type::Tuple(_)) {
+            return true;
+        }
+        match &e.kind {
+            SpecExprKind::Tuple(_) | SpecExprKind::Project { .. } => true,
+            SpecExprKind::Unary { operand, .. } => spec(operand),
+            SpecExprKind::Binary { left, right, .. } => spec(left) || spec(right),
+            _ => false,
+        }
+    }
+    fn assertion(e: &LocalAssertion) -> bool {
+        if matches!(e.ty.value_type(), Type::Tuple(_)) {
+            return true;
+        }
+        match &e.kind {
+            LocalAssertionKind::Tuple(_) | LocalAssertionKind::Project { .. } => true,
+            LocalAssertionKind::Unary { operand, .. } => assertion(operand),
+            LocalAssertionKind::Binary { left, right, .. } => assertion(left) || assertion(right),
+            _ => false,
+        }
+    }
+    program.has_flat_products()
+        || program.contracts.as_ref().is_some_and(|contracts| {
+            contracts.iter().any(|c| {
+                c.requires
+                    .iter()
+                    .chain(&c.ensures)
+                    .any(|clause| spec(&clause.expr))
+                    || c.loops
+                        .values()
+                        .any(|a| a.clauses.iter().any(|c| assertion(&c.expr)))
+            })
+        })
+}
+
+fn specification_type(
+    e: &SpecExpr,
+    params: &[Type],
+    result: Option<Type>,
+    budget: &mut StateBudget,
+) -> Result<Type, Failure> {
+    budget.charge(1)?;
+    let ty = match &e.kind {
+        SpecExprKind::Integer(_) => Type::I64,
+        SpecExprKind::Boolean(_) => Type::Bool,
+        SpecExprKind::Unit => Type::Unit,
+        SpecExprKind::Param(i) => *params
+            .get(*i)
+            .ok_or_else(|| invalid("invalid specification parameter index"))?,
+        SpecExprKind::Result => result.ok_or_else(|| invalid("result outside postcondition"))?,
+        SpecExprKind::Unary { op, operand } => {
+            if specification_type(operand, params, result, budget)? != op.input() {
+                return Err(invalid("invalid specification unary type"));
+            }
+            op.input()
+        }
+        SpecExprKind::Binary { op, left, right } => op
+            .result(
+                specification_type(left, params, result, budget)?,
+                specification_type(right, params, result, budget)?,
+            )
+            .ok_or_else(|| invalid("invalid specification binary type"))?,
+        SpecExprKind::Tuple(fields) => {
+            let Type::Tuple(shape) = e.ty.value_type() else {
+                return Err(invalid("invalid specification tuple type"));
+            };
+            if fields.len() != shape.fields().len() {
+                return Err(invalid("invalid specification tuple length"));
+            }
+            for (field, ty) in fields.iter().zip(shape.fields()) {
+                budget.charge(1)?;
+                if specification_type(field, params, result, budget)? != ty.as_type() {
+                    return Err(invalid("invalid specification tuple field"));
+                }
+            }
+            Type::Tuple(shape)
+        }
+        SpecExprKind::Project { value, index } => {
+            let Type::Tuple(shape) = specification_type(value, params, result, budget)? else {
+                return Err(invalid("invalid specification projection"));
+            };
+            shape
+                .fields()
+                .get(*index)
+                .ok_or_else(|| invalid("invalid specification projection index"))?
+                .as_type()
+        }
+    };
+    if e.ty.value_type() != ty {
+        return Err(invalid("invalid specification result type"));
+    }
+    Ok(ty)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1055,7 +1820,7 @@ mod tests {
             exit: 0,
         };
         assert!(
-            matches!(obligations(&mut generator,0,&mut report),Err(Failure::Unknown(message)) if message.contains("1024 queries"))
+            matches!(obligations(&mut generator,0,&mut report,&[]),Err(Failure::Unknown(message)) if message.contains("1024 queries"))
         );
         assert_eq!(
             generator.arena.budget().unwrap().pending_queries,

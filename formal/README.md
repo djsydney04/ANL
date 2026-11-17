@@ -37,8 +37,8 @@ python3 formal/test_flat_products.py --rust target/debug/anl
 ```
 
 `check.sh` performs a clean build, rejects incomplete proof and custom axiom
-syntax, audits the transitive axiom dependencies of 384 theorem names, and replays
-48 modules through separate `leanchecker` processes. Build warnings are errors.
+syntax, audits the transitive axiom dependencies of 558 theorem names, and
+replays 72 modules through separate `leanchecker` processes. Build warnings are errors.
 The axiom audit fails on anything outside `propext`, `Classical.choice`, and
 `Quot.sound`. The current proofs use these three permitted axioms; the fresh-identity
 uniqueness and disjointness lemmas use `Classical.choice`.
@@ -197,7 +197,8 @@ and absence of finite traps or invalid states. The raw generator describes the
 value-only machine and does not check static assignment permission.
 
 These are model proofs. The production verifier separately supports mutable
-scalar code with annotated loops and acyclic calls and reports `smt-trusted` results.
+scalar and flat-tuple code with annotated loops and acyclic calls and reports
+`smt-trusted` results.
 Source elaboration, graph validation, the production
 forward analysis and its correspondence to this CPS generator, named query
 grouping, SMT translation, and the solver remain outside the theorem boundary.
@@ -331,12 +332,40 @@ statements remain unchanged. See the [55-statement product inventory](PROOFS.md#
 for exact premises.
 
 These are runtime-model guarantees. They do not extend the scalar verification
-condition generators to tuples or establish source lowering, JSON decoding,
+condition generators to tuples. Production [tuple verification](../spec/flat-products.md#verification-boundary)
+is separately implemented and remains solver-trusted. These runtime theorems do
+not establish source lowering, JSON decoding,
 Rust evaluation, shared-storage reclamation, native correctness, ownership,
 termination or completeness at fixed production limits. Mathematical transition
 budgets differ from production expression, depth, allocation and slot limits.
 The nineteen private boundary examples are kernel checked but do not inflate
 the public theorem inventory.
+
+### Flat-tuple contract verification model
+
+The separate `APL.ProductFlow` generator merges one symbolic value, environment
+and normal-return guard while retaining every guarded check. It covers the
+existing tuple machine's constructors, including state, calls and annotated
+loops. `APL.ProductFlow.analyze_sound` requires successful generation, a typed
+complete erased table and bounded symbolic support. Given a typed represented
+runtime environment, an established path and universally valid guarded checks,
+it proves actual-machine safety at every budget and coverage of every normal
+value and final environment by an agreeing model extension.
+
+`APL.ProductFlow.contract_queries_sound` connects semantic acceptance of generated
+queries to that machine and all normal ensures. Its premises include a typed
+complete annotated table, successful contract generation, and typed input values
+satisfying requires. Separate entry results establish ordered definedness and
+equate entry satisfiability with a typed runtime witness. The root theorem adds
+function-table lookup, result/environment typing and immutable-binding preservation.
+Query partition preserves check multiplicity and each original guard.
+
+These statements permit divergent execution and inconclusive exhausted budgets.
+They do not establish product generation completeness, solver completeness or
+production-bound sufficiency. Source annotation reconstruction, source identities,
+Rust generation, SMT/solver correspondence and native execution remain separate
+obligations. See the [merged product inventory](PROOFS.md#merged-flat-tuple-contract-verification)
+for the exact names, premises, module list and query boundary.
 
 ### V2 interchange adapter
 

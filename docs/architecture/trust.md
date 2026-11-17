@@ -2,7 +2,7 @@
 
 Status: evidence ledger for immutable scalar revision `m1-2026-11-16` and the
 separate `local-state-2026-11-17` extension, with the wider language still planned. Rust source checking, interpretation, modules,
-native compilation, local scalar state and loops, scalar contract
+native compilation, local scalar state and loops, scalar and flat-tuple contract
 verification with invariants and acyclic calls, and strict v0/v1 interchange have executable
 conformance coverage. Lean's expression and recursive-function models have kernel-checked
 theorems, including finite evaluator correspondence with sufficient depth and
@@ -42,8 +42,15 @@ well-typed complete function table with a nullary i64 entry. Its model execution
 excludes invalid outcomes and preserves returned types at every budget. JSON-text
 interpretation, Lean compilation/runtime and Rust/native correspondence remain
 unproved; executable comparisons cover those boundaries only for tested cases.
-`verify` still rejects tuple-bearing graphs before tools with
-`trust: "not_established"`; runtime type safety is not tuple contract verification.
+`verify` supports flat-tuple contracts with annotated loops and acyclic calls.
+Those results remain `smt-trusted`. Runtime type safety alone does not establish
+contract verification. The [merged product model](../../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+separately proves actual-machine safety and normal ensures under successful
+generation, typing, representation/support and valid-check premises. Its ordered
+entry and exact query results retain typed runtime witnesses and check multiplicity.
+No result certifies Rust generation, source annotation or ID reconstruction,
+SMT/solver answers or native execution. Product generation completeness, solver
+completeness, production-bound sufficiency and termination remain open.
 
 ## What a claim covers
 
@@ -56,13 +63,13 @@ For example, a Lean theorem establishing scalar preservation applies to the form
 | Component | What depends on it | Current evidence and required strengthening |
 | --- | --- | --- |
 | Language definitions and theorem statements | Whether checked mathematics describes intended ANL behavior | Independent technical review, semantic examples, and implementation correspondence tests. Formalizing the wrong statement remains possible. |
-| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 384 theorem names, and separate kernel replay of 48 modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
+| Lean kernel and allowed logical axioms | Kernel-checked theorem validity | Lean 4.36.0 is pinned; the inventory is checked by clean builds, transitive axiom audit of 558 theorem names, and separate kernel replay of 72 modules. Actual dependencies and theorem scopes are recorded in the inventory. Counts include supporting lemmas. Hardware and host integrity remain assumptions. |
 | Lean elaboration and proof libraries | Meaning of the submitted statement and imported definitions | Review notation, theorem inventory, dependencies, and changes. Axiom inspection alone does not establish the intended meaning. |
 | Formal evaluator compilation and JSON reader | Executed reference results | V0 finite evaluator correspondence quantifies sufficient depth/fuel. The separate v1 machine has finite run/reduction correspondence and forward v0 outcome preservation. The flat-tuple machine has finite run/step correspondence and forward finite v1 embedding under its stated premises. Typed model runs cannot reach invalid. The actual v2 reader's successful return supplies the typing premise, and its execution wrapper preserves that guarantee at every budget. V1/v2 transition budgets differ from Rust expression/depth/allocation/slot limits; resource comparisons are inconclusive. JSON-text interpretation, v0/v1 reader correspondence, Lean compilation and runtime remain trusted or tested boundaries. No per-artifact kernel certificate is produced. |
 | Source lexer, parser, resolver, and elaborator | Correspondence between user source and formal core | Implemented and tested for scalar programs, file modules, and initialized local state, including scope, permissions, visibility, numeric boundaries, retained source locations, and serialized core comparisons. Module resolution and source elaboration remain correspondence obligations. |
 | Production type checker | Rejection of ill-typed source programs | Implemented and tested for M1; checked Program contents cannot be constructed or mutated through the safe public Rust API. The abstract typing relation and Lean inference theorems do not prove this checker sound. |
 | Ownership and effect checkers | Memory safety, race prevention, and capability restrictions | Unimplemented initially. Formal rules, adversarial tests, and correspondence obligations are required before claims. |
-| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier supports scalar functions with mutable locals, annotated loops and acyclic calls; it rejects missing invariants and recursion before tools run. Lean proves call-free, finite body-expansion, loop-free state, and invariant-loop generator soundness under successful generation and the documented premises. The loop model includes actual-machine safety, normal coverage, typed entry contracts and exact mathematical query partition. Separately, verification-ready typing, typed preconditions, a supplied decreasing call rank and input environment length imply a uniform generation height for the actual model. Rank existence/extraction, source graph correspondence, fixed production limits, separate AST-inlining equivalence, production named-condition correspondence, and production bridges remain open (partial FM-07). |
+| Verification IR construction and VCG | Whether a discharged formula implies the requested source property | The Rust verifier supports scalar and flat-tuple functions with mutable locals, annotated loops and acyclic calls; it rejects missing invariants and recursion before tools run. Lean proves call-free, finite body-expansion, loop-free state, and invariant-loop generator soundness under successful generation and the documented premises. The loop model includes actual-machine safety, normal coverage, typed entry contracts and exact mathematical query partition. Separately, verification-ready typing, typed preconditions, a supplied decreasing call rank and input environment length imply a uniform generation height for the actual model. Rank existence/extraction, source graph correspondence, fixed production limits, separate AST-inlining equivalence, production named-condition correspondence, and production bridges remain open (partial FM-07). |
 | SMT serializer, solver, and result parser | Solver-backed proof results and counterexamples | Z3 5.3.3 is pinned. The driver records exact tool/query hashes, bounds time and I/O, validates status/models, and requires successful process termination. Real-solver and failure-protocol tests passed in Linux/macOS CI at `a7e0b38591ba76255e561cda60099bc8bc422543` ([run](https://github.com/djsydney04/ANL/actions/runs/44051779446)). Results remain `smt-trusted`; models are unreplayed and no certificate checker is implemented. |
 | Compiler transformations | Preservation of values, traps, effects, and divergence properties | Source blocks and modules lower to a typed function table, then validated structured MIR with initialized scalar slots and loops. Tests cover scope, ordering, state changes, branches, and traps. These validators do not prove translation correctness. ANL optimization passes remain unimplemented. |
 | C or LLVM backend, assembler, and linker | Machine code correctness | The C11 backend is implemented and tested at `-O0`/`-O2`, including checked arithmetic and sanitizer probes. Native and module checks passed macOS AArch64 and Linux x86-64 CI at `19d726c`; compiler, linker, and host behavior remain trusted. LLVM is planned. |

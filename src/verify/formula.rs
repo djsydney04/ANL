@@ -17,7 +17,7 @@ struct Node {
     links: Option<Links>,
 }
 #[derive(Clone, Copy)]
-enum SymbolRef {
+pub(super) enum SymbolRef {
     Parameter,
     Head(usize),
 }
@@ -67,6 +67,9 @@ impl StateBudget {
             pending_queries: 0,
         }
     }
+    pub fn usage(&self) -> serde_json::Value {
+        serde_json::json!({"symbolic_work":self.work,"arena_nodes":self.nodes,"head_symbols":self.heads,"loop_occurrences":self.occurrences,"expansions":self.expansions,"pending_queries":self.pending_queries})
+    }
     pub fn charge(&mut self, amount: usize) -> Result<(), Failure> {
         if Instant::now() >= self.deadline {
             return Err(Failure::Unknown(
@@ -110,6 +113,7 @@ pub(super) struct Arena<'a> {
     heads: Vec<(usize, Type)>,
     marks: Vec<usize>,
     traversal: usize,
+    pub product_parameters: Option<ParameterPlan>,
 }
 impl Arena<'_> {
     pub fn new() -> Self {
@@ -121,6 +125,7 @@ impl Arena<'_> {
             heads: Vec::new(),
             marks: Vec::new(),
             traversal: 0,
+            product_parameters: None,
         }
     }
     pub fn work(&mut self, amount: usize) -> Result<(), Failure> {
@@ -149,7 +154,7 @@ impl Arena<'_> {
     pub fn tracking(&mut self) {
         self.tracking = true;
     }
-    fn leaf(
+    pub(super) fn leaf(
         &mut self,
         sort: &'static str,
         body: String,
@@ -235,7 +240,7 @@ impl Arena<'_> {
             .expect("head budget")
             .reserve(&mut self.heads, 1)?;
         self.heads.push((head, ty));
-        let id = self.leaf(sort(ty), format!("h{head}"), Some(SymbolRef::Head(head)))?;
+        let id = self.leaf(sort(ty)?, format!("h{head}"), Some(SymbolRef::Head(head)))?;
         Ok((head, id))
     }
     pub fn relevant_heads(&mut self, root: Id) -> Result<Vec<usize>, Failure> {
@@ -368,30 +373,63 @@ impl Arena<'_> {
         assertion: Id,
         timeout_ms: u128,
     ) -> Result<String, Failure> {
-        let mut text = format!(
-            "(set-option :print-success false)\n(set-option :produce-models true)\n(set-option :timeout {})\n",
-            timeout_ms.max(1)
-        );
-        text.push_str("(define-fun apl_abs ((x Int)) Int (ite (< x 0) (- x) x))\n(define-fun apl_div ((a Int) (b Int)) Int (ite (= b 0) 0 (ite (= (< a 0) (< b 0)) (div (apl_abs a) (apl_abs b)) (- (div (apl_abs a) (apl_abs b))))))\n");
+        let product = self.product_parameters.is_some();
+        let timeout_ms = timeout_ms.max(1);
+        let prefix = "(set-option :print-success false)\n(set-option :produce-models true)\n(set-option :timeout ";
+        if product {
+            self.work(prefix.len() + timeout_ms.ilog10() as usize + 3)?;
+        }
+        let mut text = format!("{prefix}{timeout_ms})\n");
+        let arithmetic = "(define-fun apl_abs ((x Int)) Int (ite (< x 0) (- x) x))\n(define-fun apl_div ((a Int) (b Int)) Int (ite (= b 0) 0 (ite (= (< a 0) (< b 0)) (div (apl_abs a) (apl_abs b)) (- (div (apl_abs a) (apl_abs b))))))\n";
+        if product {
+            self.work(arithmetic.len())?;
+        }
+        text.push_str(arithmetic);
         self.work(params.len())?;
-        for (i, ty) in params.iter().enumerate() {
-            if let Some(budget) = &mut self.budget {
-                budget.charge(0)?;
-            }
-            if *ty != Type::Unit {
-                let declaration = format!("(declare-const p{i} {})\n", sort(*ty));
-                if self.budget.is_some() && text.len() + declaration.len() > MAX_QUERY_BYTES {
-                    return Err(Failure::Unknown(
-                        "generated query exceeds 1048576 bytes".into(),
-                    ));
+        if let Some(plan) = &self.product_parameters {
+            let count = plan.leaves.len();
+            for index in 0..count {
+                self.work(1)?;
+                let leaf = self
+                    .product_parameters
+                    .as_ref()
+                    .expect("parameter plan")
+                    .leaves[index];
+                if leaf.ty != Type::Unit {
+                    let declaration =
+                        format!("(declare-const {} {})\n", leaf.name(), sort(leaf.ty)?);
+                    self.work(declaration.len())?;
+                    if text.len() + declaration.len() > MAX_QUERY_BYTES {
+                        return Err(Failure::Unknown(
+                            "generated query exceeds 1048576 bytes".into(),
+                        ));
+                    }
+                    text.push_str(&declaration);
                 }
-                text.push_str(&declaration);
+            }
+        } else {
+            for (i, ty) in params.iter().enumerate() {
+                if let Some(budget) = &mut self.budget {
+                    budget.charge(0)?;
+                }
+                if *ty != Type::Unit {
+                    let declaration = format!("(declare-const p{i} {})\n", sort(*ty)?);
+                    if self.budget.is_some() && text.len() + declaration.len() > MAX_QUERY_BYTES {
+                        return Err(Failure::Unknown(
+                            "generated query exceeds 1048576 bytes".into(),
+                        ));
+                    }
+                    text.push_str(&declaration);
+                }
             }
         }
         for i in 0..self.heads.len() {
             self.work(1)?;
             let (id, ty) = self.heads[i];
-            let declaration = format!("(declare-const h{id} {})\n", sort(ty));
+            let declaration = format!("(declare-const h{id} {})\n", sort(ty)?);
+            if product {
+                self.work(declaration.len())?;
+            }
             if text.len() + declaration.len() > MAX_QUERY_BYTES {
                 return Err(Failure::Unknown(
                     "generated query exceeds 1048576 bytes".into(),
@@ -401,7 +439,11 @@ impl Arena<'_> {
         }
         for (i, node) in self.nodes.iter().enumerate() {
             if let Some(budget) = &mut self.budget {
-                budget.charge(0)?;
+                budget.charge(if product {
+                    definition_bytes(i, node.sort, node.body.len())
+                } else {
+                    0
+                })?;
                 if text.len() + definition_bytes(i, node.sort, node.body.len()) > MAX_QUERY_BYTES {
                     return Err(Failure::Unknown(
                         "generated query exceeds 1048576 bytes".into(),
@@ -414,6 +456,9 @@ impl Arena<'_> {
             ));
         }
         let ending = format!("(assert n{assertion})\n(check-sat)\n");
+        if product {
+            self.work(ending.len())?;
+        }
         if self.budget.is_some() && text.len() + ending.len() > MAX_QUERY_BYTES {
             return Err(Failure::Unknown(
                 "generated query exceeds 1048576 bytes".into(),
@@ -431,14 +476,20 @@ impl Arena<'_> {
 fn definition_bytes(id: usize, sort: &str, body_bytes: usize) -> usize {
     format!("(define-fun n{id} () {sort} )\n").len() + body_bytes
 }
-pub(super) fn sort(ty: Type) -> &'static str {
-    if ty == Type::Bool { "Bool" } else { "Int" }
+pub(super) fn sort(ty: Type) -> Result<&'static str, Failure> {
+    match ty {
+        Type::Bool => Ok("Bool"),
+        Type::I64 | Type::Unit => Ok("Int"),
+        Type::Tuple(_) => Err(Failure::Error("product reached scalar SMT sort".into())),
+    }
 }
+
 fn spec_type(ty: SpecType) -> Type {
     match ty {
         SpecType::Int => Type::I64,
         SpecType::Bool => Type::Bool,
         SpecType::Unit => Type::Unit,
+        SpecType::Tuple(_) => unreachable!("product reached scalar specification generator"),
     }
 }
 
@@ -469,6 +520,7 @@ impl<'a> Generator<'a> {
                 heads: Vec::new(),
                 marks: Vec::new(),
                 traversal: 0,
+                product_parameters: None,
             },
             program,
             expanded,
@@ -502,7 +554,7 @@ impl<'a> Generator<'a> {
                 self.arena.int("0")?
             } else {
                 self.arena
-                    .leaf(sort(*ty), format!("p{i}"), Some(SymbolRef::Parameter))?
+                    .leaf(sort(*ty)?, format!("p{i}"), Some(SymbolRef::Parameter))?
             };
             if *ty == Type::I64 {
                 domain.push(self.arena.range(value)?);
@@ -522,6 +574,11 @@ impl<'a> Generator<'a> {
         let pure = |value, safe| Symbolic { value, safe };
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            SpecExprKind::Tuple(_) | SpecExprKind::Project { .. } => {
+                return Err(Failure::Error(
+                    "product reached scalar specification generator".into(),
+                ));
+            }
             SpecExprKind::Integer(n) => pure(self.arena.int(n)?, safe),
             SpecExprKind::Boolean(b) => pure(self.arena.bool(*b)?, safe),
             SpecExprKind::Unit => pure(self.arena.int("0")?, safe),
@@ -606,7 +663,7 @@ impl<'a> Generator<'a> {
                 let no = self.arena.implies(nc, b.safe)?;
                 Symbolic {
                     value: self.arena.add(
-                        sort(expr.ty),
+                        sort(expr.ty)?,
                         format!("(ite n{} n{} n{})", c.value, a.value, b.value),
                     )?,
                     safe: self.arena.and(&[c.safe, yes, no])?,
@@ -697,7 +754,7 @@ impl<'a> Generator<'a> {
             BinaryOp::And => format!("(and n{x} n{y})"),
             BinaryOp::Or => format!("(or n{x} n{y})"),
         };
-        let value = self.arena.app(sort(ty), body, &[x, y])?;
+        let value = self.arena.app(sort(ty)?, body, &[x, y])?;
         let mut conditions = vec![a.safe];
         match op {
             BinaryOp::And => conditions.push(self.arena.implies(x, b.safe)?),
@@ -796,6 +853,11 @@ pub(super) fn acyclic(program: &Program) -> Result<(), Failure> {
                 ));
             }
             match &expr.kind {
+                ExprKind::Tuple(fields) => work.extend(fields),
+                ExprKind::Project { value, .. } => work.push(value),
+                ExprKind::While { condition, body } => {
+                    work.extend([condition.as_ref(), body.as_ref()])
+                }
                 ExprKind::Call {
                     function,
                     arguments,
@@ -911,6 +973,73 @@ pub(super) fn obligations(
     Ok(pending)
 }
 
+#[derive(Clone, Copy)]
+pub(super) struct ParameterLeaf {
+    pub parameter: usize,
+    pub field: Option<usize>,
+    pub logical_id: usize,
+    pub ty: Type,
+}
+impl ParameterLeaf {
+    pub fn name(self) -> String {
+        match self.field {
+            Some(field) => format!("p{}_f{field}", self.parameter),
+            None => format!("p{}", self.parameter),
+        }
+    }
+    pub fn origin(self) -> serde_json::Value {
+        let mut origin = serde_json::json!({"kind":"parameter","index":self.parameter,"logical_id":self.logical_id});
+        if let Some(field) = self.field {
+            origin["field_index"] = serde_json::json!(field);
+        }
+        origin
+    }
+}
+pub(super) struct ParameterPlan {
+    pub leaves: Vec<ParameterLeaf>,
+    pub slots: usize,
+    pub head_display_start: usize,
+}
+impl ParameterPlan {
+    pub fn new(params: &[Type], budget: &mut StateBudget) -> Result<Self, Failure> {
+        let mut leaves = Vec::new();
+        let mut slots = 0;
+        for (parameter, ty) in params.iter().enumerate() {
+            budget.charge(1)?;
+            match ty {
+                Type::Tuple(shape) => {
+                    budget.reserve(&mut leaves, shape.fields().len())?;
+                    for (field, ty) in shape.fields().iter().enumerate() {
+                        budget.charge(1)?;
+                        leaves.push(ParameterLeaf {
+                            parameter,
+                            field: Some(field),
+                            logical_id: slots,
+                            ty: ty.as_type(),
+                        });
+                        slots += 1;
+                    }
+                }
+                _ => {
+                    budget.reserve(&mut leaves, 1)?;
+                    leaves.push(ParameterLeaf {
+                        parameter,
+                        field: None,
+                        logical_id: slots,
+                        ty: *ty,
+                    });
+                    slots += 1;
+                }
+            }
+        }
+        Ok(Self {
+            leaves,
+            slots,
+            head_display_start: budget.heads,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -928,6 +1057,7 @@ mod tests {
             heads: Vec::new(),
             marks: Vec::new(),
             traversal: 0,
+            product_parameters: None,
         };
         assert!(first.truth().is_ok());
         drop(first);
@@ -939,6 +1069,7 @@ mod tests {
             heads: Vec::new(),
             marks: Vec::new(),
             traversal: 0,
+            product_parameters: None,
         };
         assert!(
             matches!(second.truth(), Err(Failure::Unknown(message)) if message.contains("arena"))
@@ -957,6 +1088,7 @@ mod tests {
             heads: Vec::new(),
             marks: Vec::new(),
             traversal: 0,
+            product_parameters: None,
         };
         let value = arena.truth().unwrap();
         arena.budget.as_mut().unwrap().work = MAX_SYMBOLIC_WORK - 1;

@@ -230,10 +230,10 @@ fn spec_expr(
         syntax::ExprKind::Unit => (SpecType::Unit, SpecExprKind::Unit),
         syntax::ExprKind::Name(name) => {
             if let Some((_, ty)) = result.filter(|(binder, _)| *binder == name) {
-                (SpecType::checked(ty, span)?, SpecExprKind::Result)
+                (SpecType::from_type(ty), SpecExprKind::Result)
             } else if let Some(index) = params.iter().position(|p| p.name.as_ref() == Some(&name)) {
                 (
-                    SpecType::checked(params[index].ty, span)?,
+                    SpecType::from_type(params[index].ty),
                     SpecExprKind::Param(index),
                 )
             } else {
@@ -248,7 +248,7 @@ fn spec_expr(
         syntax::ExprKind::Group(inner) => return spec_expr(*inner, params, result),
         syntax::ExprKind::Unary { op, operand } => {
             let operand = spec_expr(*operand, params, result)?;
-            let ty = SpecType::checked(op.input(), span)?;
+            let ty = SpecType::from_type(op.input());
             if operand.ty != ty {
                 return Err(Diagnostic::new(
                     operand.span,
@@ -270,9 +270,9 @@ fn spec_expr(
         syntax::ExprKind::Binary { op, left, right } => {
             let left = spec_expr(*left, params, result)?;
             let right = spec_expr(*right, params, result)?;
-            // Scalar operator signatures are shared; specification values remain unbounded.
+            // Runtime shapes are shared; specification integer values remain unbounded.
             let ty = op
-                .result(left.ty.scalar_type(), right.ty.scalar_type())
+                .result(left.ty.value_type(), right.ty.value_type())
                 .ok_or_else(|| {
                     Diagnostic::new(
                         span,
@@ -285,7 +285,7 @@ fn spec_expr(
                     )
                 })?;
             (
-                SpecType::checked(ty, span)?,
+                SpecType::from_type(ty),
                 SpecExprKind::Binary {
                     op,
                     left: Box::new(left),
@@ -293,11 +293,40 @@ fn spec_expr(
                 },
             )
         }
-        syntax::ExprKind::Tuple(_) | syntax::ExprKind::Project { .. } => {
-            return Err(Diagnostic::new(
-                span,
-                "tuple construction and projection are not allowed in scalar specifications",
-            ));
+        syntax::ExprKind::Tuple(fields) => {
+            let fields = fields
+                .into_iter()
+                .map(|field| spec_expr(field, params, result))
+                .collect::<Result<Vec<_>, _>>()?;
+            let types = fields
+                .iter()
+                .map(|field| {
+                    field.ty.value_type().scalar().ok_or_else(|| {
+                        Diagnostic::new(field.span, "specification tuples must be flat")
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let shape = crate::types::TupleShape::new(&types)
+                .map_err(|_| Diagnostic::new(span, "tuple requires 1..8 scalar fields"))?;
+            (SpecType::Tuple(shape), SpecExprKind::Tuple(fields))
+        }
+        syntax::ExprKind::Project { value, index } => {
+            let value = spec_expr(*value, params, result)?;
+            let SpecType::Tuple(shape) = value.ty else {
+                return Err(Diagnostic::new(span, "projection requires a tuple"));
+            };
+            let ty = shape
+                .fields()
+                .get(index)
+                .ok_or_else(|| Diagnostic::new(span, "tuple projection index out of range"))?
+                .as_type();
+            (
+                SpecType::from_type(ty),
+                SpecExprKind::Project {
+                    value: Box::new(value),
+                    index,
+                },
+            )
         }
         syntax::ExprKind::Call { .. } => {
             return Err(Diagnostic::new(
@@ -361,14 +390,14 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
                     "undefined invariant name `{name}`; only bindings visible at the loop head are available"
                 )))?;
             (
-                SpecType::checked(env[position].ty, span)?,
+                SpecType::from_type(env[position].ty),
                 LocalAssertionKind::Local(env.len() - position - 1),
             )
         }
         syntax::ExprKind::Group(inner) => return local_assertion(*inner, env),
         syntax::ExprKind::Unary { op, operand } => {
             let operand = local_assertion(*operand, env)?;
-            let ty = SpecType::checked(op.input(), span)?;
+            let ty = SpecType::from_type(op.input());
             if operand.ty != ty {
                 return Err(Diagnostic::new(
                     operand.span,
@@ -391,7 +420,7 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
             let left = local_assertion(*left, env)?;
             let right = local_assertion(*right, env)?;
             let ty = op
-                .result(left.ty.scalar_type(), right.ty.scalar_type())
+                .result(left.ty.value_type(), right.ty.value_type())
                 .ok_or_else(|| {
                     Diagnostic::new(
                         span,
@@ -404,7 +433,7 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
                     )
                 })?;
             (
-                SpecType::checked(ty, span)?,
+                SpecType::from_type(ty),
                 LocalAssertionKind::Binary {
                     op,
                     left: Box::new(left),
@@ -412,11 +441,40 @@ fn local_assertion(expr: syntax::Expr, env: &[Binding]) -> Result<LocalAssertion
                 },
             )
         }
-        syntax::ExprKind::Tuple(_) | syntax::ExprKind::Project { .. } => {
-            return Err(Diagnostic::new(
-                span,
-                "tuple construction and projection are not allowed in scalar specifications",
-            ));
+        syntax::ExprKind::Tuple(fields) => {
+            let fields = fields
+                .into_iter()
+                .map(|field| local_assertion(field, env))
+                .collect::<Result<Vec<_>, _>>()?;
+            let types = fields
+                .iter()
+                .map(|field| {
+                    field.ty.value_type().scalar().ok_or_else(|| {
+                        Diagnostic::new(field.span, "specification tuples must be flat")
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let shape = crate::types::TupleShape::new(&types)
+                .map_err(|_| Diagnostic::new(span, "tuple requires 1..8 scalar fields"))?;
+            (SpecType::Tuple(shape), LocalAssertionKind::Tuple(fields))
+        }
+        syntax::ExprKind::Project { value, index } => {
+            let value = local_assertion(*value, env)?;
+            let SpecType::Tuple(shape) = value.ty else {
+                return Err(Diagnostic::new(span, "projection requires a tuple"));
+            };
+            let ty = shape
+                .fields()
+                .get(index)
+                .ok_or_else(|| Diagnostic::new(span, "tuple projection index out of range"))?
+                .as_type();
+            (
+                SpecType::from_type(ty),
+                LocalAssertionKind::Project {
+                    value: Box::new(value),
+                    index,
+                },
+            )
         }
         syntax::ExprKind::Call { .. } => {
             return Err(Diagnostic::new(
@@ -957,6 +1015,12 @@ mod annotation_tests {
 
     fn locals(expr: &LocalAssertion, result: &mut Vec<usize>) {
         match &expr.kind {
+            LocalAssertionKind::Tuple(fields) => {
+                for field in fields {
+                    locals(field, result);
+                }
+            }
+            LocalAssertionKind::Project { value, .. } => locals(value, result),
             LocalAssertionKind::Local(index) => result.push(*index),
             LocalAssertionKind::Unary { operand, .. } => locals(operand, result),
             LocalAssertionKind::Binary { left, right, .. } => {
@@ -1142,6 +1206,12 @@ mod product_metadata_tests {
         assert!(matches!(right.kind, SpecExprKind::Param(0)));
         fn locals(e: &LocalAssertion, ids: &mut Vec<usize>) {
             match &e.kind {
+                LocalAssertionKind::Tuple(fields) => {
+                    for field in fields {
+                        locals(field, ids);
+                    }
+                }
+                LocalAssertionKind::Project { value, .. } => locals(value, ids),
                 LocalAssertionKind::Local(i) => ids.push(*i),
                 LocalAssertionKind::Unary { operand, .. } => locals(operand, ids),
                 LocalAssertionKind::Binary { left, right, .. } => {

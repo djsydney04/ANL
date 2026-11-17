@@ -23,7 +23,7 @@ work in prior phases is finished.
 
 Current status: the scalar/flat-tuple checker and interpreter, native C11 backend, file modules,
 initialized mutable locals, while loops, versioned core JSON interchange, scalar
-contract verification with invariants and acyclic calls, and scoped Lean proofs are
+and flat-tuple contract verification with invariants and acyclic calls, and scoped Lean proofs are
 available. Follow [getting started](getting-started.md) to run the tools and the
 [proof instructions](../formal/README.md) to check the formal artifacts. Finite
 evaluator correspondence is proved in both directions for the scalar function
@@ -102,7 +102,7 @@ remain pending. Module resolution and backend correctness are tested boundaries.
 
 The current [verifier](verification.md) supports typed mathematical-integer
 `requires`/`ensures` clauses, guarded arithmetic-safety conditions, and acyclic
-call expansion across the complete loaded graph, including mutable scalar locals,
+call expansion across the complete loaded graph, including mutable scalar and flat-tuple locals,
 assignment and annotated while loops. It checks ordered precondition
 definedness and satisfiability, calls the pinned Z3 5.3.3, and emits exact source,
 tool, and query bindings. Results are `smt-trusted`; refuting models are unreplayed.
@@ -122,6 +122,15 @@ frames preserve immutable cells. Contracts retain original entry parameters,
 require a typed precondition-satisfying input, and check normal-return
 postconditions. Exact mathematical query partition preserves the guarded checks.
 None of these results establishes loop termination.
+
+The [merged product model](../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+separately proves actual-machine safety and normal-result/environment coverage
+for the complete tuple invariant fragment under successful generation, typing,
+representation/support and valid-check premises. Contract results establish
+ordered entry definedness, typed runtime witnesses and normal ensures; the query
+partition preserves check multiplicity. Product generation completeness, solver
+completeness, production-bound sufficiency and production correspondence remain
+open. The earlier scalar supplied-rank result below does not close those product gaps.
 
 The separate [generation-height theorem](../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
 gives an explicit height for the actual invariant analyzer from verification-ready
@@ -169,7 +178,9 @@ passed at `f8ffb5f128aab5eaed4db3770ae500cd923cc61c`.
 The [flat-tuple slice](../spec/flat-products.md) adds 1–8 scalar fields,
 construction, constant projection, same-shape equality, multiple results and
 whole-value assignment through source, interpretation, v2 interchange and native
-compilation. Tuple verification is explicitly unsupported before tool discovery.
+compilation. Tuple contracts support construction, projection and same-shape
+equality, including annotated loops. Product reports preserve field provenance
+and remain `smt-trusted`.
 The separate [runtime model](../formal/PROOFS.md#flat-scalar-products-with-local-state)
 proves inference equivalence, typed finite-trace safety, finite run/step
 correspondence and forward finite LocalState embedding. Successful decoding by

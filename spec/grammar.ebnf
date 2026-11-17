@@ -63,9 +63,12 @@ spec_equality   = spec_comparison, [ ( "==" | "!=" ), spec_comparison ] ;
 spec_comparison = spec_sum, [ ( "<" | "<=" | ">" | ">=" ), spec_sum ] ;
 spec_sum        = spec_product, { ( "+" | "-" ), spec_product } ;
 spec_product    = spec_unary, { ( "*" | "/" | "%" ), spec_unary } ;
-spec_unary      = ( "!" | "-" ), spec_unary | spec_primary ;
+spec_unary      = ( "!" | "-" ), spec_unary | spec_postfix ;
+spec_postfix    = spec_primary, [ ".", projection_index ] ;
 spec_primary    = integer | "true" | "false" | "(", ")"
-                | "(", spec_expression, ")" | identifier ;
+                | "(", spec_expression, ")" | spec_tuple | identifier ;
+spec_tuple      = "(", spec_expression, ",",
+                  [ spec_expression, { ",", spec_expression }, [ "," ] ], ")" ;
 
 identifier      = ident_start, { ident_start | digit } ;
 ident_start     = "A" .. "Z" | "a" .. "z" | "_" ;
@@ -89,7 +92,7 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    Specification integers are unbounded, with at most 4096 decimal digits per
    literal. Contract expressions cannot call functions, use blocks, or use if.
    Each contract clause must have bool type; ordinary execution erases clauses.
-   Invariant clauses use the same scalar specification expressions and literal
+   Invariant clauses use the same scalar and flat-tuple expressions and literal
    limit, resolve names at the loop head, and must have bool type. Ordinary source
    checking does not prove their truth or definedness; execution erases them. Verification
    requires an invariant on every loaded loop and rejects recursive call graphs.

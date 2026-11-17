@@ -4,9 +4,9 @@ Status: loop-free local-state and invariant-loop verification are implemented
 over the existing `local-state-2026-11-17` runtime. The
 [loop-free report contract](#loop-free-report-contract) describes current behavior.
 The [invariant-loop report contract](#invariant-loop-report-contract) applies when
-a scalar program contains a while loop. Structural tuple use instead selects the
-[pre-tool unsupported v2 report](flat-products.md#verification-boundary), even
-when that program also contains loops. Every loop must have at least one
+a scalar program contains a while loop. Flat tuples in code or clauses select
+the [v3 product route](flat-products.md#verification-boundary), which extends these
+invariant rules field by field, even when the graph has no loop. Every loop must have at least one
 invariant, and the complete call graph must be acyclic. Results remain
 `smt-trusted`. The [proof inventory](../formal/PROOFS.md#invariant-loop-generation-and-partial-correctness)
 records a concrete Lean invariant generator connected to actual `LocalState.run`
@@ -35,7 +35,10 @@ analysis. Rank existence/extraction from an acyclic graph, source call-graph
 checking, source annotation attachment, production named-query metadata, global
 allocation-event history, resource limits, SMT/solver/model correspondence and
 native correctness remain outside these proofs. Runtime semantics and semantic
-revisions are unchanged.
+revisions are unchanged. The separately proved
+[merged product generator](../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+covers tuple code under its own successful-generation, typing, representation,
+support and valid-check premises; it does not establish those production bridges.
 
 The first increment verifies loop-free mutable scalar code with acyclic calls.
 The second verification increment uses annotated while loops, including
@@ -75,7 +78,9 @@ retain their existing meaning. There is no parser backtracking or new reserved
 word. Existing unannotated loops remain valid executable source.
 
 Invariant expressions use the existing mathematical specification operators,
-literal limits, division/remainder rules, and short-circuit definedness. They
+literal limits, division/remainder rules, and short-circuit definedness. Flat
+tuples, projection and same-shape equality or inequality are also supported under
+the [tuple clause rules](flat-products.md#verification-boundary). They
 have Boolean type. Their names resolve to the nearest visible binding at the
 loop head, before the condition evaluates. Both immutable and mutable locals
 are available, as are unshadowed parameters. Bindings introduced inside the
@@ -429,7 +434,7 @@ built executables or elapsed-time schedules is not required.
 
 ## Invariant-loop report contract
 
-Any while in the checked graph selects the loop route for every loaded function,
+Any while in a scalar-only checked graph selects the loop route for every loaded function,
 including functions whose own bodies are pure or loop-free. It retains the v1
 top-level and obligation fields above, with these changes and additions:
 

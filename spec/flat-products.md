@@ -143,41 +143,134 @@ RSS guarantee.
 
 ## Verification boundary
 
-Specifications remain scalar mathematical expressions. Constant clauses and
-clauses naming only scalar parameters or locals can accompany tuple-bearing
-functions. A tuple reference is rejected at that reference; tuple construction
-and projection are invalid inside clauses. Tuple bindings retain their positions
-in source contexts, so later scalar names do not change meaning.
+Flat tuples are supported by `anl verify` throughout the acyclic fragment with
+annotated while loops. Every loaded function is checked, including unused
+functions. Missing invariants and recursive call graphs reject the attempt
+before tool discovery. Ordinary checking, interpretation and native compilation
+type-check and erase clauses without proving or dynamically enforcing them.
 
-After source checking, any structural tuple use rejects the entire verification
-attempt before scalar formula conversion, route analysis or tool discovery.
-This rejection takes precedence over recursion and missing loop invariants.
-`anl verify ... --json` returns exit 7 and these fixed fields:
+Specifications use flat tuples of 1 through 8 mathematical integer, Boolean or
+unit fields. Construction, references, constant projection and same-shape
+equality or inequality are permitted. Every `requires`, `ensures` and `invariant`
+clause still has Boolean type. Calls, blocks, local declarations, assignments,
+`if`, nested tuples, tuple arithmetic and tuple ordering are excluded from clauses.
+
+Every constructed field must be defined before the tuple is available. Projection
+retains definedness of the entire base. Thus `(7, 1 / 0).0 == 7` is undefined.
+Equality and inequality require both complete operands to be defined, even when
+the first fields differ. `(0, 1 / 0) != (1, 2)` is also undefined. Boolean short
+circuit may guard the entire tuple operation, as in
+`divisor == 0 || (7, 1 / divisor).0 == 7`.
+
+Specification integer fields and arithmetic intermediates are unbounded.
+Executable integer parameters and fields remain i64 values. The verifier checks
+each executed arithmetic intermediate and bounds each integer parameter or
+arbitrary loop-head field individually. Existing truncation-toward-zero division
+and remainder rules are unchanged.
+
+Symbolic evaluation retains the runtime order above. Construction captures each
+completed field. A call captures each complete argument before evaluating the
+next argument. Assignment evaluates the entire right-hand side before replacing
+the binding. Postconditions use the original entry parameters. Conditional flows
+merge matching shapes field by field and retain only the selected branch's
+runtime obligations under its guard.
+
+Every visible mutable non-unit field gets a distinct arbitrary loop-head symbol,
+including fields the loop never writes. Unit fields remain unit. Immutable
+bindings retain their captured values. Invariants establish relations between
+these fields before each condition evaluation. Effects of the final false
+condition reach the continuation. Verification checks partial correctness and
+finite-execution safety under the stated assumptions; it does not prove termination.
+
+The [snapshot contract](../examples/contracts/tuple-snapshots.anl) and
+[count-and-sum contract](../examples/contracts/count-sum.anl) are complete examples.
+The [verification guide](../docs/verification.md#verify-tuple-contracts) gives their commands.
+
+### Tuple verification reports
+
+The product route is selected by any tuple in loaded signatures, executable
+terms, retained binding types, contracts or invariants. This scan is distinct
+from executable revision selection. A tuple used only in a clause selects the
+product report while `semantic_revision` remains `m1-2026-11-16` or
+`local-state-2026-11-17`, as appropriate for the erased executable program.
+Source errors retain the existing v0 error envelope with null semantic revision.
 
 | Field | Value |
 | --- | --- |
-| `schema` | `apl-verify-v2` |
-| `semantic_revision` | `flat-products-2026-11-17` |
-| `verification_revision` | `apl-flat-products-unsupported-v1` |
-| `status`, `trust` | `unsupported`, `not_established` |
-| `compiler`, `solver` | `null`, `null` |
-| `obligations` | `[]` |
+| `schema` | `anl-verify-v3` |
+| `verification_revision` | `anl-flat-products-verify-v1` |
+| `scope.functions` | `all_loaded` |
+| `scope.fragment` | `invariant_flat_products_acyclic` |
+| `scope.model_proof` | `APL.ProductFlow.contract_queries_sound` |
+| `trust` | `smt-trusted` |
 | `type_checked`, `contracts_erased` | `true`, `true` |
 | `tested`, `dynamic_checks` | `false`, `false` |
+| `scope.termination_proved`, `scope.native_correctness` | `false`, `false` |
 
-`scope.functions` is `all_loaded`; `scope.fragment` is
-`unsupported_flat_products`. Arithmetic safety, partial correctness, termination
-and native-correctness flags (`arithmetic_safety`, `partial_correctness`,
-`termination_proved`, `native_correctness`) are all `false`, and
-`scope.model_proof` is `null`.
-The remaining top-level members are `sources`, `functions` and `message`.
-Each source records `id`, `path`, `path_bytes_hex`, `sha256` and `bytes`.
-Each function records `id`, `name`, `parameter_types`, `result` and `location`;
-types use the scalar-string/tuple-object representation above. Locations retain
-source IDs, byte spans, path bytes and line/column positions. `message` is
-`flat products are unsupported by the scalar verifier; no safety or partial-correctness claim was established`.
-There are no scalar analysis limits, expanded-node counters or loop metadata.
-Source/type errors still occur before this report can be formed.
+The route retains the source, compiler, solver, exact query and hash fields of
+the [invariant-loop report](loop-verification.md#invariant-loop-report-contract).
+It also retains source-loop metadata, expansion and loop-occurrence records,
+guarded-check provenance and all outcome distinctions. A product-bearing graph
+uses this route even if it contains no loop. Function and binding types use
+scalar strings or the structured `{"tuple":["i64","bool","unit"]}` representation.
+Existing scalar report schemas, revisions and query behavior remain unchanged.
+
+Parameter identities follow source parameter order, then field order. Each scalar
+reserves one logical slot and each tuple reserves its arity. Unit reserves a slot
+without creating an SMT variable. Once a function's parameter layout is built,
+its record exposes `parameter_leaf_slots` and `initial_logical_bound`, both equal
+to the reserved slot count, plus `head_display_start`. Layout metadata records
+`order: "source_parameter_then_field"` and
+`unit_slots: "reserved_without_smt_variable"`.
+
+Non-unit scalar parameters use `pN`; tuple fields use `pN_fK`, where `N` is the
+source parameter index and `K` is the field index. Each model symbol records a
+scalar `type` and an `origin` containing `kind: "parameter"`, `index`,
+`logical_id` and, for tuple fields, `field_index`. Every non-unit entry field is
+requested, including unused fields. Unit fields produce no model entry.
+
+Loop-head symbols use `hN`. Their origin retains the source function, binding,
+loop node, expansion and occurrence, with `field_index` for tuple fields and
+`logical_id`. For each verified function the identity is
+`initial_logical_bound + N - head_display_start`. Only allocated non-unit head
+symbols count toward the 4096-symbol limit. Source binding count, reserved
+parameter slots and allocated head symbols are distinct quantities.
+
+Models must contain exactly the requested scalar symbols. Missing, duplicate,
+extra or incorrectly typed fields are protocol errors. Integer entry fields must
+be within i64 range. Head integers use mathematical decimal strings and retain
+`within_machine_range`; an inactive guarded head may lie outside the machine
+range. Models remain abstract assignments with `replayed: false`, not concrete
+execution traces. A head-state refutation can identify an invariant that is too weak.
+
+### Verification limits and trust
+
+Product verification retains the existing attempt-wide ceilings of 1000000
+symbolic work units, 100000 arena nodes, 4096 non-unit head symbols, 100000
+expression visits, depth 256, 1024 queries, 1048576 bytes per query and 16777216
+total query bytes. Solver output and timeout bounds are unchanged. Field
+traversal, capture, copy, merge, instantiation and metadata work are charged
+before growth. Each `Arena::render` output byte also costs one work unit before
+emission, including declarations, definitions and query-body framing. Existing
+parameter-declaration charges remain. Work can therefore run out before the
+independent symbol, query or byte caps. A limit returns `unknown`; completed
+query evidence remains, and no unfinished query is reported as a completed obligation.
+
+The `resources` record retains the work, arena-node and head-symbol counts,
+expansions, loop occurrences and pending queries accumulated during generation.
+These counters and the recorded limits do not establish a performance guarantee.
+
+Successful verification remains `smt-trusted`. It establishes the requested
+arithmetic-safety and partial-correctness obligations under the recorded encoding
+and solver assumptions. Source annotation reconstruction, Rust generation, SMT
+rendering and solver answers, native execution, termination and completeness at
+production limits remain separate trust or proof obligations. The
+[formal inventory](../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+states model coverage independently. `scope.model_proof` names the model theorem,
+which requires successful generation, a typed annotated table, typed inputs
+satisfying requires and semantic acceptance of every generated query. It does
+not certify the report, Rust generator or solver reply. The report retains
+`scope.proof_gaps` for the remaining implementation and completeness boundaries.
 
 ## Formal runtime and comparison boundary
 

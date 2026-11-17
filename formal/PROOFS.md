@@ -851,6 +851,169 @@ formal executables and the compiler. These executable comparisons complement
 the reader acceptance theorem without proving the remaining correspondence
 obligations.
 
+## Merged flat-tuple contract verification
+
+The additive `ProductLogic`, `ProductAnnotations`, `ProductEntry` and
+`ProductFlow` modules define contract verification over the existing
+`flat-products-2026-11-17` machine. The executable language and earlier scalar,
+local-state and product runtime definitions remain unchanged. The checking
+command and Lean version are those at the start of this inventory.
+
+`APL.ProductFlow.analyze` is a concrete generator with one symbolic result, one
+environment, one normal-return guard, a guarded-check list and a fresh counter.
+It handles every annotated term constructor, including tuple construction and
+projection, strict and short-circuit operators, mutation, scopes, conditionals,
+calls and invariant loops. Successful generation at the supplied finite height
+is an explicit premise. This is a merged generator, separate from the earlier
+scalar continuation and path-split generators.
+
+### Actual-machine soundness
+
+`APL.ProductFlow.analyze_sound` requires a well-typed complete erased function
+table, successful `analyze`, and support of the initial symbolic environment and
+path below the starting identity bound. Its `SoundAt` conclusion quantifies over
+every mathematical model and actual environment that represent those symbols.
+It requires actual environment typing, an established incoming path and
+`ValidFrom` for the generated checks.
+
+`ValidFrom` means that every guarded check holds in every model agreeing below
+the starting bound. The conclusion is `APL.FlatProducts.LoopVerification.EvalSpec`
+for the actual `FlatProducts` continuation machine. On normal return, `Covered`
+requires an existential model extension that agrees below that bound, establishes
+the merged normal guard and represents the complete result and final environment.
+Universal check validity and existential normal coverage are separate premises
+and conclusions. An unselected branch need not denote or terminate.
+
+`APL.ProductFlow.analyze_run_sound` gives the result at every actual transition
+budget. Exhaustion remains inconclusive. `analyze_no_finite_trap` and
+`analyze_no_finite_invalid` exclude finite traces to traps or invalid states under
+the same premises. `analyze_normal_coverage` represents every finite normal result
+and final environment.
+
+`APL.ProductFlow.fresh_head_coverage` constructs an agreeing extension for any
+typed actual head environment that preserves immutable bindings. Every mutable
+non-unit field receives a distinct fresh identity; units and immutable bundles
+retain their values. The loop proof establishes initialization and preservation,
+analyzes the effectful condition and true-guard body, and passes the final false
+condition's environment to the continuation. It permits divergence.
+
+Fields and call arguments evaluate left to right and retain completed snapshots.
+Projection evaluates the complete base. Strict tuple equality evaluates both
+complete operands. Calls reverse whole source arguments for the callee's local
+index convention and restore the caller environment after the body. The
+`FlatProductsFrame` and `FlatProductsContinuation` statements establish these
+rules over the existing machine, including its tuple and projection frames.
+
+### Specification, entry and contract statements
+
+`APL.ProductAnnotations.Spec.instantiate_sound` relates successful instantiation
+to the independent mathematical specification evaluator under parameter, result
+and local representation. `instantiate_defined` makes generated definedness
+equivalent to an actual specification result; `instantiate_value` relates the
+returned value. These rules retain all fields of a projection base and both
+complete equality operands. Outer Boolean short circuit remains selective.
+`ProductAnnotations` has independent typing, and `erase_wellTyped` proves that
+erasing its complete typed table yields a well-typed `FlatProducts` table.
+
+`APL.ProductEntry.parameter_entry_iff` equates the complete parameter-domain
+formula with a represented typed runtime argument list. Every integer leaf must
+lie in i64 range, while specification arithmetic remains mathematical.
+Parameter layouts reserve scalar field slots in source order, including units.
+The display-head lemmas prove the logical identity equation and disjointness
+from reserved parameter slots. They do not prove that Rust reconstructs source
+identities or emits the corresponding display strings.
+
+`APL.ProductFlow.contract_reachable_iff` requires successful `generateContract`.
+It equates satisfiability of the generated entry path with existence of typed
+runtime parameters satisfying all requires clauses. `contract_accepted_nonvacuous`
+extracts that witness from semantic acceptance. `contract_accepted_entry_defined`
+establishes ordered requires definedness for every typed input, including inputs
+that do not satisfy requires. Each clause is defined when all earlier clauses
+are true; later clauses cannot justify earlier definedness.
+
+`APL.ProductFlow.contract_queries_sound` requires a well-typed complete annotated
+table, successful `generateContract`, typed runtime parameters satisfying
+requires, and semantic acceptance of every query in `contractQueries`. For every
+transition budget, the actual machine either exhausts its budget or returns a
+covered value and final environment satisfying every ensures clause with the
+original entry parameters. The theorem does not require a particular source
+function ID. `root_contract_sound` additionally requires a table lookup for the
+function and proves its declared result type, final environment typing and
+preservation of immutable entry bindings.
+
+`contract_accepted_no_finite_trap`, `contract_accepted_no_finite_invalid` and
+`contract_accepted_normal` give the corresponding finite-trace contract results.
+None promises a normal return.
+
+### Exact query partition
+
+`APL.ProductFlow.exact_named_check_partition` and `named_groups_partition` prove
+that flattening the grouped checks is a permutation of the original check list.
+They preserve multiplicity, rather than only set membership. Groups have distinct
+keys and contain only checks with their key. The final layer retains a body group
+even when it is empty and adds one separate entry-satisfiability query.
+`entry_check_keys`, `post_check_keys` and `invariant_check_keys` identify indexed
+clause checks in order.
+
+`APL.ProductFlow.contract_queries_exact` equates semantic acceptance of the final
+queries with universal validity of all guarded checks and an existential entry
+witness. Safety queries negate a guarded conjunction and expect unsatisfiability;
+the entry query expects satisfiability. This is a theorem about mathematical
+query acceptance, not solver replies. The model stores a callee-precondition check
+after its expanded body checks, while production stores that check first.
+The partition result permits reordering and preserves every occurrence.
+
+### Public statement inventory
+
+The table lists 174 public named statements across 24 modules, in addition to
+the earlier 384 audited names and 48 replayed modules. The claims above specify
+the central quantified interfaces. The supporting statements retain the local
+typing, lookup, representation, support, range and successful-generation premises
+in their source declarations. No theorem assumes the Rust implementation correct.
+
+| Module and public statements | Quantified coverage and assumptions |
+| --- | --- |
+| `FlatProductsFrame.lean`<br>`APL.FlatProducts.frozen_refl`<br>`APL.FlatProducts.frozen_trans`<br>`APL.FlatProducts.frozen_lookup`<br>`APL.FlatProducts.update_frozen`<br>`APL.FlatProducts.evaluation_frame`<br>`APL.FlatProducts.first_return_steps`<br>`APL.FlatProducts.first_return_isolated`<br>`APL.FlatProducts.first_return_lift`<br>`APL.FlatProducts.first_return_iff`<br>`APL.FlatProducts.first_return_frame` | Typed immutable-cell framing, first-return decomposition, isolation and continuation lifting for the actual machine. |
+| `FlatProductsContinuation.lean`<br>`APL.FlatProducts.LoopVerification.spec_mono`<br>`APL.FlatProducts.LoopVerification.literal_rule`<br>`APL.FlatProducts.LoopVerification.local_rule`<br>`APL.FlatProducts.LoopVerification.assignment_rule`<br>`APL.FlatProducts.LoopVerification.binding_rule`<br>`APL.FlatProducts.LoopVerification.conditional_rule`<br>`APL.FlatProducts.LoopVerification.unary_rule`<br>`APL.FlatProducts.LoopVerification.binary_rule`<br>`APL.FlatProducts.LoopVerification.args_spec_mono`<br>`APL.FlatProducts.LoopVerification.call_rule`<br>`APL.FlatProducts.LoopVerification.fields_spec_mono`<br>`APL.FlatProducts.LoopVerification.tuple_rule`<br>`APL.FlatProducts.LoopVerification.projection_rule`<br>`APL.FlatProducts.LoopVerification.tuple_binary_rule`<br>`APL.FlatProducts.LoopVerification.invariant_loop_rule`<br>`APL.FlatProducts.LoopVerification.closed_run`<br>`APL.FlatProducts.LoopVerification.closed_to_spec`<br>`APL.FlatProducts.LoopVerification.spec_frame`<br>`APL.FlatProducts.LoopVerification.no_finite_trap`<br>`APL.FlatProducts.LoopVerification.no_finite_invalid`<br>`APL.FlatProducts.LoopVerification.normal_result` | Compositional actual-machine rules for literals, locals, assignment, bindings, branches, operators, calls, tuple fields and projection, plus invariant loops, closed runs, framing and finite-trace consequences. |
+| `ProductLogicScalar.lean`<br>`APL.ProductLogic.embedTerm_eval`<br>`APL.ProductLogic.eval_ite_selected`<br>`APL.ProductLogic.embedFormula_holds`<br>`APL.ProductLogic.embed_denotes`<br>`APL.ProductLogic.SymTerm.eval_agree`<br>`APL.ProductLogic.SymTerm.supported_mono`<br>`APL.ProductLogic.Formula.holds_agree` | Conservative scalar term/formula embedding, selected-only conditional evaluation, and evaluation or truth preservation under supported model agreement. |
+| `ProductLogicValues.lean`<br>`APL.ProductLogic.embedValue_type`<br>`APL.ProductLogic.ProductDenotes.shape`<br>`APL.ProductLogic.ProductDenotes.eval`<br>`APL.ProductLogic.EnvRep.shape`<br>`APL.ProductLogic.construct_capture`<br>`APL.ProductLogic.project_full_base`<br>`APL.ProductLogic.ProductDenotes.agree`<br>`APL.ProductLogic.EnvRep.agree`<br>`APL.ProductLogic.definedFields_iff`<br>`APL.ProductLogic.ProductDenotes.all_defined`<br>`APL.ProductLogic.equality_sound`<br>`APL.ProductLogic.inequality_sound`<br>`APL.ProductLogic.embedValue_injective`<br>`APL.ProductLogic.merge_selected`<br>`APL.ProductLogic.runtime_equality_sound`<br>`APL.ProductLogic.runtime_inequality_sound`<br>`APL.ProductLogic.mergeEnv_selected`<br>`APL.ProductLogic.EnvRep.replace`<br>`APL.ProductLogic.EnvRep.reverse`<br>`APL.ProductLogic.runtime_lift_typed`<br>`APL.ProductLogic.embedValue_representable`<br>`APL.ProductLogic.flatProducts_equality`<br>`APL.ProductLogic.flatProducts_inequality` | Exact-shape product and environment representation, complete-field definedness, capture and projection, equality, selected-branch merging, whole-value replacement and bounded-runtime lifting. |
+| `ProductLogicLayout.lean`<br>`APL.ProductLogic.leafSlot_in_bounds`<br>`APL.ProductLogic.leafSlot_unique`<br>`APL.ProductLogic.headIdentity_disjoint`<br>`APL.ProductLogic.headIdentity_injective`<br>`APL.ProductLogic.scalar_reservedCount`<br>`APL.ProductLogic.scalar_parameterOffset`<br>`APL.ProductLogic.scalar_leafSlot`<br>`APL.ProductLogic.parameterScalar_unit`<br>`APL.ProductLogic.parameterValue_shape`<br>`APL.ProductLogic.parameterLayout_shapes`<br>`APL.ProductLogic.parameterLayout_supported`<br>`APL.ProductLogic.parameterLayout_lookup`<br>`APL.ProductLogic.parameter_tuple_field` | Parameter-slot bounds and uniqueness, disjoint fresh identities, scalar layout compatibility, unit literals, parameter shapes, support and field lookup. |
+| `ProductAnnotations.lean`<br>`APL.ProductAnnotations.erase_typed`<br>`APL.ProductAnnotations.erase_signatures`<br>`APL.ProductAnnotations.erase_wellTyped`<br>`APL.ProductAnnotations.erase_lookup` | Independent annotated typing erases to the existing term, signature and complete-table typing; function lookup commutes with erasure. |
+| `ProductFlowSupport.lean`<br>`APL.ProductFlow.value_domain_sound`<br>`APL.ProductFlow.env_domain_sound`<br>`APL.ProductFlow.value_domain_complete`<br>`APL.ProductFlow.env_domain_complete`<br>`APL.ProductFlow.fresh_value_shape`<br>`APL.ProductFlow.fresh_value_bounded`<br>`APL.ProductFlow.fresh_value_covers`<br>`APL.ProductFlow.fresh_env_bounded`<br>`APL.ProductFlow.fresh_env_covers`<br>`APL.ProductFlow.fresh_head_coverage`<br>`APL.ProductFlow.fresh_env_identities`<br>`APL.ProductFlow.fresh_env_distinct`<br>`APL.ProductFlow.fresh_env_disjoint` | Runtime domains are sound and complete for representation. Successful fresh generation preserves shape/support and covers typed environments with distinct, contiguous, disjoint mutable non-unit identities. |
+| `ProductSpec.lean`<br>`APL.ProductAnnotations.Spec.instantiate_sound`<br>`APL.ProductAnnotations.Spec.instantiate_defined`<br>`APL.ProductAnnotations.Spec.instantiate_value` | Successful specification instantiation agrees with independent evaluation, with equivalent definedness and matching values under representation. |
+| `ProductEntry.lean`<br>`APL.ProductEntry.runtime_leaves_count`<br>`APL.ProductEntry.parameter_model_rep`<br>`APL.ProductEntry.parameter_entry_exists`<br>`APL.ProductEntry.parameter_domain_satisfiable`<br>`APL.ProductEntry.parameter_entry_complete`<br>`APL.ProductEntry.parameter_entry_iff`<br>`APL.ProductEntry.parameter_initial_support`<br>`APL.ProductEntry.parameter_layout_length`<br>`APL.ProductEntry.parameter_body_entry`<br>`APL.ProductEntry.display_head_initial`<br>`APL.ProductEntry.display_head_increment`<br>`APL.ProductEntry.display_head_injective`<br>`APL.ProductEntry.display_head_order`<br>`APL.ProductEntry.display_head_parameter_disjoint`<br>`APL.ProductEntry.display_head_identity` | Typed runtime parameters construct a representing model; domain satisfaction conversely supplies typed parameters. Parameter layout length/support, body-entry reversal and display-to-logical head equations are preserved. |
+| `ProductClauses.lean`<br>`APL.ProductAnnotations.Spec.clause_sound`<br>`APL.ProductAnnotations.requires_vc_sound`<br>`APL.ProductAnnotations.assertions_vc_sound` | Boolean clause instantiation, ordered requires definedness/truth, and independent assertion conjunction agree with mathematical specification semantics. |
+| `ProductSupport.lean`<br>`APL.ProductFlow.merge_supported`<br>`APL.ProductFlow.merge_env_supported`<br>`APL.ProductAnnotations.Spec.instantiate_supported`<br>`APL.ProductAnnotations.Spec.clause_supported`<br>`APL.ProductAnnotations.requires_supported`<br>`APL.ProductAnnotations.assertions_supported` | Successful value/environment merges, specification instantiation, Boolean clauses, requires and assertions preserve the stated symbol-support bound. |
+| `ProductRuntime.lean`<br>`APL.ProductFlow.runtime_literal_denotes`<br>`APL.ProductFlow.runtime_literal_supported`<br>`APL.ProductFlow.runtime_unary_sound`<br>`APL.ProductFlow.runtime_binary_sound` | Runtime literals denote bounded values and are supported; successful unary/binary symbolic operations with valid definedness match the actual checked runtime operation. |
+| `ProductFlow.lean`<br>`APL.ProductFlow.group_exact` | The guarded-check conjunction holds exactly when every original guard implies its requirement. |
+| `ProductFlowBounds.lean`<br>`APL.ProductFlow.analyze_bounded` | Successful analysis preserves the incoming fresh lower bound and establishes output support and boundedness. This is a symbol-support result, not generation completeness or a production resource bound. |
+| `ProductFlowSemantics.lean`<br>`APL.ProductFlow.merge_flow_covered`<br>`APL.ProductFlow.runtime_tuple_value`<br>`APL.ProductFlow.runtime_project_value`<br>`APL.ProductFlow.args_fields_spec`<br>`APL.ProductFlow.arguments_sound` | Selected merged-flow coverage, actual tuple construction/projection, field/argument continuation specifications, and ordered argument analysis under the generator hypotheses. |
+| `ProductFlowLoops.lean`<br>`APL.ProductFlow.loop_analysis_sound` | Successful invariant-loop analysis is sound under successful child analyses, support/representation, typed actual environments, valid checks and the actual-machine invariant rule. |
+| `ProductFlowRules.lean`<br>`APL.ProductFlow.literal_sound`<br>`APL.ProductFlow.local_sound`<br>`APL.ProductFlow.assignment_analysis_sound`<br>`APL.ProductFlow.unary_analysis_sound`<br>`APL.ProductFlow.binding_analysis_sound`<br>`APL.ProductFlow.projection_analysis_sound`<br>`APL.ProductFlow.conditional_analysis_sound`<br>`APL.ProductFlow.strict_binary_analysis_sound` | Constructor soundness for literals, locals, assignment, unary operations, bindings, projection, conditionals and strict binary operations under their analysis and representation premises. |
+| `ProductFlowBoolean.lean`<br>`APL.ProductFlow.logical_binary_analysis_sound` | Short-circuit Boolean analysis is sound with the selected operand state and guarded checks, under the stated child-analysis, typing and support premises. |
+| `ProductFlowCalls.lean`<br>`APL.ProductFlow.call_analysis_sound`<br>`APL.ProductFlow.tuple_analysis_sound` | Call expansion and tuple construction are sound under ordered captured arguments/fields, typed complete tables, successful generation and valid checks. |
+| `ProductFlowSoundness.lean`<br>`APL.ProductFlow.analyze_sound`<br>`APL.ProductFlow.analyze_run_sound`<br>`APL.ProductFlow.analyze_no_finite_trap`<br>`APL.ProductFlow.analyze_no_finite_invalid`<br>`APL.ProductFlow.analyze_normal_coverage` | Concrete analyzer soundness for every constructor, all actual transition budgets, exclusion of finite trap/invalid traces and coverage of every finite normal result. |
+| `ProductContractClauses.lean`<br>`APL.ProductFlow.entry_checks_sound`<br>`APL.ProductFlow.entry_checks_supported`<br>`APL.ProductFlow.post_checks_sound` | Successful entry checks establish ordered definedness and an entry path; successful post checks establish all normal-return ensures with frozen parameters. Entry checks preserve support. |
+| `ProductQueries.lean`<br>`APL.ProductFlow.exact_named_check_partition`<br>`APL.ProductFlow.grouped_checks_named`<br>`APL.ProductFlow.grouped_keys_distinct`<br>`APL.ProductFlow.named_queries_exact`<br>`APL.ProductFlow.named_query_checks_once` | Exact multiplicity-preserving check grouping, distinct group keys, homogeneous membership, semantic conjunction equivalence and preservation of each named occurrence. |
+| `ProductContracts.lean`<br>`APL.ProductFlow.contract_eval_sound`<br>`APL.ProductFlow.contract_requires_defined`<br>`APL.ProductFlow.contract_reachable_iff`<br>`APL.ProductFlow.contract_accepted_eval`<br>`APL.ProductFlow.contract_accepted_run`<br>`APL.ProductFlow.contract_accepted_nonvacuous`<br>`APL.ProductFlow.root_contract_sound`<br>`APL.ProductFlow.contract_accepted_no_finite_trap`<br>`APL.ProductFlow.contract_accepted_no_finite_invalid`<br>`APL.ProductFlow.contract_accepted_normal`<br>`APL.ProductFlow.contract_accepted_entry_defined` | Contract continuation/run soundness, ordered requires definedness, equivalence of entry satisfiability with typed runtime witnesses, nonvacuity, root typing/framing, and finite-trace contract corollaries. |
+| `ProductContractQueries.lean`<br>`APL.ProductFlow.named_groups_partition`<br>`APL.ProductFlow.named_groups_keys_distinct`<br>`APL.ProductFlow.named_groups_named`<br>`APL.ProductFlow.named_groups_exact`<br>`APL.ProductFlow.contract_queries_exact`<br>`APL.ProductFlow.entry_check_keys`<br>`APL.ProductFlow.post_check_keys`<br>`APL.ProductFlow.invariant_check_keys`<br>`APL.ProductFlow.contract_queries_sound` | Final named groups retain exact multiplicity and keys, including an empty body group when needed. Final query acceptance is exact; entry/post/invariant clause keys are indexed correctly; accepted contract queries imply all-budget machine safety and ensures. |
+
+### Product proof boundaries
+
+The theorem describes an independently typed mathematical generator and the
+existing Lean machine. It does not prove source parsing or annotation
+reconstruction, source binding or occurrence IDs, Rust generation, SMT rendering
+or solver answers, countermodel decoding, or native execution. Structural formal
+expansion sites are not a proof of production report provenance. Production
+verification remains `smt-trusted`.
+
+Successful generation remains a premise. The older scalar supplied-rank
+generation-height theorem does not establish product generation completeness.
+No product theorem establishes termination, solver completeness, sufficiency of
+production resource bounds or correspondence to source or native execution.
+Runtime budget exhaustion remains inconclusive. Earlier scalar and runtime
+theorems retain their original statements and scopes.
+
 ## Axiom dependencies and trust
 
 The original expression `infer_complete`, `infer_sound`, and `type_unique`
@@ -864,8 +1027,8 @@ axiom, incomplete proof, native-evaluation trust axiom, or disabled kernel check
 `decide`, not native-evaluation proof shortcuts.
 
 The axiom audit is an executable rejection check, not merely printed output.
-Its allowable set is explicit, and all 384 inventoried names are included. The
-check script replays 48 modules in separate kernel-checker processes.
+Its allowable set is explicit, and all 558 inventoried names are included. The
+check script replays 72 modules in separate kernel-checker processes.
 The source-level guard also rejects proof-bypass and unsafe declaration syntax.
 The model's meanings, theorem statements, Lean kernel, allowed logical axioms,
 host environment, and hardware remain assumptions. Replaying declarations does
@@ -891,12 +1054,16 @@ index shifts, is tested through the actual compiler export path.
 FM-07 is partial: the call-free, finite call-expansion, loop-free local-state and
 invariant-loop model generators, ordered callee precondition obligations, contract
 soundness and the invariant generator's exact mathematical query partition are
-checked. Sufficient symbolic expansion height is also proved for the invariant
+checked. The separate merged product generator adds actual-machine safety,
+normal-result/environment coverage, typed runtime entry witnesses and exact
+contract-query acceptance under successful generation and the premises above. Sufficient symbolic expansion height is also proved for the invariant
 generator given a supplied complete call rank. Rank existence/extraction, source
 call-graph validation, source acyclic-expansion correspondence, separate
 syntax-inlining preservation, production named-condition correspondence and the
 production/SMT/solver bridges remain open. Runtime verification reports therefore
-remain solver-trusted, including the production invariant-loop route.
+remain solver-trusted, including the production invariant-loop and flat-tuple
+routes. Product generation completeness, solver completeness and production-bound
+sufficiency remain open.
 
 FM-08 is not implemented here. There is no optimization/lowering theorem, native
 backend proof, ownership proof, or whole-language verification claim in this

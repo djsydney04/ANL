@@ -7,8 +7,8 @@ formal verification.
 The current implementation checks, interprets, and compiles `i64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
 structured while loops, conditionals, recursive functions, and file modules.
-`anl verify` checks arithmetic safety and contracts for scalar code with mutable
-locals, annotated while loops and acyclic calls, using Z3 5.3.3. Results are labeled
+`anl verify` checks arithmetic safety and contracts for scalar and flat-tuple code
+with mutable locals, annotated while loops and acyclic calls, using Z3 5.3.3. Results are labeled
 `smt-trusted`.
 Ordinary compilation type-checks and erases function contracts and loop invariant
 annotations; it does not prove or dynamically enforce them. Verification checks
@@ -27,7 +27,10 @@ inconclusive. Verification-condition proofs
 cover call-free terms and finite symbolic
 function-body expansion with ordered callee preconditions when generation succeeds,
 including loop-free local-state updates. The invariant-loop model adds safety
-at every machine budget and partial correctness of normal returns.
+at every machine budget and partial correctness of normal returns. A separate
+merged flat-tuple generator proves those properties under successful generation,
+typing, representation and valid-check premises. Its contract theorems include
+ordered precondition definedness, typed entry witnesses and exact query partition.
 These proofs do not certify the production verifier or solver. None of these proofs
 establishes production termination or Rust implementation correctness.
 See the [proof inventory](formal/PROOFS.md) for exact scope and assumptions.
@@ -47,8 +50,9 @@ resource limits, and core import/export. The CLI also supports native `build`,
 [native compilation](docs/native-compilation.md). There is no qualified
 installable release yet. Nested aggregates, records, arrays, ownership, I/O, concurrency, recursive
 verification, and the wider language remain roadmap work. `verify` rejects any
-program containing tuples, an unannotated loop or a recursive call graph before
-starting a solver. Tuple execution does not inherit the scalar verification proofs. See the [loop example](docs/verification.md#verify-a-loop).
+program containing an unannotated loop or a recursive call graph before
+starting a solver. Tuple contracts support construction, projection and same-shape
+equality, including invariant clauses. See the [tuple contract examples](docs/verification.md#verify-tuple-contracts).
 
 - [Getting started](docs/getting-started.md)
 - [Native compilation](docs/native-compilation.md)

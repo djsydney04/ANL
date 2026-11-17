@@ -64,7 +64,7 @@ impl Generator<'_> {
                 };
                 cell.value = self
                     .arena
-                    .add(sort(cell.ty), format!("(ite n{condition} n{yes} n{no})"))?;
+                    .add(sort(cell.ty)?, format!("(ite n{condition} n{yes} n{no})"))?;
             }
         }
         Ok(())
@@ -162,7 +162,7 @@ impl Generator<'_> {
                 let no_safe = self.arena.implies(not_condition, no.safe)?;
                 Symbolic {
                     value: self.arena.add(
-                        sort(expr.ty),
+                        sort(expr.ty)?,
                         format!("(ite n{} n{} n{})", c.value, yes.value, no.value),
                     )?,
                     safe: self.arena.and(&[c.safe, yes_safe, no_safe])?,

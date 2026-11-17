@@ -60,7 +60,7 @@ AST parsing. Existing `fn while`, `while(x);`, and local identifiers named
 `while` remain valid. Parentheses around a loop condition are mandatory.
 
 Zero or more `invariant` clauses may appear between the condition and body.
-Each clause must be a Boolean scalar specification expression, with names
+Each clause must be a Boolean specification expression, with names
 resolved at the loop head before the condition runs. Ordinary source checking
 validates names and types, including unused code, then erases annotations.
 It does not establish their truth or definedness. `verify` requires a clause on

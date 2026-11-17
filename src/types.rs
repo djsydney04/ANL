@@ -270,35 +270,52 @@ pub(crate) enum SpecType {
     Int,
     Bool,
     Unit,
+    Tuple(TupleShape),
 }
 
 impl SpecType {
-    pub(crate) fn checked(ty: Type, span: Span) -> Result<Self, Diagnostic> {
+    pub(crate) fn from_type(ty: Type) -> Self {
         match ty {
-            Type::I64 => Ok(Self::Int),
-            Type::Bool => Ok(Self::Bool),
-            Type::Unit => Ok(Self::Unit),
-            Type::Tuple(_) => Err(Diagnostic::new(
-                span,
-                "tuple references are not allowed in scalar specifications",
-            )),
+            Type::I64 => Self::Int,
+            Type::Bool => Self::Bool,
+            Type::Unit => Self::Unit,
+            Type::Tuple(shape) => Self::Tuple(shape),
         }
     }
 }
 
 impl SpecType {
-    pub(crate) fn scalar_type(self) -> Type {
+    pub(crate) fn value_type(self) -> Type {
         match self {
             Self::Int => Type::I64,
             Self::Bool => Type::Bool,
             Self::Unit => Type::Unit,
+            Self::Tuple(shape) => Type::Tuple(shape),
         }
     }
 }
 
 impl fmt::Display for SpecType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Self::Tuple(shape) = self {
+            f.write_str("(")?;
+            for (index, field) in shape.fields().iter().enumerate() {
+                if index > 0 {
+                    f.write_str(",")?;
+                }
+                f.write_str(match field {
+                    ScalarType::I64 => "int",
+                    ScalarType::Bool => "bool",
+                    ScalarType::Unit => "unit",
+                })?;
+            }
+            if shape.fields().len() == 1 {
+                f.write_str(",")?;
+            }
+            return f.write_str(")");
+        }
         f.write_str(match self {
+            Self::Tuple(_) => unreachable!(),
             Self::Int => "int",
             Self::Bool => "bool",
             Self::Unit => "unit",
@@ -315,6 +332,11 @@ pub(crate) struct SpecExpr {
 
 #[derive(Clone, Debug)]
 pub(crate) enum SpecExprKind {
+    Tuple(Vec<SpecExpr>),
+    Project {
+        value: Box<SpecExpr>,
+        index: usize,
+    },
     Integer(String),
     Boolean(bool),
     Unit,
@@ -348,6 +370,11 @@ pub(crate) struct LocalAssertion {
 
 #[derive(Clone, Debug)]
 pub(crate) enum LocalAssertionKind {
+    Tuple(Vec<LocalAssertion>),
+    Project {
+        value: Box<LocalAssertion>,
+        index: usize,
+    },
     Integer(String),
     Boolean(bool),
     Unit,

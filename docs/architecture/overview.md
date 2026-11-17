@@ -2,7 +2,7 @@
 
 Status: architecture for the complete language, with an implemented scalar/flat-tuple core,
 native C11 compiler, file modules, initialized local state and loops, scalar
-contract verification with invariants and acyclic calls, and scoped immutable, local-state,
+and flat-tuple contract verification with invariants and acyclic calls, and scoped immutable, local-state,
 flat-tuple runtime and verification-condition proofs.
 The executable-core sections describe working behavior; wider language
 capabilities remain planned. Current implementation and theorem coverage leave
@@ -74,8 +74,9 @@ limits in tooling are distinct from traps and divergence.
 The core bounds the first implementation and proof task. It is not the planned
 release feature set. Native compilation, modules, local scalar state, and opt-in
 contract verification with loop invariants and acyclic calls extend that core today.
-Flat tuples execute through the interpreter, v2 interchange and native backend;
-tuple verification, nested aggregates, heap ownership and concurrency remain later increments.
+Flat tuples execute through the interpreter, v2 interchange and native backend,
+and support contract verification with loop invariants and acyclic calls. Nested
+aggregates, heap ownership and concurrency remain later increments.
 
 The current Rust CLI implements `check`, `eval`, `build`, `run`, `emit-c`, `verify`,
 `dump-core`, and `eval-core`. It checks every function in the imported source
@@ -130,7 +131,7 @@ comparison and workload evaluation. Cranelift remains a credible alternative;
 MLIR is deferred until workloads justify multi-level transforms. Backend reputation
 does not establish ANL performance or compiler correctness.
 
-The implemented [program verifier](../verification.md) covers scalar functions
+The implemented [program verifier](../verification.md) covers scalar and flat-tuple functions
 with mutable locals, annotated loops and acyclic calls across modules. It expands actual
 bodies, checks callee preconditions, and generates named safety and contract obligations with
 checked intermediate ranges and truncating division. Preconditions must be

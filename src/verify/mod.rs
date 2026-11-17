@@ -1,4 +1,4 @@
-//! Opt-in, solver-trusted verification of acyclic scalar source programs.
+//! Opt-in, solver-trusted verification of acyclic source programs.
 mod formula;
 mod loops;
 mod solver;
@@ -218,24 +218,10 @@ pub fn verify_file(
         return Err(error);
     }
     let program = crate::compile_file(path)?;
-    if program.has_flat_products() {
-        return Ok(VerificationReport {
-            data: json!({
-                "schema":"apl-verify-v2", "semantic_revision":crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION,
-                "verification_revision":"apl-flat-products-unsupported-v1", "status":"unsupported", "trust":"not_established",
-                "scope":{"functions":"all_loaded","fragment":"unsupported_flat_products","arithmetic_safety":false,"partial_correctness":false,"termination_proved":false,"native_correctness":false,"model_proof":null},
-                "type_checked":true,"tested":false,"dynamic_checks":false,"contracts_erased":true,
-                "compiler":null,"solver":null,
-                "sources":program.sources.iter().enumerate().map(|(id,s)|json!({"id":id,"path":s.path.to_string_lossy(),"path_bytes_hex":path_hex(&s.path),"sha256":sha(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>(),
-                "functions":program.functions.iter().enumerate().map(|(id,f)|json!({"id":id,"name":f.name,"parameter_types":f.params,"result":f.result,"location":location(&program,f.span)})).collect::<Vec<_>>(),
-                "obligations":[],"message":"flat products are unsupported by the scalar verifier; no safety or partial-correctness claim was established"
-            }),
-            exit: 7,
-        });
-    }
+    let products = loops::has_products(&program);
 
     let deadline = Instant::now() + Duration::from_millis(options.timeout_ms);
-    let route = if loops::contains(&program) {
+    let route = if products || loops::contains(&program) {
         Route::Loops
     } else if program.has_local_state() {
         Route::State
@@ -273,6 +259,22 @@ pub fn verify_file(
         report.data["expansions"] = json!([]);
         report.data["loop_occurrences"] = json!([]);
     }
+    if products {
+        report.data["schema"] = json!("anl-verify-v3");
+        report.data["verification_revision"] = json!("anl-flat-products-verify-v1");
+        report.data["scope"]["fragment"] = json!("invariant_flat_products_acyclic");
+        report.data["scope"]["model_proof"] = json!("APL.ProductFlow.contract_queries_sound");
+        report.data["scope"]["proof_gaps"] = json!([
+            "Rust generation",
+            "source annotation correspondence",
+            "SMT encoding and solver answers",
+            "native execution",
+            "termination",
+            "generation completeness under production budgets"
+        ]);
+        report.data["loop_policy"]["fresh_head"] = json!("all_visible_mutable_non_unit_fields");
+        report.data["parameter_layout"] = json!({"order":"source_parameter_then_field","unit_slots":"reserved_without_smt_variable","head_logical_identity":"initial_logical_bound_plus_head_index_minus_head_display_start"});
+    }
     let Some(contracts) = program.contracts.as_ref() else {
         fail(
             &mut report,
@@ -291,7 +293,40 @@ pub fn verify_file(
         );
         return Ok(report);
     }
-    report.data["functions"] = json!(program.functions.iter().enumerate().map(|(i,f)| json!({"id":i,"name":contracts[i].source_name,"lowered_name":f.name,"parameters":contracts[i].param_names,"parameter_types":f.params.iter().map(|p|p.as_str()).collect::<Vec<_>>(),"result":f.result.as_str(),"location":location(&program,f.span),"requires":contracts[i].requires.len(),"ensures":contracts[i].ensures.len()})).collect::<Vec<_>>());
+    if products {
+        let function_records = (|| -> Result<Vec<Value>, Failure> {
+            let mut records = Vec::new();
+            state_budget.reserve(&mut records, program.functions.len())?;
+            for (i, f) in program.functions.iter().enumerate() {
+                let width = |ty: &crate::types::Type| match ty {
+                    crate::types::Type::Tuple(shape) => shape.fields().len(),
+                    _ => 1,
+                };
+                let fields = f.params.iter().map(width).sum::<usize>() + width(&f.result);
+                state_budget.charge(
+                    12 + fields
+                        + contracts[i].source_name.len()
+                        + f.name.len()
+                        + contracts[i]
+                            .param_names
+                            .iter()
+                            .map(String::len)
+                            .sum::<usize>(),
+                )?;
+                records.push(json!({"id":i,"name":contracts[i].source_name,"lowered_name":f.name,"parameters":contracts[i].param_names,"parameter_types":f.params,"result":f.result,"location":location(&program,f.span),"requires":contracts[i].requires.len(),"ensures":contracts[i].ensures.len()}));
+            }
+            Ok(records)
+        })();
+        match function_records {
+            Ok(records) => report.data["functions"] = Value::Array(records),
+            Err(error) => {
+                fail(&mut report, error);
+                return Ok(report);
+            }
+        }
+    } else {
+        report.data["functions"] = json!(program.functions.iter().enumerate().map(|(i,f)| json!({"id":i,"name":contracts[i].source_name,"lowered_name":f.name,"parameters":contracts[i].param_names,"parameter_types":f.params.iter().map(|p|p.as_str()).collect::<Vec<_>>(),"result":f.result.as_str(),"location":location(&program,f.span),"requires":contracts[i].requires.len(),"ensures":contracts[i].ensures.len()})).collect::<Vec<_>>());
+    }
     if loop_route {
         for function in report.data["functions"].as_array_mut().expect("functions") {
             function["invariant_clauses"] = Value::Null;
@@ -307,12 +342,17 @@ pub fn verify_file(
     let supported = if loop_route {
         loops::preflight(&program, &mut report, &mut state_budget)
     } else {
-        formula::supported(&program).and_then(|()| formula::acyclic(&program))
+        formula::supported(&program)
+            .and_then(|()| formula::acyclic(&program))
+            .map(|()| Vec::new())
     };
-    if let Err(error) = supported {
-        fail(&mut report, error);
-        return Ok(report);
-    }
+    let layouts = match supported {
+        Ok(layouts) => layouts,
+        Err(error) => {
+            fail(&mut report, error);
+            return Ok(report);
+        }
+    };
     let compiler = match std::env::current_exe()
         .map_err(|e| Failure::Error(e.to_string()))
         .and_then(|p| hash_file(&p, deadline).map(|h| (p, h)))
@@ -346,7 +386,7 @@ pub fn verify_file(
                 formula::Generator::new(&program, &mut expanded)
             };
             let (pending, heads) = if loop_route {
-                let artifact = loops::obligations(&mut generator, id, &mut report)?;
+                let artifact = loops::obligations(&mut generator, id, &mut report, &layouts)?;
                 (artifact.pending, artifact.heads)
             } else {
                 let pending = if stateful {
@@ -495,5 +535,11 @@ pub fn verify_file(
         );
     }
     report.data["expanded_nodes"] = json!(expanded);
+    if products {
+        if let Err(error) = state_budget.charge(6) {
+            fail(&mut report, error);
+        }
+        report.data["resources"] = state_budget.usage();
+    }
     Ok(report)
 }

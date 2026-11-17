@@ -35,7 +35,7 @@ The compiler is a Rust library called by the CLI, with language-server integrati
 ## M1 caller contract
 
 The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [source grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `bool`, unit, and flat tuples of 1–8 scalar fields, explicitly typed function parameters/results, immutable and initialized mutable lets with optional annotations, assignment, while statements, named recursive calls, conditionals, and scalar operators. The [local-state specification](../../spec/control-flow.md) defines permissions and state flow. The [flat-tuple specification](../../spec/flat-products.md) defines tuple behavior
-and its separate verification boundary. Formal coverage follows the inventory
+and its contract-verification rules. Formal coverage follows the inventory
 and does not automatically extend to a newly implemented form.
 
 The CLI provides `anl check FILE` and `anl eval FILE` in M1. `check` resolves and checks every function, including unused functions, and accepts a typed library file without `main`. `eval` checks first, requires exactly one nullary `main` in the root file with result type `i64`, then displays its decimal result followed by a newline. The implemented `build`, `run`, and `emit-c` commands inherit that entry requirement. Internal expression evaluators may also return `bool`, unit and tuples; those are not executable entry types. Successful commands exit 0. Invalid source exits 1. Execution traps exit 2. Evaluation resource exhaustion exits 3 and is not reported as a language trap or divergence proof. CLI invocation or infrastructure errors exit 4.
@@ -157,8 +157,8 @@ The linker driver receives structured arguments through a process API. It checks
 ## Verification and optimization boundaries
 
 `anl verify` consumes the complete checked source graph and its typed contracts.
-Structural tuple use returns the unsupported v2 report before scalar conversion
-or tool discovery. For supported scalar programs, it checks ordered precondition definedness, satisfiability, runtime arithmetic
+For supported scalar and flat-tuple programs, it checks ordered precondition
+definedness, satisfiability, runtime arithmetic
 safety, callee preconditions, and postconditions. Calls inline the actual body;
 recursive graphs are unsupported, and callee postconditions are never assumed.
 Mutable locals and assignments pass symbolic state through operands, conditions,
@@ -171,8 +171,9 @@ fragment, bounds, and exact report schema.
 Reports identify the checked program's executable revision. Scalar stateful programs
 use schema `apl-verify-v1` and verification revision `apl-state-verify-v1` without
 loops or `apl-loop-verify-v1` with loops, including preflight failures; pure
-programs retain `apl-verify-v0`; tuple-bearing programs return `apl-verify-v2`
-with `apl-flat-products-unsupported-v1` and `trust: "not_established"`. Source-error
+programs retain `apl-verify-v0`. Tuples in code or clauses select `anl-verify-v3`
+with `anl-flat-products-verify-v1` and structured field metadata. A tuple used only
+in a clause leaves the executable revision unchanged. Source-error
 reports use null for the semantic revision when no checked program exists.
 Reports bind retained source snapshots, compiler and solver identities, limits,
 exact SMT commands, obligation locations, and per-obligation results. The driver

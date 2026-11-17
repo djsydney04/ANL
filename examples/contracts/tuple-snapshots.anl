@@ -1,0 +1,13 @@
+fn captured(first: (i64, bool), second: (i64, bool)) -> (i64, bool)
+    ensures (answer) answer == first;
+{
+    first
+}
+
+fn main() -> i64
+    ensures (answer) answer == 42;
+{
+    let mut pair = (42, true);
+    let saved = captured(pair, { pair = (0, false); pair });
+    if saved.1 { saved.0 } else { 0 }
+}

@@ -4,7 +4,7 @@ ANL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
 arithmetic, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, and file modules.
-An optional verifier checks arithmetic safety and contracts for scalar functions
+An optional verifier checks arithmetic safety and contracts for scalar and flat-tuple functions
 with mutable locals, annotated while loops and acyclic calls. Collections,
 ownership, source-level I/O, concurrency, and recursive verification remain in
 the [roadmap](roadmap.md).
@@ -151,6 +151,10 @@ requires identical shapes. Nested tuples, destructuring and field assignment
 are unavailable. See the [tuple specification](../spec/flat-products.md) for
 syntax, value semantics, limits and the v2 interchange format.
 
+Tuple contracts use the same construction, projection and equality syntax. The
+[contract examples](verification.md#verify-tuple-contracts) verify captured tuple
+arguments and a count-and-sum loop with invariants.
+
 ## Use several source files
 
 ```sh
@@ -180,10 +184,9 @@ after source checking; its default is 30000 milliseconds. The verifier checks ev
 loaded function, including unused functions, for defined and satisfiable
 preconditions, checked-arithmetic safety, and each postcondition. Calls must form
 an acyclic graph, and every loop must have at least one invariant. Recursion or
-a missing loop invariant anywhere in a scalar graph reports `unsupported`,
+a missing loop invariant anywhere in the loaded graph reports `unsupported`,
 even in imported or unused functions, skipped branches, conditions and arguments.
-Tuple use anywhere in the graph also reports `unsupported`, before the scalar
-route is selected. These rejections happen before solver discovery and create no obligations.
+These rejections happen before solver discovery and create no obligations.
 `let mut`, assignment and annotated while loops are supported, including changes made while
 evaluating operands, conditions, and call arguments. Ordinary interpretation and
 native compilation also support loops and recursion.
@@ -212,8 +215,9 @@ also erases them. Verification reports bind source, tools, and queries to their
 exact hashes. Refuting models are candidate inputs labeled `replayed: false`,
 not confirmed executions. Pure programs retain `apl-verify-v0` reports. Programs
 containing scalar local-state constructs use `apl-verify-v1` with verification
-revision `apl-state-verify-v1` or `apl-loop-verify-v1`. Tuple-bearing programs
-return `apl-verify-v2`, `trust: "not_established"`, and no obligations. The guide explains
+revision `apl-state-verify-v1` or `apl-loop-verify-v1`. A tuple in executable
+code or any clause selects `anl-verify-v3` with revision
+`anl-flat-products-verify-v1`, also with solver trust. The guide explains
 failed, unknown, and error outcomes.
 
 ## Examples
@@ -233,6 +237,8 @@ the scalar examples; the tuple commands above exercise the new examples.
 | [control-flow/gcd.anl](../examples/control-flow/gcd.anl) | Iterative Euclid's algorithm | 21 |
 | [tuples/count-sum.anl](../examples/tuples/count-sum.anl) | Multiple results and whole-tuple loop updates | 55 |
 | [tuples/snapshots.anl](../examples/tuples/snapshots.anl) | Saved values and ordered argument capture | 42 |
+| [contracts/tuple-snapshots.anl](../examples/contracts/tuple-snapshots.anl) | Contracts over captured tuple arguments and results | 42 |
+| [contracts/count-sum.anl](../examples/contracts/count-sum.anl) | Tuple postconditions and loop invariants | 55 |
 
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.

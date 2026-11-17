@@ -1,0 +1,23 @@
+fn count_sum(limit: i64) -> (i64, i64)
+    requires 0 <= limit && limit <= 1000;
+    ensures (answer) answer.0 == limit;
+    ensures (answer) 2 * answer.1 == limit * (limit + 1);
+{
+    let mut totals = (0, 0);
+    while (totals.0 < limit)
+        invariant 0 <= totals.0 && totals.0 <= limit;
+        invariant 0 <= totals.1 && totals.1 <= 500500;
+        invariant 2 * totals.1 == totals.0 * (totals.0 + 1);
+    {
+        let next = totals.0 + 1;
+        totals = (next, totals.1 + next);
+    }
+    totals
+}
+
+fn main() -> i64
+    ensures (answer) answer == 55;
+{
+    let result = count_sum(10);
+    if result.0 == 10 { result.1 } else { 0 }
+}

@@ -3,10 +3,10 @@
 Status: Lean 4.36.0 has separate models for immutable scalar functions
 (`m1-2026-11-16`), local scalar state (`local-state-2026-11-17`) and flat tuples
 (`flat-products-2026-11-17`). The [proof inventory](../../formal/PROOFS.md) records
-384 audited theorem names and 48 separately replayed modules, including the
-separate tuple runtime model and concrete invariant-loop generator,
-its connection to the actual local-state machine, and a sufficient generation
-height under a supplied call rank. Coverage follows the stated theorem premises
+558 audited theorem names and 72 separately replayed modules, including the
+separate tuple runtime model, scalar invariant-loop generator, merged product
+contract generator, and scalar generation-height theorem under a supplied call
+rank. Coverage follows the stated theorem premises
 and conclusions, not the number of supporting lemmas. FM-01 through FM-05 apply to the documented
 v0 model; local state has its own typing, machine
 safety, finite correspondence, and forward v0 embedding results.
@@ -24,7 +24,8 @@ decreasing call rank and the input environment length. FM-07 remains partial:
 rank existence/extraction from an acyclic graph, source call-graph checking,
 separate syntax-inlining equivalence, production named-condition correspondence,
 and Rust/SMT/solver bridges remain open. Production verification supports mutable
-scalar code with annotated loops and acyclic calls, and stays `smt-trusted`.
+scalar and flat-tuple code with annotated loops and acyclic calls, and stays
+`smt-trusted`.
 The model's finite expansion result does not establish production termination,
 fixed-production-budget completeness, or Rust/JSON/native correctness.
 
@@ -32,9 +33,20 @@ Flat-tuple execution and v2 interchange have a separate
 [language contract](../../spec/flat-products.md) and the runtime-model guarantees
 below. The acceptance theorem for the actual Lean v2 reader proves that successful
 decoding yields a typed input. Execution excludes invalid outcomes and preserves
-returned types at every budget. The scalar and invariant-loop
-generators do not establish tuple verification. JSON-text interpretation,
+returned types at every budget. The earlier scalar and invariant-loop
+generators retain their scalar scope; their theorems do not extend to tuples
+by inheritance. JSON-text interpretation,
 compiled Lean execution and Rust/native correctness remain separate obligations.
+
+The separate [merged product generator](../../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+connects its concrete analysis to the actual tuple machine. Successful generation,
+typing, representation/support and universally valid guarded checks imply safety
+at every transition budget and an agreeing model extension covering every normal
+result and environment. Entry and contract theorems add ordered definedness,
+typed runtime witnesses and normal ensures. Exact query partition preserves
+guards and multiplicity. These theorems leave source-ID reconstruction, Rust,
+SMT/solver and native correspondence open, along with termination, product
+generation completeness, solver completeness and production-bound sufficiency.
 
 ## Two distinct guarantees
 

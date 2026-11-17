@@ -42,8 +42,9 @@ Calls may refer to later function declarations. Arity and each argument type mus
 [File modules](../../spec/modules.md) add private/public declarations and qualified
 names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
 type-checked and erased during ordinary execution. Their optional verifier accepts
-mutable scalar code with annotated loops and acyclic calls; recursion and tuples remain unsupported by verification.
-Loop `invariant` clauses are checked as Boolean mathematical scalar expressions
+scalar and flat-tuple code with annotated loops and acyclic calls; recursion
+remains unsupported by verification.
+Loop `invariant` clauses are checked as Boolean mathematical specification expressions
 in the scope before the condition runs, then erased. Their truth and definedness
 are not established by type checking.
 Early `return`, `break`, `continue`, `for`, user-defined data,

@@ -1,14 +1,13 @@
-# Verify scalar function contracts
+# Verify function contracts
 
-`anl verify` checks arithmetic safety and function contracts for pure scalar
-code, mutable scalar locals, and while loops with invariants. It uses Z3 5.3.3
+`anl verify` checks arithmetic safety and function contracts for scalar and
+flat-tuple code, including mutable locals and while loops with invariants. It uses Z3 5.3.3
 and reports solver-trusted results. It supports acyclic calls across source
 modules. Verification requires an invariant on every loaded loop and rejects
 recursive call graphs. Ordinary compilation supports unannotated loops and recursion.
-Flat tuples are executable but unsupported by verification. Any tuple in the loaded
-graph, including an unused signature, causes pre-tool exit 7 with `apl-verify-v2`,
-`trust: "not_established"` and no obligations. Scalar and invariant-loop proofs
-do not establish tuple properties; see the [exact boundary](../spec/flat-products.md#verification-boundary).
+Tuple clauses use the same value syntax as executable code, with mathematical
+integer fields. Every clause must return `bool`. The [tuple specification](../spec/flat-products.md#verification-boundary)
+defines their evaluation, reports and limits.
 
 ## Run a verification
 
@@ -57,7 +56,8 @@ intermediate. For example, `(value + 1) - 1` can overflow despite having a
 mathematical result equal to `value`.
 
 Clauses support parameter names, the postcondition result, scalar literals,
-parentheses, and scalar operators. Calls, blocks, local bindings, and `if`
+parentheses, scalar operators, flat tuples, field projection and same-shape
+equality or inequality. Calls, blocks, local bindings, and `if`
 expressions inside clauses are not yet supported. Boolean short circuit can guard
 partial specification arithmetic:
 
@@ -130,6 +130,51 @@ verification; unreachable operations after it need not execute safely. Entry
 preconditions must remain defined and satisfiable, independent of divergence.
 No global satisfiability check is imposed on loop invariants.
 
+## Verify tuple contracts
+
+The [snapshot example](../examples/contracts/tuple-snapshots.anl) returns a captured
+tuple argument. Its contract compares the complete returned tuple with the
+original parameter:
+
+```text
+fn captured(first: (i64, bool), second: (i64, bool)) -> (i64, bool)
+	ensures (answer) answer == first;
+{
+	first
+}
+```
+
+Its `main` passes a mutable tuple, replaces that tuple while evaluating the next
+argument, and checks that the captured result still contains `42`. Each argument
+retains its completed value. Postconditions refer to entry parameters.
+
+The [count-and-sum contract](../examples/contracts/count-sum.anl) returns
+`(count, sum)` from an annotated loop. Its invariants bound both fields and retain
+`2 * totals.1 == totals.0 * (totals.0 + 1)`. Verification checks the relation at
+initialization and after each body return. Each mutable non-unit field receives
+its own arbitrary loop-head value, so a relation between fields needs an invariant.
+
+```sh
+./target/release/anl verify examples/contracts/tuple-snapshots.anl --solver /path/to/z3 --json
+./target/release/anl eval examples/contracts/tuple-snapshots.anl
+./target/release/anl verify examples/contracts/count-sum.anl --solver /path/to/z3 --json
+./target/release/anl run examples/contracts/count-sum.anl
+```
+
+Both verification commands return `verified` with `trust: "smt-trusted"`, schema
+`anl-verify-v3` and revision `anl-flat-products-verify-v1`. The execution commands
+print `42` and `55`.
+
+Tuple specifications require every constructed field to be defined. Projection
+retains that requirement for the entire base. `(7, 1 / 0).0 == 7` therefore fails
+definedness. Equality also requires both complete operands to be defined, even
+when an earlier field differs. An outer Boolean short circuit can guard a whole
+tuple expression, such as `divisor == 0 || (7, 1 / divisor).0 == 7`.
+
+Specification integer fields and intermediate results are mathematical integers.
+Runtime parameters, returned fields and executed arithmetic still use checked
+`i64`. Nested tuples, tuple arithmetic and tuple ordering remain unsupported.
+
 ## Understand the result
 
 The verifier checks every loaded function, including private and unused functions.
@@ -174,9 +219,13 @@ The complete checked program selects one route:
 | Program | Schema | Verification revision |
 | --- | --- | --- |
 | Pure scalar code | `apl-verify-v0` | No separate field |
-| Local state without loops | `apl-verify-v1` | `apl-state-verify-v1` |
-| Any while loop | `apl-verify-v1` | `apl-loop-verify-v1` |
+| Scalar local state without loops | `apl-verify-v1` | `apl-state-verify-v1` |
+| Scalar code with a while loop | `apl-verify-v1` | `apl-loop-verify-v1` |
+| Any flat tuple in code or clauses | `anl-verify-v3` | `anl-flat-products-verify-v1` |
 
+Tuple classification includes unused signatures, retained bindings and every
+contract or invariant expression. A tuple used only in a clause selects v3 while
+`semantic_revision` remains the erased executable program's scalar revision.
 The route is selected even when preflight rejects the program. Reports include retained
 source hashes,
 function identities, exact tool hashes and versions, limits, obligation locations,
@@ -197,6 +246,12 @@ request exactly the head symbols on which their assertion depends. Reports map
 these symbols to source bindings, loop occurrences and call expansions, and retain
 the constituent guarded checks in each query.
 
+V3 models identify each non-unit parameter field by its source parameter index
+and field index. Unit fields occupy layout positions but need no solver variable.
+Loop-head fields also retain source binding, occurrence and expansion identities.
+The [tuple report contract](../spec/flat-products.md#tuple-verification-reports)
+defines these fields.
+
 Loop-head assignments are abstract states used to check the invariant. They can
 be unreachable in a concrete execution; a failure may mean the invariant is too
 weak. Integer head values are mathematical decimal strings with a
@@ -214,9 +269,12 @@ State analysis has attempt-wide ceilings of 1000000 symbolic work units and
 100000 arena nodes, in addition to the existing expression, query, byte, and time
 limits. Environment copies, state merges, formula operands, and arena insertions
 consume this budget. Loop verification also limits fresh head allocations to
-4096 per attempt, counting repeated call expansions separately. A limit returns
-`unknown` and retains completed query evidence. These added limits do not change
-the pure v0 path.
+4096 non-unit symbols per attempt, counting tuple fields and repeated call
+expansions separately. Product analysis also charges field operations and one
+work unit per rendered query-body byte before emission. Repeated query output can
+exhaust work before the independent head or query limits. A limit returns
+`unknown` and retains completed query evidence. Existing scalar routes retain
+their limits and accounting.
 
 Preflight rejection or an empty function graph can also leave tool identities
 null because discovery and hashing have not run. Null means unavailable or not
@@ -231,7 +289,7 @@ or option requires another verification attempt.
 
 Ordinary `check`, `eval`, `build`, and `run` type-check contracts and erase them.
 They neither run a solver nor insert dynamic contract checks. `dump-core` exports
-only the executable scalar program; importing it does not recover contracts.
+only the executable program; importing it does not recover contracts.
 `assert`, ghost code, heap properties, and recursive
 verification remain later work. Ordinary evaluation and native
 compilation support the [local-state extension](../spec/control-flow.md).
@@ -244,9 +302,15 @@ assumptions. It does not establish native compiler correctness, a checked
 termination proof, or a kernel-checked solver certificate. The
 [formal proof inventory](../formal/PROOFS.md) separately records model theorems;
 those do not prove this Rust generator or its SMT serialization correct. The
-formal continuation/path-split generators and production's merged-flow analysis
-are separate implementations with an unproved correspondence. Exact mathematical
-query-partition theorems do not certify production query metadata or SMT encoding.
+existing scalar continuation/path-split generators and production's merged-flow
+analysis are separate implementations with an unproved correspondence. The separate [merged product model](../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+proves all-budget machine safety and normal-return contracts under successful
+generation, typing, representation and valid-check premises. Its entry results
+connect satisfiability to a typed runtime witness, and its query partition
+preserves every check.
+These model results do not certify production source identities, query metadata
+or SMT encoding. Generation completeness, solver completeness and sufficiency of
+production limits remain unproved.
 The [verification specification](../spec/verification.md) defines exact rules,
 resource bounds, protocol behavior, and the remaining FM-07 obligations. The
 [state verification specification](../spec/loop-verification.md) defines the

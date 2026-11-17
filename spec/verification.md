@@ -1,6 +1,7 @@
-# Scalar function contract verification
+# Function contract verification
 
-Status: implemented pure, loop-free local-state, and invariant-loop verification. Production
+Status: implemented scalar and flat-tuple verification, including mutable locals,
+annotated loops and acyclic calls. Production
 results are solver-trusted; the [proof inventory](../formal/PROOFS.md) records
 separate model coverage and remaining correspondence obligations. Pure programs
 retain executable revision `m1-2026-11-16` and report schema `apl-verify-v0`.
@@ -9,9 +10,10 @@ schema `apl-verify-v1`, and verification revision `apl-state-verify-v1` without
 loops or `apl-loop-verify-v1` with loops. The
 [loop-free state contract](loop-verification.md#loop-free-report-contract)
 and [invariant-loop contract](loop-verification.md#invariant-loop-report-contract)
-define the exact v1 fields. Programs containing tuples instead return the
-[pre-tool v2 unsupported report](flat-products.md#verification-boundary), with no
-established safety or partial-correctness claim.
+define the exact v1 fields. Flat tuples in executable code or specification
+clauses select schema `anl-verify-v3` and revision `anl-flat-products-verify-v1`.
+The [tuple verification contract](flat-products.md#verification-boundary) defines
+that route. A specification-only tuple does not change the executable revision.
 
 ## Source contracts
 
@@ -47,9 +49,11 @@ names are unavailable. Multiple clauses denote conjunction.
 Specification expressions contain decimal integer literals, Boolean literals,
 unit, parameter names, the result binder where allowed, parentheses, and the
 existing scalar unary and binary operators with their existing precedence.
-Tuple references, construction and projection are excluded. Constant clauses and
-clauses naming only scalars remain valid on functions that also contain tuples;
-ordinary checking erases them, but tuple verification is unsupported.
+They also contain flat tuples of 1 through 8 mathematical integer, Boolean or unit
+fields, tuple references, constant field projection, and equality or inequality
+between identical shapes. Tuple syntax and projection restrictions match
+[executable tuples](flat-products.md#syntax-and-types). Nested tuples are excluded.
+Every clause still has Boolean type.
 Calls, blocks, local declarations, and conditional expressions are excluded in
 this first specification-expression grammar. Boolean combinations can express
 guarded properties. For example, `x == 0 || answer / x == 1` guards division.
@@ -61,6 +65,10 @@ exists. A specification literal can exceed the machine range, with a limit of
 4096 decimal digits. Division truncates toward zero; remainder follows the
 dividend's sign. Division and remainder require a nonzero divisor. Their
 definedness follows left-to-right evaluation and Boolean short circuit.
+Construction requires every field to be defined. Projection requires the complete
+base to be defined. Tuple equality and inequality require every field of both
+operands to be defined, even when earlier fields differ. An enclosing Boolean
+short circuit can guard the entire tuple operation.
 
 Preconditions are checked for definedness in declaration order. Each earlier
 true clause can guard a later clause. A clause cannot assume its own truth, or a
@@ -89,8 +97,8 @@ precondition `true` and no requested postcondition; arithmetic safety is still
 checked. The report states the count of explicit clauses. An empty function graph
 reports `not_requested` and does not succeed as a verification attempt.
 
-The supported executable fragment contains scalar expressions, initialized
-mutable locals, assignment, and annotated while loops, with an acyclic
+The supported executable fragment contains scalar and flat-tuple expressions,
+initialized mutable locals, whole-value assignment, and annotated while loops, with an acyclic
 function-call graph. The verifier checks this graph before generating
 conditions. Any recursive component makes the whole verification attempt
 `unsupported`, including an unused or syntactically unreachable recursive call.
@@ -99,7 +107,7 @@ recursion. Preflight also requires at least one invariant on every loop before
 compiler hashing, solver discovery, and query generation. It scans imported and
 unused functions, unselected branches, conditions, bodies and all call arguments.
 Failure reports `unsupported`, exit 7, and emits no query obligations. Mutable
-state is local scalar state only. Heap, ownership, concurrency, and foreign-call
+state is local scalar or flat-tuple state only. Heap, ownership, concurrency, and foreign-call
 properties remain outside the fragment. The [loop rule](loop-verification.md#the-loop-rule-includes-condition-effects)
 checks initialization, preservation, condition/body safety and normal exits.
 Finite unrolling is not verification.
@@ -177,11 +185,15 @@ repeating continuations. It must preserve the stated `wp` rules. Named condition
 records retain their function, source span, obligation kind, and exact formula.
 Decomposed conditions must have the same conjunction as the complete `wp`.
 
-The loop route carries a normal-return path separately from its retained guarded
-checks. Every initialization and preservation clause requires definedness and
+The loop and product routes carry a normal-return path separately from their
+retained guarded checks. Product construction captures complete fields left to
+right; projection analyzes its whole base. Tuple equality analyzes both complete
+operands before comparing fields. Calls retain whole argument snapshots and
+assignment replaces a whole value of the same shape. Every initialization and preservation clause requires definedness and
 truth under its original incoming path, independently of sibling conclusions.
-All visible mutable non-unit head cells receive fresh symbols; immutable cells
-retain their captured values. The final false condition's environment reaches
+All visible mutable non-unit head fields receive distinct fresh symbols;
+immutable bindings retain their captured values. Each integer field has its own
+i64 domain. Unit fields retain unit without a solver symbol. The final false condition's environment reaches
 the continuation. Exact query grouping retains arithmetic and call-precondition
 checks even before a suffix with no normal return. Entry definedness and
 satisfiability stay separate; postconditions refer to original parameters and
@@ -258,8 +270,15 @@ environment/context entries, variable-length formula operands, and arena
 insertions are charged before allocation. Deadline checks occur during these
 loops and rendering; serialized arena definitions and queries are bounded by
 1 MiB. The loop route additionally permits at most 4096 fresh head symbols per
-attempt, with repeated inlined occurrences counted separately. The pure v0 path
-retains its existing limits and query semantics.
+attempt, with repeated inlined occurrences counted separately. On the product
+route each non-unit tuple field counts as one head symbol. Product field
+traversals, captures, copies, merges and report metadata consume symbolic work.
+Each byte produced by `Arena::render` costs one additional symbolic-work unit
+before emission. This includes declarations, definitions, arithmetic helpers and
+query-body framing; existing parameter-declaration charges remain. Independent
+query and protocol byte limits still apply. The work limit can be reached before
+the head or query limits. No partial next query is submitted as a completed
+obligation. Scalar routes retain their existing charges and query semantics.
 
 Source-loading and parsing limits still apply. No unbounded recursive substitution
 or blocking `wait_with_output` may bypass these limits. Resource exhaustion is
@@ -307,14 +326,17 @@ program exists and `semantic_revision` is null in the unchanged v0 error envelop
 Checked stateful reports use v1 even when preflight rejects them and retain
 `expanded_nodes: 0` on preflight failure. Loop-free state reports keep the exact
 scope, budget, and complete parameter `model_symbols` fields in their contract.
-Any while selects the loop revision, with source metadata completeness, partial
+Any while in a scalar-only graph selects the loop revision, with source metadata completeness, partial
 expansion/occurrence records, guarded-check provenance, and relevant abstract head
 models defined in the [loop report contract](loop-verification.md#invariant-loop-report-contract).
+Product graphs use the [v3 report contract](flat-products.md#tuple-verification-reports),
+including structured types and field identities.
 Head integer assignments retain mathematical values and `within_machine_range`;
 an inactive out-of-range head is not a malformed entry parameter. A `verified` report requires all
 compiler, solver, source, and query bindings above.
 
-Every result has `trust: "smt-trusted"`. The report states that type checking ran,
+Verification results use `trust: "smt-trusted"`; a rejected preflight establishes
+no safety or partial-correctness result. The report states that type checking ran,
 tests were not run by `verify`, and dynamic contract checks were not inserted.
 It claims trap freedom and requested partial-correctness properties in the
 supported scope. It does not claim a checked termination proof, native compiler
@@ -336,13 +358,19 @@ that definition does not discharge this obligation.
 Call-free generator soundness, acyclic inlining preservation, and the relation
 between named conditions and combined `wp` are separate coverage items. Proofs
 must name any omitted constructors. Even complete model proofs leave the Rust
-generator, source erasure, SMT encoding, solver, and native compiler as separate
+generator, source annotation reconstruction and erasure, SMT encoding, solver,
+and native compiler as separate
 correspondence or trust obligations. The loop-free state model's continuation
 generator, the invariant model's path-split outcomes, and production's merged
 symbolic flows require separate correspondence arguments. The formal invariant
 generator's exact mathematical query partition does not prove production
-source metadata, query naming or SMT encoding. The implementation must report FM-07 as open
-or partial until its exact generator coverage has been independently reviewed.
+source metadata, query naming or SMT encoding. The separate
+[merged product generator](../formal/PROOFS.md#merged-flat-tuple-contract-verification)
+proves actual-machine safety, normal-result/environment coverage, ordered entry
+definedness, typed entry witnesses and exact contract-query acceptance under
+successful generation and its stated premises. Its structural formal identities
+do not establish production source-ID correspondence. FM-07 remains partial
+because implementation and solver correspondence are still open.
 
 The separate [generation-height theorem](../formal/PROOFS.md#sufficient-generation-height-with-a-supplied-call-rank)
 provides an explicit uniform height for the actual formal invariant analyzer.
@@ -368,6 +396,11 @@ effectful false exits, safe divergence and preceding traps, mutation order, scop
 argument snapshots, callee isolation, complete input models, symbolic-work limits,
 missing/crashed/malformed solvers, unknown and timeout
 results, input-bound tests, and a source mutation that invalidates prior evidence.
+Tuple evidence includes widths 1, 2 and 8, mixed and unit fields, complete
+parameter-field models, captured arguments, whole-value replacement, invariant
+field relations, specification-only tuples, and false or undefined tuple clauses.
+Projection and equality must retain later-field definedness, and every mutable
+non-unit head field must have a distinct identity.
 Targeted mutation tests must show that dropping an overflow check, a call
 precondition, or a branch guard changes the relevant regression outcome.
 

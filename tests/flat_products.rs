@@ -315,14 +315,23 @@ fn real_tuple_churn_charges_cumulative_allocations_without_retaining_old_values(
     );
 }
 #[test]
-fn aggregate_verification_precedes_solver_and_other_unsupported_routes() {
-    for s in [
-        "fn unused(x:(i64,))->unit{} fn main()->i64{42}",
-        "fn main()->i64{if true{42}else{(0,).0}}",
-        "fn f(x:bool)->i64{if x {1}else{f(x)}} fn main()->i64{let p=(1,);f(false)}",
-        "fn main()->i64{let p=(1,);while(false){}p.0}",
-        "fn f(p:(i64,),x:i64)->(bool,) requires x>0; ensures (r) x>0; {(true,)} fn main()->i64{42}",
-        "fn main()->i64{let mut x=0;let p=(1,);while(x<2) invariant x>=0;{x=x+1;}x}",
+fn product_preflight_checks_recursion_annotations_and_specifications() {
+    for (s, unsupported) in [
+        ("fn unused(x:(i64,))->unit{} fn main()->i64{42}", false),
+        ("fn main()->i64{if true{42}else{(0,).0}}", false),
+        (
+            "fn f(x:bool)->i64{if x {1}else{f(x)}} fn main()->i64{let p=(1,);f(false)}",
+            true,
+        ),
+        ("fn main()->i64{let p=(1,);while(false){}p.0}", true),
+        (
+            "fn f(p:(i64,),x:i64)->(bool,) requires x>0; ensures (r) x>0; {(true,)} fn main()->i64{42}",
+            false,
+        ),
+        (
+            "fn main()->i64{let mut x=0;let p=(1,);while(x<2) invariant x>=0;{x=x+1;}x}",
+            false,
+        ),
     ] {
         let f = Fixture::new(s);
         let marker = f.dir.join("solver-ran");
@@ -346,21 +355,21 @@ fn aggregate_verification_precedes_solver_and_other_unsupported_routes() {
             .unwrap();
         assert_eq!(
             r.status.code(),
-            Some(7),
+            Some(if unsupported { 7 } else { 4 }),
             "{}",
             String::from_utf8_lossy(&r.stderr)
         );
-        assert!(!marker.exists());
+        assert_eq!(marker.exists(), !unsupported);
         let report: serde_json::Value = serde_json::from_slice(&r.stdout).unwrap();
-        assert_eq!(report["schema"], "apl-verify-v2");
+        assert_eq!(report["schema"], "anl-verify-v3");
         assert_eq!(
             report["verification_revision"],
-            "apl-flat-products-unsupported-v1"
+            "anl-flat-products-verify-v1"
         );
         assert_eq!(report["solver"], serde_json::Value::Null);
         assert_eq!(report["obligations"], serde_json::json!([]));
         assert_eq!(report["type_checked"], true);
-        assert_eq!(report["scope"]["arithmetic_safety"], false);
+        assert_eq!(report["scope"]["arithmetic_safety"], true);
     }
     for s in [
         "fn f(p:(i64,))->unit requires p==p; {}",
@@ -368,7 +377,15 @@ fn aggregate_verification_precedes_solver_and_other_unsupported_routes() {
         "fn main()->i64{let p=(1,);while(false) invariant p==p;{}0}",
         "fn f()->i64 requires (1,).0==1; {1}",
     ] {
-        assert!(anl::compile(s).is_err());
+        assert!(anl::compile(s).is_ok());
+    }
+    for source in [
+        "fn f(p:(i64,))->unit requires p==(true,); {}",
+        "fn f()->unit requires ((1,),).0==(1,); {}",
+        "fn f()->unit requires (1,).1==1; {}",
+        "fn f()->unit requires (1,)<(2,); {}",
+    ] {
+        assert!(anl::compile(source).is_err());
     }
 }
 #[test]
@@ -410,7 +427,7 @@ fn wide_recursive_calls_reach_slot_limit_before_host_depth_or_unbounded_reservat
     );
 }
 #[test]
-fn unused_imported_products_are_checked_and_reject_before_solver_discovery() {
+fn unused_imported_products_select_product_verification_and_check_clauses() {
     let f = Fixture::new("mod hidden;fn main()->i64{42}");
     fs::write(
         f.dir.join("hidden.apl"),
@@ -422,9 +439,9 @@ fn unused_imported_products_are_checked_and_reject_before_solver_discovery() {
         .args(["--solver", "/definitely/not/a/solver", "--json"])
         .output()
         .unwrap();
-    assert_eq!(r.status.code(), Some(7));
+    assert_eq!(r.status.code(), Some(4));
     let report: serde_json::Value = serde_json::from_slice(&r.stdout).unwrap();
-    assert_eq!(report["schema"], "apl-verify-v2");
+    assert_eq!(report["schema"], "anl-verify-v3");
     assert_eq!(report["sources"].as_array().unwrap().len(), 2);
     fs::write(
         f.dir.join("hidden.apl"),
@@ -436,5 +453,5 @@ fn unused_imported_products_are_checked_and_reject_before_solver_discovery() {
         .args(["--solver", "/definitely/not/a/solver", "--json"])
         .output()
         .unwrap();
-    assert_eq!(r.status.code(), Some(1));
+    assert_eq!(r.status.code(), Some(4));
 }
