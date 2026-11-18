@@ -314,8 +314,8 @@ pub fn lower(program: CheckedProgram) -> Result<CheckedPair, OutputError> {
     })
 }
 fn value(pair: &CheckedPair) -> Value {
-    let mut value = super::wire::metadata(pair.program.entries);
-    value["schema"] = json!(MIR_SCHEMA);
+    let mut value = super::wire::metadata(pair.program.profile, pair.program.entries);
+    value["schema"] = json!(pair.program.profile.mir_schema());
     let mut rows = Vec::new();
     for (id, function) in pair.functions.iter().enumerate() {
         rows.push(json!({"kind":"defined", "id":id, "name":pair.program.functions[id].name, "view":null, "params":function.params, "result":function.result, "effects":pair.program.effects[id], "body":function.body, "temp_count":function.temp_count, "slot_count":function.slot_count, "resource_count":0}));
@@ -340,7 +340,21 @@ pub fn export_mir(pair: &CheckedPair) -> Result<String, OutputError> {
     Ok(text)
 }
 pub fn import_pair(core_text: &str, mir_text: &str) -> Result<CheckedPair, PairError> {
-    let program = super::import_core(core_text)?;
+    import_revision(core_text, mir_text, super::Profile::V1)
+}
+/// Admit only a v2 Core and its exact canonical v2 MIR.
+pub fn import_pair_v2(core_text: &str, mir_text: &str) -> Result<CheckedPair, PairError> {
+    import_revision(core_text, mir_text, super::Profile::V2)
+}
+fn import_revision(
+    core_text: &str,
+    mir_text: &str,
+    profile: super::Profile,
+) -> Result<CheckedPair, PairError> {
+    let program = match profile {
+        super::Profile::V1 => super::import_core(core_text)?,
+        super::Profile::V2 => super::import_core_v2(core_text)?,
+    };
     if mir_text.len() > MAX_MIR_BYTES {
         return Err(ImportError::ResourceLimit("boot MIR exceeds 8388608 bytes".into()).into());
     }

@@ -12,6 +12,8 @@ source checking, strict Core interchange and complete freestanding source bundle
 Image linking and execution remain unavailable; there is no bootable ANL OS yet.
 Ordinary native compilation continues to produce hosted executables.
 See [Check and emit an ANL boot program](docs/book/boot-profile.md).
+The separate [v2 boot profile](spec/boot-profile-v2.md) adds an explicit
+illegal-instruction operation with machine authority and closed Core/MIR revisions.
 
 The current implementation checks, interprets, and compiles `i64`, unsigned words `u8`/`u16`/`u32`/`u64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,

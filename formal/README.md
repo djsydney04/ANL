@@ -634,3 +634,50 @@ proves finite-prefix frame separation, byte preservation, call-depth upper bound
 aligned return and root-stack substitution from explicit local/leaf execution and
 instruction-effect contracts. It does not discharge those contracts for emitted
 RISC-V code or prove compiler, ELF, firmware or guest correspondence.
+
+## Boot v2 Core static checking
+
+`ANL.Boot.V2` adds a separate raw program and static checker for
+`anl-boot-core-v2`, revision `anl-boot-rv64-virt-v2`, and target
+`rv64-virt-sbi-v2`. The ordinary types and terms remain `anl-words-v1`.
+The V1 model and `anl_boot_raw_probe` retain their existing envelope.
+Neither reader converts between versions. V2 documents with only legacy
+operations still require the V2 reader.
+
+With the pinned Lean tools on `PATH`, build the separate probe from `formal/`:
+
+```sh
+lake build anl_boot_v2_raw_probe
+```
+
+From the repository root, pass an existing V2 Core artifact as the single path:
+
+```sh
+formal/.lake/build/bin/anl_boot_v2_raw_probe path/to/anl-boot-core-v2.json
+```
+
+Replace the example path with the artifact to check. Keep actual compiler
+exports unchanged when comparing source checking with the independent probe.
+Successful acceptance prints `{"raw_valid":true,"reason":""}` and exits 0.
+Invalid input exits 1, a resource limit exits 3, and usage or IO failure exits 4.
+The bounded report and failed-output behavior match the V1 static probe.
+
+The V2 probe admits at most 128 declarations, 8,192 total raw body nodes,
+64 parameters per defined function, and 64 arguments per ordinary call.
+Every raw child counts, including dead code and forbidden memory forms.
+These probe limits precede static policy and are separate from V2 semantic
+well-formedness. The existing 1 MiB byte, 128 logical-depth, and 1,024 JSON-depth
+limits also apply. A resource result does not establish a language error.
+
+The checker validates every body, the exact setup prefix, roles, effects,
+canonical primitive discovery, and the complete acyclic call graph. The new
+`illegal_instruction` row has no runtime parameters, result `unit`, and
+machine authority zero. Only the boot entry may call it after the setup prefix.
+Its presence does not skip later typing or permit a handler or dead helper call.
+
+The [V2 proof scope](PROOFS.md#boot-v2-static-model-and-core-reader) covers decoded
+static acceptance and local fault-data predicates. It does not execute an
+exception, establish firmware forwarding, or extend the V1 runtime and session
+theorems to V2. JSON parsing, compiled IO, source translation, boot MIR and
+origin correspondence, native behavior, and the complete ANL-authored OS remain
+separate boundaries.

@@ -6,6 +6,10 @@ them. The [source and Core profile](boot-profile.md) remains the admission bound
 Source policy, including UART initialization, polling and terminal loops, stays
 in ANL. No handwritten C/Rust OS subsystem is linked or copied into the bundle.
 
+The [v2 extension](boot-profile-v2.md) retains these six payloads and publication
+rules, with separate schema identifiers and an assembly primitive for an explicit
+illegal instruction. The v1 identifiers and native setup API below remain closed.
+
 ## Checked canonical pairs
 
 The Rust library's `anl::boot::lower` consumes a `CheckedProgram` and returns an

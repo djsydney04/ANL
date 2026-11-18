@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl emit-boot FILE --out PATH [--target rv64-virt-sbi-v1]\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSource commands accept --target hosted|rv64-virt-sbi-v1.\nBoot source supports check, dump-core and emit-boot source bundles.\nBuild, execution and verification return unsupported (7) after static checking. Boot build requires\n--toolchain LOCK and -o PATH; no lock or external tool is used yet.\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
+const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl emit-boot FILE --out PATH [--target rv64-virt-sbi-v1|rv64-virt-sbi-v2]\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSource commands accept --target hosted|rv64-virt-sbi-v1|rv64-virt-sbi-v2.\nBoot source supports check, dump-core and emit-boot source bundles.\nBuild, execution and verification return unsupported (7) after static checking. Boot build requires\n--toolchain LOCK and -o PATH; no lock or external tool is used yet.\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -177,13 +177,25 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         String::new()
     };
     if command == "eval-core" {
-        let is_boot = serde_json::from_str::<serde_json::Value>(&source)
+        let boot_profile = serde_json::from_str::<serde_json::Value>(&source)
             .ok()
-            .is_some_and(|v| {
-                v.get("schema").and_then(serde_json::Value::as_str) == Some(anl::boot::SCHEMA)
-            });
-        if is_boot {
-            match anl::boot::import_core(&source) {
+            .and_then(
+                |v| match v.get("schema").and_then(serde_json::Value::as_str) {
+                    Some(schema) if schema == anl::boot::Profile::V1.core_schema() => {
+                        Some(anl::boot::Profile::V1)
+                    }
+                    Some(schema) if schema == anl::boot::Profile::V2.core_schema() => {
+                        Some(anl::boot::Profile::V2)
+                    }
+                    _ => None,
+                },
+            );
+        if let Some(profile) = boot_profile {
+            let checked = match profile {
+                anl::boot::Profile::V1 => anl::boot::import_core(&source),
+                anl::boot::Profile::V2 => anl::boot::import_core_v2(&source),
+            };
+            match checked {
                 Ok(_) => {
                     output("{\"outcome\":\"unsupported_boot_operation\"}")?;
                     return Ok(7);
@@ -234,6 +246,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     }
     let program = match checked {
         anl::CheckedSource::Boot(program) => {
+            let profile = program.profile();
             if command == "check" {
                 return Ok(0);
             }
@@ -256,7 +269,8 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
                 "supported"
             };
             diagnostic(format_args!(
-                "unsupported_boot_operation: {command} is not {state} for rv64-virt-sbi-v1"
+                "unsupported_boot_operation: {command} is not {state} for {}",
+                profile.target()
             ))?;
             return Ok(7);
         }
@@ -266,7 +280,9 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         return Err("--toolchain is unavailable for hosted builds".into());
     }
     if command == "emit-boot" {
-        diagnostic("unsupported_boot_operation: emit-boot requires rv64-virt-sbi-v1 source")?;
+        diagnostic(
+            "unsupported_boot_operation: emit-boot requires rv64-virt-sbi-v1 or rv64-virt-sbi-v2 source",
+        )?;
         return Ok(7);
     }
     if command == "check" {
@@ -377,14 +393,15 @@ fn parse_target(value: &OsString) -> Result<anl::TargetSelection, CliError> {
     match value.to_str() {
         Some("hosted") => Ok(anl::TargetSelection::Hosted),
         Some("rv64-virt-sbi-v1") => Ok(anl::TargetSelection::Rv64VirtSbiV1),
-        _ => Err("target must be hosted or rv64-virt-sbi-v1".into()),
+        Some("rv64-virt-sbi-v2") => Ok(anl::TargetSelection::Rv64VirtSbiV2),
+        _ => Err("target must be hosted, rv64-virt-sbi-v1 or rv64-virt-sbi-v2".into()),
     }
 }
-fn boot_verification(json: bool) -> Result<u8, CliError> {
+fn boot_verification(json: bool, profile: anl::boot::Profile) -> Result<u8, CliError> {
     if json {
         output(serde_json::json!({
-            "schema":"anl-boot-verify-v1", "semantic_revision":"anl-boot-rv64-virt-v1",
-            "verification_revision":"anl-boot-unsupported-v1", "status":"unsupported",
+            "schema":profile.verification_schema(), "semantic_revision":profile.semantic_revision(),
+            "verification_revision":profile.verification_revision(), "status":"unsupported",
             "reason":"unsupported_boot_operation", "trust":"not_established",
             "scope":{"functions":"all_loaded", "arithmetic_safety":false, "partial_correctness":false,
                 "termination_proved":false, "native_correctness":false, "hardware_correctness":false,
@@ -394,9 +411,10 @@ fn boot_verification(json: bool) -> Result<u8, CliError> {
             "message":"Contract verification is not implemented for the boot profile; static checking does not establish hardware or native correctness."
         }))?;
     } else {
-        output(
-            "unsupported_boot_operation: contract verification is not implemented for rv64-virt-sbi-v1; trust=not_established",
-        )?;
+        output(format_args!(
+            "unsupported_boot_operation: contract verification is not implemented for {}; trust=not_established",
+            profile.target()
+        ))?;
     }
     Ok(7)
 }
@@ -444,7 +462,7 @@ fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
         }
     }
     let report = match anl::compile_target_file(Path::new(path), target) {
-        Ok(anl::CheckedSource::Boot(_)) => return boot_verification(json),
+        Ok(anl::CheckedSource::Boot(program)) => return boot_verification(json, program.profile()),
         Ok(anl::CheckedSource::Hosted(program)) => match program.verify(&options) {
             Ok(report) => report,
             Err(error) => {

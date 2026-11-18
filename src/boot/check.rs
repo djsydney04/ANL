@@ -135,6 +135,7 @@ fn rest<'a>(
 }
 
 pub(super) fn finish(
+    profile: super::Profile,
     functions: Vec<Function>,
     effects: Vec<Vec<u64>>,
     primitives: Vec<Primitive>,
@@ -171,7 +172,7 @@ pub(super) fn finish(
         if p.id != count + i
             || p.name != format!("__hw_{}", p.id)
             || !syntax::identifier(&p.name)
-            || !p.operation.valid(entries[1])
+            || !p.operation.valid(profile, entries[1])
             || p.params != p.operation.params()
             || p.result != p.operation.result()
             || p.effects != p.operation.effects()
@@ -226,7 +227,7 @@ pub(super) fn finish(
                     .checked_sub(count)
                     .and_then(|i| primitives.get(i))
                     .ok_or_else(|| error("unknown boot call target"))?;
-                if p.effects != [1] {
+                if !p.operation.rest_allowed(profile) {
                     return Err(error("machine operations are confined to the boot prefix"));
                 }
                 &p.effects
@@ -290,6 +291,7 @@ pub(super) fn finish(
         tail(&functions[entries[2]].body).expect("checked handler"),
     ];
     Ok(CheckedProgram {
+        profile,
         functions,
         effects,
         primitives,

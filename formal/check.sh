@@ -13,7 +13,7 @@ for path in [*Path('.').glob('*.lean'), *Path('APL').rglob('*.lean'), *Path('ANL
         raise SystemExit(f'partial ANL declaration in {path}')
 anl = {str(p.with_suffix('')).replace('/', '.') for p in Path('ANL').rglob('*.lean') if p != Path('ANL/Audit.lean')}
 modules = [line.strip() for line in Path('anl-kernel-modules.txt').read_text().splitlines() if line.strip() and not line.startswith('#')]
-expected = anl | {'MemoryPairMain', 'MemoryRawProbe', 'MemoryReferenceMain', 'WordsPairMain', 'WordsRawProbe', 'WordsReferenceMain', 'BootRawProbe'}
+expected = anl | {'MemoryPairMain', 'MemoryRawProbe', 'MemoryReferenceMain', 'WordsPairMain', 'WordsRawProbe', 'WordsReferenceMain', 'BootRawProbe', 'BootV2RawProbe'}
 if len(modules) != len(set(modules)) or set(modules) != expected:
     raise SystemExit('ANL kernel inventory must cover every model and command module exactly once')
 umbrella_text = Path('ANL.lean').read_text()

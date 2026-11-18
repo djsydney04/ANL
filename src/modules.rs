@@ -191,20 +191,32 @@ impl Loader {
         self.active.push(id);
         let file = syntax::parse(&self.sources[id].text, id)?;
         if id == 0 {
-            match (self.target, file.platform.is_some()) {
-                (Some(crate::TargetSelection::Hosted), true) => {
+            match (self.target, file.platform.as_ref().map(|p| p.profile)) {
+                (Some(crate::TargetSelection::Hosted), Some(_)) => {
                     return Err(crate::TargetCompileError::Conflict(
                         "hosted target conflicts with boot platform".into(),
                     ));
                 }
-                (Some(crate::TargetSelection::Rv64VirtSbiV1), false) => {
+                (
+                    Some(
+                        crate::TargetSelection::Rv64VirtSbiV1
+                        | crate::TargetSelection::Rv64VirtSbiV2,
+                    ),
+                    None,
+                ) => {
                     return Err(Diagnostic::new(
                         Span::default(),
                         "boot target requires a platform declaration",
                     )
                     .into());
                 }
-                (Some(_), true) => {
+                (Some(crate::TargetSelection::Rv64VirtSbiV1), Some(crate::boot::Profile::V2))
+                | (Some(crate::TargetSelection::Rv64VirtSbiV2), Some(crate::boot::Profile::V1)) => {
+                    return Err(crate::TargetCompileError::Conflict(
+                        "selected boot target conflicts with source platform".into(),
+                    ));
+                }
+                (Some(_), Some(_)) => {
                     if let Some(module) = file.modules.first() {
                         return Err(Diagnostic::new(
                             module.span,

@@ -1,5 +1,5 @@
 mod setup;
-use super::{BlockChild, CheckedPair, CoreEdge, Origin, templates};
+use super::{BlockChild, CheckedPair, CoreEdge, Operation, Origin, Profile, templates};
 use crate::{
     bounded::{Buffer, OutputError},
     codegen,
@@ -183,6 +183,22 @@ fn signature(
 
 /// Emit freestanding source artifacts from a checked canonical pair, without invoking a target tool.
 pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
+    let mut illegal_rows = pair
+        .program
+        .primitives
+        .iter()
+        .filter(|p| matches!(p.operation, Operation::IllegalInstruction { .. }));
+    let illegal = illegal_rows.next();
+    if illegal_rows.next().is_some()
+        || illegal.is_some_and(|p| {
+            pair.program.profile != Profile::V2
+                || !matches!(p.operation, Operation::IllegalInstruction { authority: 0 })
+        })
+    {
+        return Err(invariant(
+            "invalid illegal primitive implementation inventory",
+        ));
+    }
     let core = super::export_pair_core(pair)?;
     let mir = super::export_mir(pair)?;
     let selected_parks: Vec<_> = (0..pair.functions.len())
@@ -200,7 +216,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let mut instruction_ranges = BTreeMap::new();
     let mut helper_count = 0;
     let result = (|| {
-        c.write_str(templates::HEADER)?;
+        templates::header(pair.program.profile, &mut c)?;
         codegen::emit_shapes(&pair.functions, &mut c)?;
         helper_count = codegen::emit_boot_helpers(&pair.functions, &mut c)?;
         for (id, function) in pair.functions.iter().enumerate() {
@@ -209,7 +225,11 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
         }
         for primitive in &pair.program.primitives {
             let start = c.len();
-            templates::primitive(primitive, &mut c)?;
+            if matches!(primitive.operation, Operation::IllegalInstruction { .. }) {
+                templates::illegal_declaration(primitive.id, &mut c)?;
+            } else {
+                templates::primitive(primitive, &mut c)?;
+            }
             primitive_ranges.push(start..c.len());
         }
         for (id, function) in pair.functions.iter().enumerate() {
@@ -242,12 +262,18 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
         "boot assembly output exceeds 1048576 bytes",
     );
     let mut abi_ranges = Vec::new();
+    let mut illegal_range = None;
     let result = (|| {
         assembly.write_str(templates::ASSEMBLY_HEADER)?;
         for (role, function) in pair.program.entries.iter().enumerate() {
             let start = assembly.len();
             templates::entry(role, *function, &mut assembly)?;
             abi_ranges.push(start..assembly.len());
+        }
+        if let Some(primitive) = illegal {
+            let start = assembly.len();
+            templates::illegal_slot(primitive.id, &mut assembly)?;
+            illegal_range = Some((primitive.id, start..assembly.len()));
         }
         assembly.write_str(templates::ASSEMBLY_FOOTER)
     })();
@@ -267,9 +293,21 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let functions: Vec<_> = pair.program.functions.iter().enumerate().map(|(id,f)| Ok(json!({
         "id":id,"name":f.name,"symbol":format!("anl_boot_f{id}"),"source_span":source_span(pair,f.span)?,"c_range":byte_range(function_ranges[id].clone(),&c)?,
     }))).collect::<Result<_,OutputError>>()?;
-    let primitives: Vec<_> = pair.program.primitives.iter().zip(primitive_ranges).map(|(p,range)| Ok(json!({
-        "id":p.id,"operation":super::wire::operation_value(&p.operation),"symbol":format!("anl_boot_f{}",p.id),"artifact":"c","range":byte_range(range,&c)?,
-    }))).collect::<Result<_,OutputError>>()?;
+    let primitives: Vec<_> = pair.program.primitives.iter().zip(primitive_ranges).map(|(p,range)| {
+        let (artifact, range, text) = if matches!(p.operation, Operation::IllegalInstruction { .. }) {
+            let (id, range) = illegal_range.take().ok_or_else(|| invariant("missing illegal primitive implementation range"))?;
+            if id != p.id {
+                return Err(invariant("illegal primitive implementation ID differs"));
+            }
+            ("assembly", range, &assembly)
+        } else {
+            ("c", range, &c)
+        };
+        Ok(json!({"id":p.id,"operation":super::wire::operation_value(&p.operation),"symbol":format!("anl_boot_f{}",p.id),"artifact":artifact,"range":byte_range(range,text)?}))
+    }).collect::<Result<_,OutputError>>()?;
+    if illegal_range.is_some() {
+        return Err(invariant("extra illegal primitive implementation range"));
+    }
     let mut origins = Vec::new();
     for origin in pair.origins() {
         let instruction =
@@ -307,7 +345,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     } else {
         json!({"kind":"canonical_core","bytes":core.len(),"sha256":format!("{:x}",Sha256::digest(core.as_bytes()))})
     };
-    let manifest = json!({"schema":"anl-boot-bundle-v1","semantic_revision":super::SEMANTIC_REVISION,"ordinary_semantic_revision":"anl-words-v1","target":super::TARGET,
+    let manifest = json!({"schema":pair.program.profile.bundle_schema(),"semantic_revision":pair.program.profile.semantic_revision(),"ordinary_semantic_revision":"anl-words-v1","target":pair.program.profile.target(),
         "input":input,"artifacts":{"core":identity("core.json",&core),"mir":identity("mir.json",&mir),"c":identity("program.c",&c),"assembly":identity("entry.S",&assembly),"linker":identity("link.ld",&linker)},
         "functions":functions,"primitives":primitives,"origins":origins,"parks":parks,"abi":abi});
     let mut out = Buffer::new(

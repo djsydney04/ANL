@@ -1643,3 +1643,57 @@ peak reachability. Concrete instruction semantics, decoder/control-flow analysis
 compiler lowering, source-to-ELF refinement, root-thunk validation and hardware
 entry remain separate obligations. These modules grant no positive native-image
 admission and do not establish an ANL-authored operating system.
+
+## Boot v2 static model and Core reader
+
+The separate `ANL.Boot.V2.Program` preserves raw metadata, declaration signatures,
+ordinary bodies, and effects before checking. `Operation.legacy` retains the V1
+operation family. `Operation.illegalInstruction` preserves its supplied natural
+authority, which static policy requires to be zero. This is a distinct V2 model,
+not a V1 program carrying an extra operation through a hosted entry.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootV2CheckProofs](ANL/BootV2CheckProofs.lean), `checkProgram_iff` | The actual Boolean checker agrees with independent V2 well-formedness, including metadata, all-body ordinary typing, prefix and role policy, canonical primitive discovery, and acyclicity. |
+| [BootV2GraphProofs](ANL/BootV2GraphProofs.lean), `checkGraph_cycleFree_iff` | The complete defined-call graph has no positive-length cycle, including unused definitions and dead branches. |
+| [BootV2Authority](ANL/BootV2Authority.lean), `WellFormedProgram.illegal_call_only_boot`, `PrimitiveValid.illegal_signature` | Every syntactic illegal call belongs to the boot entry; its primitive has the exact empty-parameter, unit-result, machine-effect signature and zero authority. |
+| [BootV2Carrier](ANL/BootV2Carrier.lean), `carrier_wellFormed`, and [BootV2TailBridge](ANL/BootV2TailBridge.lean) | The shared Words signature adapter is well typed. The designated-tail bridge excludes a returned value at the original ordinary-machine continuation. Its dummy bodies are proof devices, not an exception implementation. |
+| [BootV2FaultProofs](ANL/BootV2FaultProofs.lean), `checkInput_iff`, `SiteValid.byte_bound`, `TransferValid.fixed_payload`, and `forwardedStatus_*` | Independent local predicates cover input presence, uint64 slot bounds and alignment, fixed payload fields, and the bounded status-bit calculation. They define no transition system or firmware behavior. |
+| [BootV2WireSafety](ANL/BootV2WireSafety.lean), `checkCoreDocument_iff` | Checked decoding succeeds exactly when raw decoding returns the same V2 program and its independent well-formedness judgment holds. |
+| [BootV2WireAdmission](ANL/BootV2WireAdmission.lean), `checkAdmission_iff`, `checkProbeDocument_iff`, `admission_precedes_static` | The separate structural admission predicate agrees with its Boolean check, composes with static checked decoding, and takes precedence over static rejection. |
+
+The exact checked-reader statements are:
+
+```text
+Wire.checkCoreDocument text = .ok p
+  ↔ Wire.readCore text = .ok p ∧ WellFormedProgram p
+
+Wire.Admission.checkProbeDocument text = .ok p
+  ↔ Wire.checkCoreDocument text = .ok p ∧ Wire.Admission.Admissible p
+```
+
+The reader constructs V2 directly and reuses the strict metadata, natural,
+ordinary-term, and JSON readers. It does not replace malformed metadata or
+nonzero authority with expected values. Admission reuses the existing whole-tree
+node and call-arity counters, with 128 declarations, 8,192 raw nodes, and
+64 defined parameters or call arguments. These are probe resource bounds,
+not semantic restrictions or a theorem about host memory and elapsed time.
+
+The fault input and event vocabulary in [BootV2FaultAPI](ANL/BootV2FaultAPI.lean)
+keeps an abstract pending request distinct from a supplied forwarding response.
+Its local predicates do not establish that execution reaches a request, that a
+response arrives, that a handler runs, or that the interrupted continuation
+cannot resume. No V2 progress, fault-transition, or liveness theorem follows from
+these definitions. The V1 runtime, session, and output theorems above do not
+extend automatically to this V2 operation.
+
+The module inventory, all-declaration audit, exact generated-wrapper allowlist,
+and separate-module kernel replay cover this addition. The allowed logical
+axioms remain `propext`, `Classical.choice`, and `Quot.sound`.
+
+Decoded acceptance does not certify JSON text against an independent parser
+specification or prove compiler refinement. Actual compiler-export checks cover
+only their retained artifacts and common admission domain. Boot MIR and origin
+correspondence, linked instruction identity, native execution, firmware
+forwarding, hardware delivery, and the complete ANL-authored OS remain outside
+this static and wire gateway.

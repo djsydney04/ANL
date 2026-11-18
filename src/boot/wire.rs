@@ -1,4 +1,4 @@
-use super::{CheckedProgram, Operation, Primitive, check};
+use super::{CheckedProgram, Operation, Primitive, Profile, check};
 use crate::{
     MAX_SOURCE_BYTES,
     bounded::{Buffer, OutputError},
@@ -35,11 +35,11 @@ fn index(v: &Value, bound: usize) -> Result<usize, ImportError> {
 fn effects(v: &Value) -> Result<Vec<u64>, ImportError> {
     array(v)?.iter().map(natural).collect()
 }
-pub(super) fn metadata(entries: [usize; 3]) -> Value {
+pub(super) fn metadata(profile: Profile, entries: [usize; 3]) -> Value {
     json!({
-        "schema": super::SCHEMA, "semantic_revision": super::SEMANTIC_REVISION,
+        "schema": profile.core_schema(), "semantic_revision": profile.semantic_revision(),
         "ordinary_semantic_revision": "anl-words-v1",
-        "target_profile": {"id": super::TARGET, "generated_isa": "rv64im_zicsr", "abi": "lp64", "endianness": "little", "privilege": "s", "translation": "bare", "harts": 1, "ram_base": "2147483648", "ram_bytes": 134217728},
+        "target_profile": {"id": profile.target(), "generated_isa": "rv64im_zicsr", "abi": "lp64", "endianness": "little", "privilege": "s", "translation": "bare", "harts": 1, "ram_base": "2147483648", "ram_bytes": 134217728},
         "image": {"base": "2149580800", "limit": 1048576},
         "stacks": [{"id": 0, "name": "boot_stack", "bytes": 16384, "alignment": 16}, {"id": 1, "name": "terminal_stack", "bytes": 4096, "alignment": 16}],
         "devices": [{"id": 0, "name": "uart0", "authority": 1, "base": "268435456", "size": 256, "read8": [5], "write8": [0,1,2,3,4]}],
@@ -48,6 +48,9 @@ pub(super) fn metadata(entries: [usize; 3]) -> Value {
 }
 pub(super) fn operation_value(op: &Operation) -> Value {
     match op {
+        Operation::IllegalInstruction { authority } => {
+            json!({"tag":"illegal_instruction", "authority":authority})
+        }
         Operation::Read8 { region, offset } => {
             json!({"tag":"mmio_read8", "region":region, "offset":offset})
         }
@@ -74,12 +77,18 @@ pub(super) fn operation_value(op: &Operation) -> Value {
         }
     }
 }
-fn operation(v: &Value) -> Result<Operation, ImportError> {
+fn operation(v: &Value, profile: Profile) -> Result<Operation, ImportError> {
     let tag = string(
         v.get("tag")
             .ok_or_else(|| invalid("missing operation tag"))?,
     )?;
     Ok(match tag {
+        "illegal_instruction" if profile == Profile::V2 => {
+            let o = object(v, &["tag", "authority"])?;
+            Operation::IllegalInstruction {
+                authority: natural(&o["authority"])?,
+            }
+        }
         "mmio_read8" | "mmio_write8" => {
             let o = object(v, &["tag", "region", "offset"])?;
             let region = natural(&o["region"])?;
@@ -163,6 +172,13 @@ pub(super) fn numeric_tokens(text: &str) -> Result<(), ImportError> {
 
 /// Read the complete strict boot Core document and independently check all bodies.
 pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
+    import_revision(text, Profile::V1)
+}
+/// Read the v2 envelope; the v1 entry point remains closed to this revision.
+pub fn import_core_v2(text: &str) -> Result<CheckedProgram, ImportError> {
+    import_revision(text, Profile::V2)
+}
+fn import_revision(text: &str, profile: Profile) -> Result<CheckedProgram, ImportError> {
     if text.len() > MAX_SOURCE_BYTES {
         return Err(ImportError::ResourceLimit(
             "JSON exceeds 1048576 bytes".into(),
@@ -198,7 +214,7 @@ pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
         let row = object(&entry_rows[key], &["function", "stack"])?;
         entries[i] = index(&row["function"], rows.len())?;
     }
-    let expected = metadata(entries);
+    let expected = metadata(profile, entries);
     for (key, value) in expected.as_object().expect("metadata object") {
         if &root[key] != value {
             return Err(invalid(format!("invalid boot {key}")));
@@ -268,7 +284,7 @@ pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
             primitives.push(Primitive {
                 id,
                 name,
-                operation: operation(&row["operation"])?,
+                operation: operation(&row["operation"], profile)?,
                 params: params.clone(),
                 result: *result,
                 effects,
@@ -276,6 +292,7 @@ pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
         }
     }
     check::finish(
+        profile,
         functions,
         declared_effects,
         primitives,
@@ -288,7 +305,7 @@ pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
 
 /// Materialize the entire bounded document, including its final newline, before publication.
 pub fn export_core(program: &CheckedProgram) -> Result<String, OutputError> {
-    let mut value = metadata(program.entries);
+    let mut value = metadata(program.profile, program.entries);
     let mut rows = Vec::new();
     for (id, f) in program.functions.iter().enumerate() {
         rows.push(json!({"kind":"defined", "id":id, "name":f.name, "view":null, "params":f.params, "result":f.result, "effects":program.effects[id], "body":f.body}));

@@ -269,6 +269,7 @@ pub struct Module {
 }
 #[derive(Debug)]
 pub struct Platform {
+    pub profile: crate::boot::Profile,
     pub span: Span,
     pub entries: [String; 3],
 }
@@ -702,19 +703,34 @@ impl Parser {
         }
         Ok(value)
     }
-    fn fixed_number(&mut self, expected: u64, word: bool) -> Result<(), Diagnostic> {
+    fn fixed_number(
+        &mut self,
+        expected: u64,
+        word: bool,
+        profile: crate::boot::Profile,
+    ) -> Result<(), Diagnostic> {
         let span = self.current().span;
         if self.static_number(word)? != expected {
             return Err(Diagnostic::new(
                 span,
-                "value does not match rv64-virt-sbi-v1 profile",
+                format!("value does not match {} profile", profile.target()),
             ));
         }
         Ok(())
     }
     fn platform(&mut self) -> Result<Platform, Diagnostic> {
         let start = self.bump().span;
-        self.keyword("rv64_virt_sbi_v1")?;
+        let (name, span) = self.name()?;
+        let profile = match name.as_str() {
+            "rv64_virt_sbi_v1" => crate::boot::Profile::V1,
+            "rv64_virt_sbi_v2" => crate::boot::Profile::V2,
+            _ => {
+                return Err(Diagnostic::new(
+                    span,
+                    "expected rv64_virt_sbi_v1 or rv64_virt_sbi_v2",
+                ));
+            }
+        };
         self.expect(TokenKind::LBrace, "{")?;
         let mut seen = std::collections::HashSet::new();
         let mut entries = [String::new(), String::new(), String::new()];
@@ -722,11 +738,11 @@ impl Parser {
             let (kind, span) = self.name()?;
             let key = match kind.as_str() {
                 "image_base" => {
-                    self.fixed_number(2149580800, true)?;
+                    self.fixed_number(2149580800, true, profile)?;
                     kind
                 }
                 "image_limit" => {
-                    self.fixed_number(1048576, false)?;
+                    self.fixed_number(1048576, false, profile)?;
                     kind
                 }
                 "stack" => {
@@ -737,18 +753,18 @@ impl Parser {
                         _ => return Err(Diagnostic::new(ns, "unknown boot stack")),
                     };
                     self.expect(TokenKind::LBracket, "[")?;
-                    self.fixed_number(size, false)?;
+                    self.fixed_number(size, false, profile)?;
                     self.expect(TokenKind::RBracket, "]")?;
                     self.keyword("align")?;
-                    self.fixed_number(16, false)?;
+                    self.fixed_number(16, false, profile)?;
                     format!("stack:{name}")
                 }
                 "device" => {
                     self.keyword("uart0")?;
                     self.keyword("at")?;
-                    self.fixed_number(268435456, true)?;
+                    self.fixed_number(268435456, true, profile)?;
                     self.keyword("size")?;
-                    self.fixed_number(256, false)?;
+                    self.fixed_number(256, false, profile)?;
                     self.expect(TokenKind::LBrace, "{")?;
                     let mut permissions = std::collections::HashSet::new();
                     while !self.at(&TokenKind::RBrace) {
@@ -757,13 +773,13 @@ impl Parser {
                             return Err(Diagnostic::new(ps, "duplicate device permission"));
                         }
                         match permission.as_str() {
-                            "read8" => self.fixed_number(5, false)?,
+                            "read8" => self.fixed_number(5, false, profile)?,
                             "write8" => {
                                 for n in 0..5 {
                                     if n != 0 {
                                         self.expect(TokenKind::Comma, ",")?;
                                     }
-                                    self.fixed_number(n, false)?;
+                                    self.fixed_number(n, false, profile)?;
                                 }
                             }
                             _ => return Err(Diagnostic::new(ps, "unknown device permission")),
@@ -811,6 +827,7 @@ impl Parser {
             ));
         }
         Ok(Platform {
+            profile,
             span: start.join(end),
             entries,
         })

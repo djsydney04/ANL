@@ -1,5 +1,5 @@
 //! Immutable emitter identity for the narrow setup analysis profile.
-use super::super::{CheckedPair, Operation};
+use super::super::{CheckedPair, Operation, Profile};
 use crate::{bounded::OutputError, types::Type};
 use std::{fmt, ops::Range};
 
@@ -22,6 +22,7 @@ pub enum SetupOperation {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SetupProfileUnsupported {
+    Revision { profile: Profile },
     AdditionalDefinition { function: usize },
     GeneratedHelpers { count: usize },
     NonSetupPrimitive { primitive: usize },
@@ -29,6 +30,9 @@ pub enum SetupProfileUnsupported {
 impl fmt::Display for SetupProfileUnsupported {
     fn fmt(&self, out: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Revision { profile } => {
+                write!(out, "setup analysis does not support {}", profile.target())
+            }
             Self::AdditionalDefinition { function } => write!(
                 out,
                 "setup analysis does not support ordinary definition {function}"
@@ -233,6 +237,11 @@ pub(super) fn build(
     c: &str,
     assembly: &str,
 ) -> Result<Result<SetupIdentity, SetupProfileUnsupported>, OutputError> {
+    if pair.program.profile != Profile::V1 {
+        return Ok(Err(SetupProfileUnsupported::Revision {
+            profile: pair.program.profile,
+        }));
+    }
     for id in 0..pair.program.functions.len() {
         if !pair.program.entries.contains(&id) {
             return Ok(Err(SetupProfileUnsupported::AdditionalDefinition {

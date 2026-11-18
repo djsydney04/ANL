@@ -8,6 +8,9 @@ unavailable. See the
 [boot chapter](../docs/book/boot-profile.md) for a complete source example and CLI
 outcomes.
 
+The separate [v2 extension](boot-profile-v2.md) adds an explicit illegal-instruction
+operation. This document defines the unchanged v1 profile and its shared base.
+
 ## Source profile
 
 Exactly one `platform rv64_virt_sbi_v1 { ... }` block is the first root item.

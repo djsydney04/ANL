@@ -166,6 +166,49 @@ exit 1, resource limits 3, and invocation, infrastructure or output failures 4.
 contracts and no arithmetic-safety, partial-correctness, termination, native or
 hardware proof. Static acceptance is not a user-contract verification result.
 
+## Express an explicit hardware exception
+
+The separate `rv64-virt-sbi-v2` profile adds `hw::illegal_instruction(machine)`.
+The [complete example](../../examples/boot/illegal-instruction.anl) selects
+`platform rv64_virt_sbi_v2` and calls it after the three mandatory setup steps:
+
+```anl
+hw::csr_clear(machine, sstatus, 2u64);
+hw::csr_write(machine, sie, 0u64);
+hw::install_trap(machine, hardware_fault);
+hw::illegal_instruction(machine);
+while (true) {}
+```
+
+Check and emit it from the repository root:
+
+```sh
+./target/release/anl check examples/boot/illegal-instruction.anl
+./target/release/anl dump-core examples/boot/illegal-instruction.anl > /tmp/anl-boot-v2-core.json
+./target/release/anl emit-boot examples/boot/illegal-instruction.anl --out /tmp/anl-boot-v2-bundle
+```
+
+Choose an absent bundle destination. The Core and MIR schemas are
+`anl-boot-core-v2` and `anl-boot-mir-v2`; the bundle schema is `anl-boot-bundle-v2`.
+Explicit target selection uses `--target rv64-virt-sbi-v2`. V1 readers reject
+these documents even when they contain only old operations. The independent
+[formal Core reader](../../formal/README.md#boot-v2-core-static-checking) is a
+separate command with its own resource bounds.
+
+Only the boot entry may call this operation. Helpers and handlers cannot obtain
+machine authority, including in dead code. The compiler emits one shared aligned
+four-byte zero slot and keeps each authored call's origin. On a CPU with
+compressed-instruction support, the first zero halfword is an illegal instruction;
+the storage size does not establish a resumable PC four bytes later.
+
+The intended forwarding contract enters the authored hardware handler with cause
+2, the fault PC and trap value 0 on the terminal stack. This depends on the
+platform and firmware. Static checking and source emission do not execute the
+fault or prove forwarding. Build, run and contract verification remain
+unsupported, and the ordinary `unit` result type does not promise a return.
+The [v2 specification](../../spec/boot-profile-v2.md) defines the operation and
+its current safety boundaries.
+
 ## What remains
 
 The selected bring-up boundary uses external OpenSBI firmware. ANL-authored boot

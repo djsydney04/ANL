@@ -1,4 +1,4 @@
-use super::{CheckedProgram, Operation, Primitive, check};
+use super::{CheckedProgram, Operation, Primitive, Profile, check};
 use crate::{
     diagnostic::{Diagnostic, Sources, Span},
     resolve,
@@ -45,6 +45,7 @@ fn word(e: &Expr) -> Option<u64> {
 }
 fn discover(
     e: &mut Expr,
+    profile: Profile,
     count: usize,
     hardware_name: &str,
     hardware_id: usize,
@@ -63,6 +64,11 @@ fn discover(
         }
         if call.starts_with("hw::") {
             let op = match (call.as_str(), args.as_slice()) {
+                ("hw::illegal_instruction", [authority])
+                    if profile == Profile::V2 && name(authority, "machine") =>
+                {
+                    Some(Operation::IllegalInstruction { authority: 0 })
+                }
                 ("hw::read8", [device, offset]) if name(device, "uart0") => natural(offset)
                     .filter(|&n| n == 5)
                     .map(|offset| Operation::Read8 { region: 0, offset }),
@@ -139,18 +145,30 @@ fn discover(
         }
         ExprKind::Call { arguments, .. } | ExprKind::Tuple(arguments) => {
             for a in arguments {
-                discover(a, count, hardware_name, hardware_id, primitives)?;
+                discover(a, profile, count, hardware_name, hardware_id, primitives)?;
             }
         }
         ExprKind::Convert { operand, .. }
         | ExprKind::Unary { operand, .. }
         | ExprKind::Group(operand)
-        | ExprKind::Project { value: operand, .. } => {
-            discover(operand, count, hardware_name, hardware_id, primitives)?
-        }
+        | ExprKind::Project { value: operand, .. } => discover(
+            operand,
+            profile,
+            count,
+            hardware_name,
+            hardware_id,
+            primitives,
+        )?,
         ExprKind::Binary { left, right, .. } => {
-            discover(left, count, hardware_name, hardware_id, primitives)?;
-            discover(right, count, hardware_name, hardware_id, primitives)?;
+            discover(left, profile, count, hardware_name, hardware_id, primitives)?;
+            discover(
+                right,
+                profile,
+                count,
+                hardware_name,
+                hardware_id,
+                primitives,
+            )?;
         }
         ExprKind::If {
             condition,
@@ -158,7 +176,7 @@ fn discover(
             else_branch,
         } => {
             for a in [condition, then_branch, else_branch] {
-                discover(a, count, hardware_name, hardware_id, primitives)?;
+                discover(a, profile, count, hardware_name, hardware_id, primitives)?;
             }
         }
         ExprKind::Block { statements, tail } => {
@@ -168,21 +186,47 @@ fn discover(
                         name, span, value, ..
                     } => {
                         reserved(name, *span)?;
-                        discover(value, count, hardware_name, hardware_id, primitives)?;
+                        discover(
+                            value,
+                            profile,
+                            count,
+                            hardware_name,
+                            hardware_id,
+                            primitives,
+                        )?;
                     }
-                    Statement::Assign { value, .. } | Statement::Discard(value) => {
-                        discover(value, count, hardware_name, hardware_id, primitives)?
-                    }
+                    Statement::Assign { value, .. } | Statement::Discard(value) => discover(
+                        value,
+                        profile,
+                        count,
+                        hardware_name,
+                        hardware_id,
+                        primitives,
+                    )?,
                     Statement::While {
                         condition, body, ..
                     } => {
-                        discover(condition, count, hardware_name, hardware_id, primitives)?;
-                        discover(body, count, hardware_name, hardware_id, primitives)?;
+                        discover(
+                            condition,
+                            profile,
+                            count,
+                            hardware_name,
+                            hardware_id,
+                            primitives,
+                        )?;
+                        discover(body, profile, count, hardware_name, hardware_id, primitives)?;
                     }
                 }
             }
             if let Some(value) = tail {
-                discover(value, count, hardware_name, hardware_id, primitives)?;
+                discover(
+                    value,
+                    profile,
+                    count,
+                    hardware_name,
+                    hardware_id,
+                    primitives,
+                )?;
             }
         }
         _ => {}
@@ -246,6 +290,7 @@ pub(crate) fn check_source(
         effects.push(set);
         discover(
             &mut f.body,
+            platform.profile,
             count,
             &platform.entries[1],
             entries[1],
@@ -274,6 +319,7 @@ pub(crate) fn check_source(
         signatures,
     )?;
     check::finish(
+        platform.profile,
         checked.functions,
         effects,
         primitives,
