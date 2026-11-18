@@ -313,3 +313,6 @@ ANL.BootV2RuntimeMachineSafety
 ANL.BootV2RuntimeInterceptionSafety
 ANL.BootV2RuntimeLocalPreservation
 ANL.BootNativeFrameCut
+ANL.BootV3Check
+ANL.BootV3CheckProofs
+ANL.BootV3Wire

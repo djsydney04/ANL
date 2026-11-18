@@ -1755,3 +1755,43 @@ CLI execution mode. Boot MIR/origin refinement, Rust or native correspondence,
 firmware behavior and complete OS implementation remain separate obligations.
 The existing all-owned declaration audit and exact constructor-wrapper checks
 apply to these modules, with the same three allowed logical axioms.
+
+## Boot v3 static handler policy and reader
+
+`ANL.Boot.V3` reuses `V2.Program`, `Defined` and `Declaration` as raw record types.
+Its independent predicates and Boolean checks require the closed
+`anl-boot-core-v3` / `anl-boot-rv64-virt-v3` / `rv64-virt-sbi-v3` metadata.
+The hardware role may have empty effects or `[1]` (UART) and must contain a
+sequencing-selected terminal loop. The language role retains empty effects and
+the exact handler body. The boot setup, ordinary Words typing, no-memory policy,
+role-call exclusion, primitive validity/discovery and acyclic graph checks are
+shared with V2 without assuming V2 well-formedness for a V3 program.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootV3Check](ANL/BootV3Check.lean) and [BootV3CheckProofs](ANL/BootV3CheckProofs.lean), `checkMetadata_iff`, `checkDefined_iff`, `checkDeclaration_iff`, `checkRoles_iff`, `checkProgram_iff` | Each actual Boolean check agrees with its independent static predicate. Whole-program well-formedness covers every declaration and syntactic branch, the boot and hardware terminal occurrences, exact language body, authority, canonical primitive discovery and acyclicity. |
+| `WellFormedProgram.at`, `WellFormedProgram.memoryFree` | A declaration found in a well-formed program satisfies its declaration predicate; every found defined body is memory-free. |
+| `MetadataValid.excludes_older_schema`, `WellFormedProgram.not_v2`, `checked_not_v2` | V3 metadata excludes the V1/V2 Core schema strings. V3 well-formedness excludes V2 well-formedness, and V3 checker acceptance implies V2 checker rejection. |
+| [BootV3Wire](ANL/BootV3Wire.lean), `checkCoreDocument_iff`, `checked_wellFormed`, `checked_not_v2` | The checked reader accepts exactly a successful raw decoding satisfying V3 well-formedness. Acceptance implies V3 well-formedness and excludes acceptance of the same text by the V2 checked reader. |
+
+The exact checked-reader statement is:
+
+```text
+ANL.Boot.V3.Wire.checkCoreDocument text = .ok p
+  ↔ ANL.Boot.V3.Wire.readCore text = .ok p
+    ∧ ANL.Boot.V3.WellFormedProgram p
+```
+
+The raw decoder is the existing V2 record decoder, which retains the supplied
+metadata and ordinary body syntax. The V3 check supplies the distinct policy;
+there is no conversion to a V2-well-formed program. Flat tuples remain part of
+the ordinary Words type system. A selected terminal occurrence is structural
+and does not prove that preceding computation reaches it.
+
+These are static model theorems. They establish no V3 runtime transition or
+local-coherence invariant, typed hardware entry, device completion, firmware
+forwarding, nonreturning native execution or source-to-native refinement. The
+V2 runtime theorems above retain their V2 premises. The Rust checker/readers,
+JSON parser and IO, canonical MIR lowering and generated C/assembly remain
+separate implementation boundaries. Existing native identity APIs explicitly
+refuse V3 and receive no broader coverage from these results.

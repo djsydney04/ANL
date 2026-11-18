@@ -711,3 +711,44 @@ supplied frame prefix through a linked or nonlinking transfer to a slot and boun
 two independent terminal roots by their maximum. They assume the concrete-step
 and root contracts; they do not prove Rust analysis, instruction decoding,
 exception delivery or source-to-native correspondence.
+
+## Boot v3 static handler model
+
+The [v3 profile](../spec/boot-profile-v3.md) admits a hardware-handler prefix with
+empty effects or UART authority and a designated terminal loop. The language
+handler remains exactly its empty terminal loop. Ordinary types, including flat
+tuples, retain their existing boot rules; memory and views remain unavailable.
+Every definition and syntactic branch is checked, including unused helpers and
+dead code. Ordinary role calls and recursive helper graphs remain forbidden.
+
+The Lean interface is a library API. From `formal/`, `lake build ANL` builds the
+model umbrella. In a Lean module, import the checked reader and its theorems:
+
+```lean
+import ANL.BootV3Wire
+
+#check ANL.Boot.V3.checkProgram
+#check ANL.Boot.V3.checkProgram_iff
+#check ANL.Boot.V3.Wire.checkCoreDocument
+#check ANL.Boot.V3.Wire.checkCoreDocument_iff
+```
+
+`ANL.Boot.V3.Program` reuses the V2 raw record type. The V3 checker and independent
+`WellFormedProgram` predicate require the closed V3 metadata, the broader hardware
+role policy and all unchanged typing, setup, authority, discovery and acyclicity
+conditions. Reusing the record type does not make a V3 program V2-well-formed.
+The checked reader reuses the raw decoder, then applies the V3 checker. It returns
+`.ok p` exactly when that decoder returns `p` and the V3 predicate holds.
+
+There is no separate V3 command-line probe or runtime runner. The V1/V2 probes
+keep their existing revisions. The production Rust interfaces are
+`boot::import_core_v3` and `boot::import_pair_v3`; their implementation is not
+certified by the Lean reader theorem. All three existing native identity APIs
+reject V3 with their typed revision-unsupported result, including programs with
+no illegal operation.
+
+The [proof inventory](PROOFS.md#boot-v3-static-handler-policy-and-reader) states
+the exact static scope. These three modules add no V3 runtime transition,
+local-coherence, completion or native-execution theorem. JSON parsing, IO,
+source translation, canonical Core/MIR agreement and native/device behavior
+remain separate boundaries.

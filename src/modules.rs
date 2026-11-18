@@ -200,7 +200,8 @@ impl Loader {
                 (
                     Some(
                         crate::TargetSelection::Rv64VirtSbiV1
-                        | crate::TargetSelection::Rv64VirtSbiV2,
+                        | crate::TargetSelection::Rv64VirtSbiV2
+                        | crate::TargetSelection::Rv64VirtSbiV3,
                     ),
                     None,
                 ) => {
@@ -210,8 +211,18 @@ impl Loader {
                     )
                     .into());
                 }
-                (Some(crate::TargetSelection::Rv64VirtSbiV1), Some(crate::boot::Profile::V2))
-                | (Some(crate::TargetSelection::Rv64VirtSbiV2), Some(crate::boot::Profile::V1)) => {
+                (
+                    Some(crate::TargetSelection::Rv64VirtSbiV1),
+                    Some(crate::boot::Profile::V2 | crate::boot::Profile::V3),
+                )
+                | (
+                    Some(crate::TargetSelection::Rv64VirtSbiV2),
+                    Some(crate::boot::Profile::V1 | crate::boot::Profile::V3),
+                )
+                | (
+                    Some(crate::TargetSelection::Rv64VirtSbiV3),
+                    Some(crate::boot::Profile::V1 | crate::boot::Profile::V2),
+                ) => {
                     return Err(crate::TargetCompileError::Conflict(
                         "selected boot target conflicts with source platform".into(),
                     ));

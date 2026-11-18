@@ -313,7 +313,10 @@ run_elab do
     `ANL.BootV2RuntimeMachineSafety,
     `ANL.BootV2RuntimeInterceptionSafety,
     `ANL.BootV2RuntimeLocalPreservation,
-    `ANL.BootNativeFrameCut]
+    `ANL.BootNativeFrameCut,
+    `ANL.BootV3Check,
+    `ANL.BootV3CheckProofs,
+    `ANL.BootV3Wire]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,

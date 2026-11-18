@@ -83,7 +83,7 @@ fn operation(v: &Value, profile: Profile) -> Result<Operation, ImportError> {
             .ok_or_else(|| invalid("missing operation tag"))?,
     )?;
     Ok(match tag {
-        "illegal_instruction" if profile == Profile::V2 => {
+        "illegal_instruction" if profile.allows_illegal_instruction() => {
             let o = object(v, &["tag", "authority"])?;
             Operation::IllegalInstruction {
                 authority: natural(&o["authority"])?,
@@ -177,6 +177,10 @@ pub fn import_core(text: &str) -> Result<CheckedProgram, ImportError> {
 /// Read the v2 envelope; the v1 entry point remains closed to this revision.
 pub fn import_core_v2(text: &str) -> Result<CheckedProgram, ImportError> {
     import_revision(text, Profile::V2)
+}
+/// Read the v3 envelope; older entry points retain their exact role policies.
+pub fn import_core_v3(text: &str) -> Result<CheckedProgram, ImportError> {
+    import_revision(text, Profile::V3)
 }
 fn import_revision(text: &str, profile: Profile) -> Result<CheckedProgram, ImportError> {
     if text.len() > MAX_SOURCE_BYTES {

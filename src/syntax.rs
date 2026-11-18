@@ -724,10 +724,11 @@ impl Parser {
         let profile = match name.as_str() {
             "rv64_virt_sbi_v1" => crate::boot::Profile::V1,
             "rv64_virt_sbi_v2" => crate::boot::Profile::V2,
+            "rv64_virt_sbi_v3" => crate::boot::Profile::V3,
             _ => {
                 return Err(Diagnostic::new(
                     span,
-                    "expected rv64_virt_sbi_v1 or rv64_virt_sbi_v2",
+                    "expected rv64_virt_sbi_v1, rv64_virt_sbi_v2 or rv64_virt_sbi_v3",
                 ));
             }
         };

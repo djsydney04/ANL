@@ -18,6 +18,12 @@ Its [formal runtime model](formal/PROOFS.md#boot-v2-origins-transitions-and-loca
 now covers source origins, explicit fault transitions and preservation of local
 state coherence. These model results do not establish native execution or
 firmware forwarding.
+The [v3 boot profile](spec/boot-profile-v3.md) permits an ANL hardware handler
+with ordinary computation and optional UART effects before a designated terminal
+loop. It includes an [authored terminal diagnostic](examples/boot/terminal-hardware-handler.anl).
+Its separate [static model](formal/PROOFS.md#boot-v3-static-handler-policy-and-reader)
+proves checker/predicate agreement and checked Core reader acceptance. These
+results do not extend the V2 runtime theorems or establish native V3 execution.
 
 The current implementation checks, interprets, and compiles `i64`, unsigned words `u8`/`u16`/`u32`/`u64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,

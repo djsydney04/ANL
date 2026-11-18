@@ -65,7 +65,7 @@ fn discover(
         if call.starts_with("hw::") {
             let op = match (call.as_str(), args.as_slice()) {
                 ("hw::illegal_instruction", [authority])
-                    if profile == Profile::V2 && name(authority, "machine") =>
+                    if profile.allows_illegal_instruction() && name(authority, "machine") =>
                 {
                     Some(Operation::IllegalInstruction { authority: 0 })
                 }

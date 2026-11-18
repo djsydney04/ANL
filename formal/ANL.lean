@@ -304,3 +304,6 @@ import ANL.BootV2RuntimeMachineSafety
 import ANL.BootV2RuntimeInterceptionSafety
 import ANL.BootV2RuntimeLocalPreservation
 import ANL.BootNativeFrameCut
+import ANL.BootV3Check
+import ANL.BootV3CheckProofs
+import ANL.BootV3Wire

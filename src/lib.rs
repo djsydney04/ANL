@@ -63,6 +63,7 @@ pub enum TargetSelection {
     Hosted,
     Rv64VirtSbiV1,
     Rv64VirtSbiV2,
+    Rv64VirtSbiV3,
 }
 /// A hosted source graph retained with its checked specification metadata.
 /// Imported Core programs cannot construct this verification capability.

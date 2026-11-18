@@ -178,9 +178,10 @@ pub(super) fn build(
 ) -> Result<Identity, OutputError> {
     let profile = pair.program.profile;
     if profile != Profile::V2 {
-        if illegal_range.is_some() {
+        if profile == Profile::V1 && illegal_range.is_some() {
             return Err(invariant("legacy emission has an illegal slot range"));
         }
+        // V3 retains manifest ownership but has no qualified native identity view.
         return Ok(Identity {
             profile,
             illegal: None,

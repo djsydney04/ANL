@@ -207,7 +207,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let illegal = illegal_rows.next();
     if illegal_rows.next().is_some()
         || illegal.is_some_and(|p| {
-            pair.program.profile != Profile::V2
+            !pair.program.profile.allows_illegal_instruction()
                 || !matches!(p.operation, Operation::IllegalInstruction { authority: 0 })
         })
     {

@@ -346,6 +346,10 @@ pub fn import_pair(core_text: &str, mir_text: &str) -> Result<CheckedPair, PairE
 pub fn import_pair_v2(core_text: &str, mir_text: &str) -> Result<CheckedPair, PairError> {
     import_revision(core_text, mir_text, super::Profile::V2)
 }
+/// Admit only a v3 Core and its exact canonical v3 MIR.
+pub fn import_pair_v3(core_text: &str, mir_text: &str) -> Result<CheckedPair, PairError> {
+    import_revision(core_text, mir_text, super::Profile::V3)
+}
 fn import_revision(
     core_text: &str,
     mir_text: &str,
@@ -354,6 +358,7 @@ fn import_revision(
     let program = match profile {
         super::Profile::V1 => super::import_core(core_text)?,
         super::Profile::V2 => super::import_core_v2(core_text)?,
+        super::Profile::V3 => super::import_core_v3(core_text)?,
     };
     if mir_text.len() > MAX_MIR_BYTES {
         return Err(ImportError::ResourceLimit("boot MIR exceeds 8388608 bytes".into()).into());

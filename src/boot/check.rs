@@ -191,7 +191,18 @@ pub(super) fn finish(
             return Err(error("invalid boot role signature"));
         }
     }
-    if !handler(&functions[entries[1]].body) || !handler(&functions[entries[2]].body) {
+    if profile == super::Profile::V3 {
+        if tail(&functions[entries[1]].body).is_none() {
+            return Err(error(
+                "hardware handler requires a designated terminal loop",
+            ));
+        }
+        if !handler(&functions[entries[2]].body) {
+            return Err(error(
+                "language handler must contain exactly the terminal loop",
+            ));
+        }
+    } else if !handler(&functions[entries[1]].body) || !handler(&functions[entries[2]].body) {
         return Err(error(
             "trap handlers must contain exactly the terminal loop",
         ));
@@ -201,6 +212,8 @@ pub(super) fn finish(
     for (id, f) in functions.iter().enumerate() {
         let expected = if id == entries[0] {
             effects[id] == [0, 1]
+        } else if id == entries[1] && profile == super::Profile::V3 {
+            effects[id].is_empty() || effects[id] == [1]
         } else if entries[1..].contains(&id) {
             effects[id].is_empty()
         } else {

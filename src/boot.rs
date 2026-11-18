@@ -15,7 +15,7 @@ mod source;
 mod wire;
 pub use mir::{
     BlockChild, BlockEdge, CheckedPair, CoreEdge, MIR_SCHEMA, MirPath, Origin, PairError,
-    export_mir, export_pair_core, import_pair, import_pair_v2, lower,
+    export_mir, export_pair_core, import_pair, import_pair_v2, import_pair_v3, lower,
 };
 
 use crate::{
@@ -23,7 +23,7 @@ use crate::{
     types::{Function, FunctionContract, Type},
     word::WordWidth,
 };
-pub use wire::{export_core, import_core, import_core_v2};
+pub use wire::{export_core, import_core, import_core_v2, import_core_v3};
 
 pub const SCHEMA: &str = "anl-boot-core-v1";
 pub const SEMANTIC_REVISION: &str = "anl-boot-rv64-virt-v1";
@@ -87,11 +87,14 @@ impl Operation {
     }
     fn rest_allowed(&self, profile: Profile) -> bool {
         self.effects() == [1]
-            || matches!(self, Self::IllegalInstruction { authority: 0 }) && profile == Profile::V2
+            || matches!(self, Self::IllegalInstruction { authority: 0 })
+                && profile.allows_illegal_instruction()
     }
     fn valid(&self, profile: Profile, hardware: usize) -> bool {
         match self {
-            Self::IllegalInstruction { authority } => profile == Profile::V2 && *authority == 0,
+            Self::IllegalInstruction { authority } => {
+                profile.allows_illegal_instruction() && *authority == 0
+            }
             Self::Read8 { region, offset } => *region == 0 && *offset == 5,
             Self::Write8 { region, offset } => *region == 0 && *offset <= 4,
             Self::Fence { region } => *region == 0,
