@@ -1647,6 +1647,32 @@ compiler lowering, source-to-ELF refinement, root-thunk validation and hardware
 entry remain separate obligations. These modules grant no positive native-image
 admission and do not establish an ANL-authored operating system.
 
+## Conditional native low-byte memory algebra
+
+[BootNativeByteMemory](ANL/BootNativeByteMemory.lean), in namespace
+`ANL.Boot.NativeByte`, uses the frame model's 64-bit words and byte memory.
+Every access supplies a nonwrapping span. Supported load widths are 1, 2, 4
+and 8 bytes; signed and unsigned loads use little-endian byte order.
+
+| Theorems | Scope and premises |
+| --- | --- |
+| `unsignedLoad_low8`, `signedLoad_low8` | At a supported width, the loaded word's low byte equals the byte at the starting address. |
+| `storeLE_base`, `storeLE_index`, `storeLE_outside` | A positive-width store writes the source low byte at its base, the corresponding encoded byte at each in-range index, and preserves bytes outside its span. |
+| `unsignedLoad_after_store`, `signedLoad_after_store` | Supported store and load widths may differ; reloading at the same starting address preserves the stored low byte. Both spans must be nonwrapping. |
+| `store_preserves` | An initially valid abstract memory map and a source fact denoting the stored low byte remain valid after a positive-width store: retain that fact at the base, forget facts for other overwritten bytes, and preserve facts outside the span. |
+| `unsignedLoad_preserves`, `signedLoad_preserves` | An initially valid fact at the starting address describes the low byte of the corresponding supported load. |
+
+`Fact` distinguishes unknown bytes, constants and origins interpreted by an
+arbitrary valuation. These are memory-algebra results, not proofs of the Rust
+map or register-transfer implementation. They do not establish instruction
+refinement, device responses, ABI extension bits, caller/handler behavior or
+source-to-native correspondence. The separate experimental
+[UART inspection APIs](../spec/boot-bundle.md#conditional-v3-uart-inspection)
+retain those boundaries. The model is included in the complete declaration
+audit and separate kernel replay; the audit inspects the exact generated,
+universe-parameterized `Fact` constructor-index wrapper without a general
+unsafe allowance.
+
 ## Boot v2 static model and Core reader
 
 The separate `ANL.Boot.V2.Program` preserves raw metadata, declaration signatures,
@@ -1827,7 +1853,8 @@ These results prove no global handler-history restriction, eventual delivery,
 read availability, handler progress or completion, or arrival at a selected park.
 They do not establish compiler equivalence, Core/MIR origin refinement, native
 instruction or Rust analysis correctness, firmware forwarding or device behavior.
-The existing native identity interfaces continue to refuse V3. No runtime runner
-or command-line route is added. The complete declaration audit and exact unsafe
-wrapper inventory remain in force with `propext`, `Classical.choice` and
+The three older native identity interfaces continue to refuse V3. The separate
+UART inspection interfaces admit only their conditional native leaf scope.
+No runtime runner or command-line route is added. The complete declaration audit
+and exact unsafe wrapper inventory remain in force with `propext`, `Classical.choice` and
 `Quot.sound` as the only allowed logical axioms.

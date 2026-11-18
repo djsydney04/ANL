@@ -304,6 +304,65 @@ opaque emitted `Bundle`; it accepts no caller-supplied leaf summary or authority
 map. It remains outside the compiler's ordinary module and build-command paths.
 No native build or CLI route is enabled by these analyses.
 
+## Conditional V3 UART inspection
+
+The standalone libraries expose experimental V3 leaf inspection without adding a
+native build or CLI route. `Bundle::uart_leaf_identity_v3()` projects one to seven
+canonical UART primitives from an emitted V3 bundle, including their typed
+signatures, effects and generated symbols. It keeps any intentional illegal slot
+in a separate V3 domain. A V3 bundle with no UART primitive is unsupported. The
+older setup and illegal-slot identity APIs still reject V3.
+
+`inspect_uart_machine_v3(TextInspection, V3UartEmissionView)` carries that identity
+alongside the reconstructed instruction inventory and binds any V3 illegal slot.
+Its distinct result owns the slot context; its borrowed inventory view does not
+grant old setup or illegal-slot authority.
+`inspect_uart_leaves_v3(&Bundle, TextInspection)` obtains this machine inspection,
+binds the selected UART symbols and checks their complete bodies. Forbidden
+effects in all selected bodies are checked before supported local shapes. Each supported
+body is straight-line, ends in one ordinary return and has exactly its declared
+byte read, byte write or exact `fence iorw, iorw` event, plus supported frame
+accesses. Calls, loops and other control-flow shapes remain unsupported.
+
+The result retains the selected primitive/contribution identities, instruction
+locations, final frame accesses, I/O observations, return evidence and local-depth
+bounds. It exposes the unselected contributions as a complement. Those bodies,
+including the handler and its calls, receive no UART leaf result. Frame/return
+facts depend on aligned entry SP/RA, writable nonwrapping frame storage disjoint
+from the device, ordinary instruction completion and the explicit
+`uart_leaf_normal_instruction_refinement` premise. They do not promise device
+completion or that the return is reached. The footprint result does not establish
+argument/result provenance; its eight capability flags, including
+source correspondence, handler calls/stack bounds, delivery, nested-fault safety,
+formal native correspondence and native admission, remain false.
+
+`inspect_uart_bytes_v3(&UartLeafInspection)` borrows that exact opaque footprint;
+it accepts no caller-authored fact map. Under the separate
+`uart_leaf_low8_instruction_refinement` premise it checks these endpoint relations:
+
+| Selected leaf | Conditional relation |
+| --- | --- |
+| Status read | The returned `a0` low byte comes from that leaf's device response. |
+| Byte write | The byte sent comes from the entry `a0` low byte, and the full native unit return is zero. |
+| I/O fence | The footprint's exact fence occurs and the full native unit return is zero. |
+
+Its byte map tracks overlapping frame writes byte by byte, preserves the low-byte
+origin through supported transfers and loads, and loses facts conservatively for
+other register operations. This does not prove the instruction premise or the
+Rust analysis. ABI extension bits, source correspondence, handler calls and
+native admission remain false; the borrowed footprint's limits still apply.
+The [Lean memory algebra](../formal/PROOFS.md#conditional-native-low-byte-memory-algebra)
+proves separate mathematical memory facts, not a simulation of this Rust pass.
+
+The frame and byte passes share limits of 100,000 created states, 1,000,000 live
+facts, 1,000,000 transfer evaluations and 100,000 charged witness rows. The byte
+pass composes its charges with the held footprint, exposes input and composed
+counters, and retains no extra instruction-state map. Resource exhaustion is
+`Resource`, contradictory supported evidence is `Infrastructure`, and unsupported
+shapes or unestablished facts are `Unsupported`. Earlier text/machine/frame errors
+keep their original stage and location where available. Supported limits are bounds, not claims that every
+boundary has been exercised.
+
 ## Publication
 
 Emission finishes all six bounded payloads before filesystem work. The parent

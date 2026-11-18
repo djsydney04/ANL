@@ -8,7 +8,8 @@ mod templates;
 pub use emit::{
     Bundle, ExceptionSetupEmissionView, ExceptionSetupUnsupported, IllegalSlotEmissionView,
     IllegalSlotUnsupported, SetupAbi, SetupEmissionView, SetupFunction, SetupOperation,
-    SetupPrimitive, SetupProfileUnsupported, SetupReturn, SetupRole, emit,
+    SetupPrimitive, SetupProfileUnsupported, SetupReturn, SetupRole, UartOperation, UartPrimitive,
+    V3IllegalSlotEmissionView, V3UartEmissionView, V3UartProjectionUnsupported, emit,
 };
 mod mir;
 mod source;

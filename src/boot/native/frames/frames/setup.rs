@@ -1052,7 +1052,7 @@ pub(super) fn authorize_csr(
 }
 
 pub(super) fn resume(
-    machine: &MachineInspection<'_>,
+    machine: &MachineInventoryView<'_, '_>,
     graph: &Graph,
     instruction: Instruction,
     state: &State,
@@ -1090,17 +1090,20 @@ pub(super) fn resume(
             Site::of(instruction),
         )
     })?;
-    require(
-        pair.second == instruction.id
-            && pair.contribution == instruction.contribution
-            && machine.instructions()[continuation].pc == link_value
-            && machine.instructions()[continuation].contribution == instruction.contribution
-            && transfer.target == graph.entries[leaf.contribution],
-        Stage::SetupResume,
-        "setup call pair or continuation identity changed",
-        machine,
-        instruction.id,
-    )?;
+    if !(pair.second == instruction.id
+        && pair.contribution == instruction.contribution
+        && machine.instructions()[continuation].pc == link_value
+        && machine.instructions()[continuation].contribution == instruction.contribution
+        && transfer.target == graph.entries[leaf.contribution])
+    {
+        return Err(located(
+            invariant(
+                Stage::SetupResume,
+                "setup call pair or continuation identity changed",
+            ),
+            Site::of(instruction),
+        ));
+    }
     let Fact::EntrySpPlus(sp) = state.registers[2] else {
         return Ok(None);
     };
@@ -1131,6 +1134,7 @@ pub(super) fn resume(
             leaf: leaf_id,
             combined_depth,
         }),
+        None,
     )))
 }
 
@@ -1439,7 +1443,7 @@ fn prepare_setup<'m, 'a>(
     bound: &Bound,
     stacks: &[Range<u64>; 2],
 ) -> Result<PreparedSetup<'m, 'a>> {
-    let mut engine = Engine::new(machine, budget)?;
+    let mut engine = Engine::new(machine.inventory(), budget)?;
     let mut roots = Vec::new();
     for role in [SetupRole::Boot, SetupRole::Hardware, SetupRole::Language] {
         let i = role_index(role);

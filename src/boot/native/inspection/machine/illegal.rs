@@ -1,6 +1,6 @@
 //! A checked source identity authorizes one exact zero slot, not arbitrary unknown code.
 use super::*;
-use anl::boot::{IllegalSlotEmissionView, Profile};
+use anl::boot::{IllegalSlotEmissionView, Profile, V3IllegalSlotEmissionView};
 
 pub struct IllegalSite<'a> {
     emission: IllegalSlotEmissionView<'a>,
@@ -26,8 +26,78 @@ impl<'a> IllegalSite<'a> {
         4
     }
 }
+/// V3 identity stays separate from the existing V2 site and its accessor.
+pub struct V3IllegalSite<'a> {
+    emission: V3IllegalSlotEmissionView<'a>,
+    contribution: ContributionId,
+    word: WordId,
+    pc: u64,
+}
+impl<'a> V3IllegalSite<'a> {
+    pub fn emission(&self) -> &V3IllegalSlotEmissionView<'a> {
+        &self.emission
+    }
+    pub fn contribution(&self) -> ContributionId {
+        self.contribution
+    }
+    pub fn word(&self) -> WordId {
+        self.word
+    }
+    pub fn pc(&self) -> u64 {
+        self.pc
+    }
+    /// Owned container extent, not an architectural instruction length.
+    pub fn extent(&self) -> u64 {
+        4
+    }
+}
+
+// Only the two compiler-owned opaque domains can select the shared slot checks.
+pub(super) enum SlotView<'a> {
+    V2(IllegalSlotEmissionView<'a>),
+    V3(V3IllegalSlotEmissionView<'a>),
+}
+impl SlotView<'_> {
+    fn signature_valid(&self) -> bool {
+        match self {
+            Self::V2(view) => {
+                view.profile() == Profile::V2
+                    && view.authority() == 0
+                    && view.params().is_empty()
+                    && view.result() == anl::types::Type::Unit
+                    && view.effects() == [0]
+            }
+            Self::V3(view) => {
+                view.profile() == Profile::V3
+                    && view.authority() == 0
+                    && view.params().is_empty()
+                    && view.result() == anl::types::Type::Unit
+                    && view.effects() == [0]
+            }
+        }
+    }
+    fn assembly_range(&self) -> std::ops::Range<usize> {
+        match self {
+            Self::V2(view) => view.assembly_range(),
+            Self::V3(view) => view.assembly_range(),
+        }
+    }
+    fn assembly(&self) -> &str {
+        match self {
+            Self::V2(view) => view.assembly(),
+            Self::V3(view) => view.assembly(),
+        }
+    }
+    fn symbol(&self) -> &str {
+        match self {
+            Self::V2(view) => view.symbol(),
+            Self::V3(view) => view.symbol(),
+        }
+    }
+}
+
 pub(super) struct BoundIllegal<'a> {
-    emission: IllegalSlotEmissionView<'a>,
+    emission: SlotView<'a>,
     pub(super) contribution: ContributionId,
     pub(super) pc: u64,
 }
@@ -77,15 +147,11 @@ fn bytes(raw: &[u8], offset: u64, size: u64) -> Result<&[u8]> {
 pub(super) fn bind<'a>(
     text: &TextInspection<'a>,
     image: &elf::ElfStructure<'a>,
-    view: IllegalSlotEmissionView<'a>,
+    view: SlotView<'a>,
     inventory: &mut Inventory,
 ) -> Result<BoundIllegal<'a>> {
     require(
-        view.profile() == Profile::V2
-            && view.authority() == 0
-            && view.params().is_empty()
-            && view.result() == anl::types::Type::Unit
-            && view.effects() == [0],
+        view.signature_valid(),
         Stage::IllegalSlot,
         "opaque illegal-slot signature changed",
     )?;
@@ -287,7 +353,7 @@ impl<'a> BoundIllegal<'a> {
         self,
         index: &BTreeMap<u64, WordId>,
         inventory: &Inventory,
-    ) -> Result<IllegalSite<'a>> {
+    ) -> Result<InspectedSlot<'a>> {
         let word = owned(self.pc, index, Stage::IllegalSlot)?;
         let i = inventory.instructions[word];
         check(
@@ -297,10 +363,58 @@ impl<'a> BoundIllegal<'a> {
             self.contribution,
             self.pc,
         )?;
-        Ok(IllegalSite {
+        Ok(InspectedSlot {
             emission: self.emission,
             contribution: self.contribution,
             word,
+            pc: self.pc,
+        })
+    }
+}
+
+/// Coordinates shared internally; each public owner retains its own identity domain.
+pub(super) struct InspectedSlot<'a> {
+    emission: SlotView<'a>,
+    contribution: ContributionId,
+    word: WordId,
+    pc: u64,
+}
+impl<'a> InspectedSlot<'a> {
+    pub(super) fn into_v2(self) -> Result<IllegalSite<'a>> {
+        let SlotView::V2(emission) = self.emission else {
+            return Err(at(
+                error(
+                    ErrorClass::Infrastructure,
+                    Stage::IllegalSlot,
+                    "slot identity domain differs from its owner",
+                ),
+                self.contribution,
+                self.pc,
+            ));
+        };
+        Ok(IllegalSite {
+            emission,
+            contribution: self.contribution,
+            word: self.word,
+            pc: self.pc,
+        })
+    }
+    pub(super) fn into_v3(self) -> Result<V3IllegalSite<'a>> {
+        let SlotView::V3(emission) = self.emission else {
+            return Err(at(
+                error(
+                    ErrorClass::Infrastructure,
+                    Stage::IllegalSlot,
+                    "slot identity domain differs from its owner",
+                ),
+                self.contribution,
+                self.pc,
+            ));
+        };
+        Ok(V3IllegalSite {
+            emission,
+            contribution: self.contribution,
+            word: self.word,
             pc: self.pc,
         })
     }

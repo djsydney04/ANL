@@ -9,7 +9,8 @@ including boot code, the kernel, drivers, services, agent infrastructure and GUI
 The [OS architecture](docs/architecture/operating-system.md) describes this planned
 work and its language requirements. The first RV64 boot profile now supports
 source checking, strict Core interchange and complete freestanding source bundles.
-Image linking and execution remain unavailable; there is no bootable ANL OS yet.
+Boot image linking and execution commands remain unavailable; there is no bootable
+ANL OS yet.
 Ordinary native compilation continues to produce hosted executables.
 See [Check and emit an ANL boot program](docs/book/boot-profile.md).
 The separate [v2 boot profile](spec/boot-profile-v2.md) adds an explicit
@@ -25,6 +26,11 @@ Its [formal model](formal/PROOFS.md#boot-v3-entry-local-coherence-and-conditiona
 adds typed entry, local state coherence, source authority and conditional primitive
 capture to the checked static policy. These results do not establish handler
 progress or completion, device or firmware behavior, or native V3 execution.
+Separate experimental [native UART inspection APIs](spec/boot-bundle.md#conditional-v3-uart-inspection)
+check selected leaf footprints and low-byte flow under explicit instruction
+premises. A [memory algebra](formal/PROOFS.md#conditional-native-low-byte-memory-algebra)
+proves corresponding mathematical load/store facts; it does not prove the Rust
+inspection, whole-ISA behavior or source-to-native correspondence.
 
 The current implementation checks, interprets, and compiles `i64`, unsigned words `u8`/`u16`/`u32`/`u64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,

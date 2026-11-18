@@ -1,18 +1,28 @@
 //! Entry-relative facts stop at unresolved effects and interfunction transfers.
-use crate::machine::MachineInspection;
 use crate::machine::decode::{Decoded, Effect, Op, Operands};
 use crate::machine::machine::{ContributionId, Instruction, WordId};
 use crate::machine::text::MAX_WITNESS_ROWS;
 use crate::machine::text::elf::ErrorClass;
+use crate::machine::{MachineInspection, MachineInventoryView};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
 mod setup;
+mod uart;
+mod uart_bytes;
 pub use setup::{
     CallUse, ConditionalBootFaultPrefix, ConditionalRoleDepth, ConditionalSetupStackBounds,
     ExceptionStackError, ExceptionStackInspection, FaultStackObservation, IdentityJoin,
     ReturningSetupLeaf, RootEntry, SetupStackInspection, StackError,
     inspect_exception_setup_stacks, inspect_setup_stacks,
+};
+pub use uart::{
+    IoEvent, IoObservation, UartDiagnostic, UartInspectionError, UartLeaf, UartLeafInspection,
+    UartPhase, inspect_uart_leaves_v3,
+};
+pub use uart_bytes::{
+    UartByteCounters, UartByteError, UartByteInspection, UartByteLeaf, UartBytePhase,
+    UartByteRelation, inspect_uart_bytes_v3,
 };
 
 pub const MAX_STATES: usize = 100_000;
@@ -261,6 +271,7 @@ struct FrameData {
     returns: Vec<ReturnEvidence>,
     counters: Counters,
     calls: Vec<setup::CallUse>,
+    io: Vec<uart::IoObservation>,
 }
 
 struct Budget {
@@ -385,7 +396,7 @@ struct Graph {
     links: Vec<Links>,
     entries: Vec<WordId>,
 }
-fn graph(machine: &MachineInspection<'_>) -> Result<Graph> {
+fn graph(machine: &MachineInventoryView<'_, '_>) -> Result<Graph> {
     let words = machine.instructions();
     let count = words.len();
     let contributions = machine.text().contributions().len();
@@ -635,6 +646,7 @@ fn return_evidence(word: WordId, state: &State) -> ReturnEvidence {
 #[derive(Clone, Copy)]
 enum Policy<'p> {
     Local,
+    UartLeaf(&'p uart::LeafRule),
     Leaf(&'p setup::LeafRule),
     Role(&'p [setup::ReturningSetupLeaf]),
     ExceptionRole {
@@ -649,12 +661,13 @@ enum Step {
         Option<MemoryObservation>,
         [Option<WordId>; 2],
         Option<setup::CallUse>,
+        Option<uart::IoObservation>,
     ),
     Frontier(FrontierKind, Option<MemoryObservation>),
     Return(ReturnEvidence),
 }
 fn step(
-    machine: &MachineInspection<'_>,
+    machine: &MachineInventoryView<'_, '_>,
     graph: &Graph,
     instruction: Instruction,
     state: &State,
@@ -739,13 +752,28 @@ fn step(
                     None,
                     links.local,
                     None,
+                    None,
                 ));
             }
             return Ok(Step::Frontier(FrontierKind::Csr, None));
         }
-        Effect::Fence => return Ok(Step::Frontier(FrontierKind::Fence, None)),
+        Effect::Fence => {
+            if let Policy::UartLeaf(rule) = policy
+                && let Some(event) = uart::fence_event(rule, instruction)
+            {
+                return Ok(Step::Continue(
+                    copied(state, budget, stage)?,
+                    None,
+                    links.local,
+                    None,
+                    Some(event),
+                ));
+            }
+            return Ok(Step::Frontier(FrontierKind::Fence, None));
+        }
         _ => {}
     }
+    let mut io = None;
     let mut memory = None;
     let mut memory_change = None;
     let mut destination = value(instruction, state);
@@ -764,49 +792,58 @@ fn step(
                 _ => return Err(invariant(stage, "machine memory operands changed")),
             };
             let address = add_immediate(state.registers[usize::from(base)], offset);
-            let slot = match memory_slot(state, address, bytes) {
-                Ok(slot) => slot,
-                Err(gap) => {
-                    return Ok(Step::Frontier(
-                        FrontierKind::Memory {
-                            access,
-                            address,
-                            width: bytes,
-                            sp: state.registers[2],
-                            gap,
-                        },
-                        None,
-                    ));
+            if let Policy::UartLeaf(rule) = policy
+                && let Some(event) = uart::memory_event(rule, instruction, address)
+            {
+                if access == Access::Load {
+                    destination = Some((register, Fact::Unknown));
                 }
-            };
-            let observed = match access {
-                Access::Load => {
-                    let signed = match decoded.effect {
-                        Effect::Load { sign_extend, .. } => sign_extend,
-                        _ => return Err(invariant(stage, "machine load effect changed")),
-                    };
-                    let result = loaded(
-                        state.slots.get(&slot).copied().unwrap_or(Fact::Unknown),
-                        bytes,
-                        signed,
-                    );
-                    destination = Some((register, result));
-                    result
-                }
-                Access::Store => {
-                    let result = stored(state.registers[usize::from(register)], bytes);
-                    memory_change = Some((slot, result));
-                    result
-                }
-            };
-            memory = Some(MemoryObservation {
-                word: instruction.id,
-                access,
-                offset: slot.offset,
-                width: bytes,
-                value: observed,
-                discarded_load: access == Access::Load && register == 0,
-            });
+                io = Some(event);
+            } else {
+                let slot = match memory_slot(state, address, bytes) {
+                    Ok(slot) => slot,
+                    Err(gap) => {
+                        return Ok(Step::Frontier(
+                            FrontierKind::Memory {
+                                access,
+                                address,
+                                width: bytes,
+                                sp: state.registers[2],
+                                gap,
+                            },
+                            None,
+                        ));
+                    }
+                };
+                let observed = match access {
+                    Access::Load => {
+                        let signed = match decoded.effect {
+                            Effect::Load { sign_extend, .. } => sign_extend,
+                            _ => return Err(invariant(stage, "machine load effect changed")),
+                        };
+                        let result = loaded(
+                            state.slots.get(&slot).copied().unwrap_or(Fact::Unknown),
+                            bytes,
+                            signed,
+                        );
+                        destination = Some((register, result));
+                        result
+                    }
+                    Access::Store => {
+                        let result = stored(state.registers[usize::from(register)], bytes);
+                        memory_change = Some((slot, result));
+                        result
+                    }
+                };
+                memory = Some(MemoryObservation {
+                    word: instruction.id,
+                    access,
+                    offset: slot.offset,
+                    width: bytes,
+                    value: observed,
+                    discarded_load: access == Access::Load && register == 0,
+                });
+            }
         }
         _ => {}
     }
@@ -837,11 +874,11 @@ fn step(
             budget.release(before - output.slots.len(), stage)?;
         }
     }
-    Ok(Step::Continue(output, memory, links.local, None))
+    Ok(Step::Continue(output, memory, links.local, None, io))
 }
 
 struct Engine<'m, 'a> {
-    machine: &'m MachineInspection<'a>,
+    machine: MachineInventoryView<'m, 'a>,
     graph: Graph,
     budget: Budget,
     states: Vec<Option<Box<State>>>,
@@ -851,10 +888,11 @@ struct Engine<'m, 'a> {
     memory: Vec<MemoryObservation>,
     returns: Vec<ReturnEvidence>,
     calls: Vec<setup::CallUse>,
+    io: Vec<uart::IoObservation>,
 }
 impl<'m, 'a> Engine<'m, 'a> {
-    fn new(machine: &'m MachineInspection<'a>, budget: Budget) -> Result<Self> {
-        let graph = graph(machine)?;
+    fn new(machine: MachineInventoryView<'m, 'a>, budget: Budget) -> Result<Self> {
+        let graph = graph(&machine)?;
         let n = machine.instructions().len();
         let mut budget = budget;
         for &root in &graph.entries {
@@ -874,6 +912,7 @@ impl<'m, 'a> Engine<'m, 'a> {
             memory: Vec::new(),
             returns: Vec::new(),
             calls: Vec::new(),
+            io: Vec::new(),
         })
     }
     fn worklist(&mut self, contribution: ContributionId, policy: Policy<'_>) -> Result<()> {
@@ -911,7 +950,7 @@ impl<'m, 'a> Engine<'m, 'a> {
                 policy,
             )
             .map_err(|e| located(e, site))?;
-            if let Step::Continue(output, _, successors, _) = result {
+            if let Step::Continue(output, _, successors, _, _) = result {
                 for target in successors.into_iter().flatten() {
                     let target_site = Site::of(machine.instructions()[target]);
                     let changed = if let Some(target_state) = states[target].as_deref_mut() {
@@ -951,6 +990,7 @@ impl<'m, 'a> Engine<'m, 'a> {
             memory,
             returns,
             calls,
+            io,
         } = self;
         let root = graph.entries[contribution];
         let first_frontier = frontiers.len();
@@ -991,12 +1031,18 @@ impl<'m, 'a> Engine<'m, 'a> {
             )
             .map_err(|e| located(e, site))?;
             let observation = match result {
-                Step::Continue(output, observation, successors, call) => {
+                Step::Continue(output, observation, successors, call, event) => {
                     if let Some(call) = call {
                         budget
                             .row(Stage::SetupResume)
                             .map_err(|e| located(e, site))?;
                         calls.push(call);
+                    }
+                    if let Some(event) = event {
+                        budget
+                            .row(Stage::FinalGraph)
+                            .map_err(|e| located(e, site))?;
+                        io.push(event);
                     }
                     for target in successors.into_iter().flatten() {
                         let target_site = Site::of(machine.instructions()[target]);
@@ -1062,20 +1108,21 @@ impl<'m, 'a> Engine<'m, 'a> {
         } else {
             Coverage::ClosedLocalReturns
         };
-        let summary = if coverage == Coverage::ClosedLocalReturns {
-            Some(LocalReturnSummary {
-                contribution,
-                local_depth_bound: depth.ok_or_else(|| {
-                    located(
-                        invariant(Stage::FinalGraph, "closed depth changed"),
-                        root_site,
-                    )
-                })?,
-                returns: return_range.clone(),
-            })
-        } else {
-            None
-        };
+        let summary =
+            if coverage == Coverage::ClosedLocalReturns && !matches!(policy, Policy::UartLeaf(_)) {
+                Some(LocalReturnSummary {
+                    contribution,
+                    local_depth_bound: depth.ok_or_else(|| {
+                        located(
+                            invariant(Stage::FinalGraph, "closed depth changed"),
+                            root_site,
+                        )
+                    })?,
+                    returns: return_range.clone(),
+                })
+            } else {
+                None
+            };
         contributions.push(ContributionFrames {
             contribution,
             coverage,
@@ -1103,6 +1150,7 @@ impl<'m, 'a> Engine<'m, 'a> {
             memory,
             returns,
             calls,
+            io,
             ..
         } = self;
         let mut retained_states = 0;
@@ -1133,6 +1181,7 @@ impl<'m, 'a> Engine<'m, 'a> {
                 returns,
                 counters,
                 calls,
+                io,
             },
             budget,
         ))
@@ -1178,7 +1227,7 @@ pub fn inspect_local_frames<'a>(
     machine: MachineInspection<'a>,
 ) -> Result<LocalFrameInspection<'a>> {
     require_ordinary(&machine, Stage::Index)?;
-    let mut engine = Engine::new(&machine, budget(&machine))?;
+    let mut engine = Engine::new(machine.inventory(), budget(&machine))?;
     // Preserve the accepted local scheduling and counter order exactly.
     for contribution in 0..engine.graph.entries.len() {
         engine.worklist(contribution, Policy::Local)?;

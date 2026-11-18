@@ -275,6 +275,7 @@ ANL.BootSummarySuccess
 ANL.BootSummaryOutput
 ANL.BootSummaryOutputProofs
 ANL.BootNativeFrame
+ANL.BootNativeByteMemory
 ANL.BootNativeFrameComposition
 BootRawProbe
 ANL.BootV2Core

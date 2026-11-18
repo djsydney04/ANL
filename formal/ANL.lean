@@ -268,6 +268,7 @@ import ANL.BootSummarySuccess
 import ANL.BootSummaryOutput
 import ANL.BootSummaryOutputProofs
 import ANL.BootNativeFrame
+import ANL.BootNativeByteMemory
 import ANL.BootNativeFrameComposition
 import ANL.BootV2Core
 import ANL.BootV2Policy

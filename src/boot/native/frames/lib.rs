@@ -5,9 +5,11 @@ pub use anl_native_machine as machine;
 pub mod frames;
 pub use frames::{
     ConditionalBootFaultPrefix, ConditionalRoleDepth, ExceptionStackError,
-    ExceptionStackInspection, FaultStackObservation, FrameError, LocalFrameInspection,
-    SetupStackInspection, StackError, inspect_exception_setup_stacks, inspect_local_frames,
-    inspect_setup_stacks,
+    ExceptionStackInspection, FaultStackObservation, FrameError, IoEvent, IoObservation,
+    LocalFrameInspection, SetupStackInspection, StackError, UartByteCounters, UartByteError,
+    UartByteInspection, UartByteLeaf, UartBytePhase, UartByteRelation, UartDiagnostic,
+    UartInspectionError, UartLeaf, UartLeafInspection, UartPhase, inspect_exception_setup_stacks,
+    inspect_local_frames, inspect_setup_stacks, inspect_uart_bytes_v3, inspect_uart_leaves_v3,
 };
 
 pub const COMPLETE_FRAMES_AND_RETURNS: bool = false;

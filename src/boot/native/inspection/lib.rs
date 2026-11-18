@@ -6,8 +6,9 @@ pub mod decode;
 pub mod machine;
 
 pub use machine::{
-    IllegalSite, InstructionKind, MachineError, MachineInspection, Stage, inspect_machine,
-    inspect_machine_with_illegal,
+    IllegalSite, InstructionKind, MachineError, MachineInspection, MachineInventoryView, Stage,
+    V3IllegalSite, V3UartMachineInspection, inspect_machine, inspect_machine_with_illegal,
+    inspect_uart_machine_v3,
 };
 
 pub const UNCHECKED: &[&str] = &[

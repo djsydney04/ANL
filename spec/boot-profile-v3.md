@@ -88,8 +88,11 @@ static checking. Verification reports retain `trust: "not_established"`.
 All three existing native identity APIs—`setup_identity`,
 `exception_setup_identity` and `illegal_slot_identity`—reject v3 with their
 typed revision-unsupported result, including a v3 program without an illegal
-operation. Existing native analyses do not establish the broader handler's
-memory, device, stack or control-flow behavior.
+operation. The separate
+[UART inspection APIs](boot-bundle.md#conditional-v3-uart-inspection) accept a
+checked V3 identity and inspect selected native UART leaf footprints and low-byte
+flow. They do not establish the broader handler's memory, device, stack or
+control-flow behavior, or its calls into those leaves.
 
 The OS policy and handler body are authored in ANL. Generated C and assembly
 implement the compiler's translation and hardware instruction templates; they
@@ -111,3 +114,7 @@ theorems construct requests at typed, source-aligned primitive invocations; faul
 capture additionally requires valid input, the boot episode and unused forwarding.
 They do not establish command eligibility, read availability, handler progress or
 completion, Rust or native correspondence, or firmware/device correctness.
+
+The separate [native low-byte memory algebra](../formal/PROOFS.md#conditional-native-low-byte-memory-algebra)
+proves mathematical load/store facts with explicit premises. It does not prove
+the Rust inspection or connect a source invocation to native execution.

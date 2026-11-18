@@ -1,5 +1,6 @@
 mod exception;
 mod setup;
+mod uart;
 use super::{BlockChild, CheckedPair, CoreEdge, Operation, Origin, Profile, templates};
 use crate::{
     bounded::{Buffer, OutputError},
@@ -23,6 +24,10 @@ use std::{
     ops::Range,
     path::Path,
 };
+pub use uart::{
+    UartOperation, UartPrimitive, V3IllegalSlotEmissionView, V3UartEmissionView,
+    V3UartProjectionUnsupported,
+};
 
 const MAX_ASSEMBLY: usize = 1_048_576;
 const MAX_LINKER: usize = 65_536;
@@ -33,8 +38,17 @@ pub struct Bundle {
     pub(super) files: [(&'static str, String); 6],
     setup: Result<setup::SetupIdentity, SetupProfileUnsupported>,
     exception: exception::Identity,
+    uart: Result<uart::Identity, V3UartProjectionUnsupported>,
 }
 impl Bundle {
+    pub fn uart_leaf_identity_v3(
+        &self,
+    ) -> Result<V3UartEmissionView<'_>, V3UartProjectionUnsupported> {
+        match &self.uart {
+            Ok(identity) => Ok(uart::view(&self.files, identity)),
+            Err(reason) => Err(*reason),
+        }
+    }
     /// Read-only setup identity from the same checked emission; never native admission.
     pub fn setup_identity(&self) -> Result<SetupEmissionView<'_>, SetupProfileUnsupported> {
         match &self.setup {
@@ -316,6 +330,13 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
         &assembly,
         illegal_range.as_ref(),
     )?;
+    let uart = uart::build(
+        pair,
+        &primitive_ranges,
+        &c,
+        &assembly,
+        illegal_range.as_ref(),
+    )?;
     let functions: Vec<_> = pair.program.functions.iter().enumerate().map(|(id,f)| Ok(json!({
         "id":id,"name":f.name,"symbol":format!("anl_boot_f{id}"),"source_span":source_span(pair,f.span)?,"c_range":byte_range(function_ranges[id].clone(),&c)?,
     }))).collect::<Result<_,OutputError>>()?;
@@ -387,6 +408,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     Ok(Bundle {
         setup,
         exception,
+        uart,
         files: [
             ("core.json", core),
             ("mir.json", mir),

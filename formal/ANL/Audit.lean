@@ -278,6 +278,7 @@ run_elab do
     `ANL.BootSummaryOutput,
     `ANL.BootSummaryOutputProofs,
     `ANL.BootNativeFrame,
+    `ANL.BootNativeByteMemory,
     `ANL.BootNativeFrameComposition,
     `ANL.BootV2Core,
     `ANL.BootV2Policy,
@@ -422,6 +423,7 @@ run_elab do
     `ANL.Boot.Reference.Output.MinimalReason.ctorIdx._impl,
     `ANL.Boot.NativeFrame.AccessKind.ctorIdx._impl,
     `ANL.Boot.NativeFrame.RootRole.ctorIdx._impl,
+    `ANL.Boot.NativeByte.Fact.ctorIdx._impl,
     `ANL.Boot.V2.Operation.ctorIdx._impl,
     `ANL.Boot.V2.Declaration.ctorIdx._impl,
     `ANL.Boot.V2.Fault.Event.ctorIdx._impl,
@@ -442,44 +444,71 @@ run_elab do
         if info.isUnsafe then
           unless expectedShims.contains name do throwError "Unexpected unsafe declaration {name}"
           let owner := name.getPrefix.getPrefix
-          let list (t : Expr) := mkApp (mkConst ``List [Level.zero]) t
-          -- Outcome is type-parameterized; KontCode has six indices.
-          let domains : List Expr := if owner == `ANL.Word.Outcome then
-            [mkSort (Level.succ Level.zero)]
-            else if owner == `ANL.Memory.Simulation.KontCode then
-            [mkConst ``Nat, mkConst `ANL.Memory.Lowering.Locals, list (mkConst ``Nat),
-              list (mkConst `ANL.Memory.Frame), mkConst `ANL.Memory.Simulation.ResultTarget,
-              list (mkConst `ANL.Memory.Simulation.Capture)]
-            else if owner == `ANL.Words.Simulation.KontCode then
-            [mkConst ``Nat, mkConst `ANL.Words.Lowering.Locals, list (mkConst ``Nat),
-              list (mkConst `ANL.Words.Frame), mkConst `ANL.Words.Simulation.ResultTarget,
-              list (mkConst `ANL.Words.Simulation.Capture)] else []
           let some value := info.value? | throwError "Missing generated body {name}"
-          let mut typeCursor := info.type
-          let mut valueCursor := value
-          for expected in domains do
-            let .forallE _ domain body .implicit := typeCursor
-              | throwError "Wrong implicit type binder {name}: {typeCursor}"
-            unless domain == expected do throwError "Wrong implicit type domain {name}: {domain}"
-            typeCursor := body
-            let .lam _ domain body .implicit := valueCursor
-              | throwError "Wrong implicit body binder {name}: {valueCursor}"
-            unless domain == expected do throwError "Wrong implicit body domain {name}: {domain}"
-            valueCursor := body
-          let expectedInput := mkAppN (mkConst owner) ((List.range domains.length).reverse.map mkBVar).toArray
-          let .forallE _ input (.const codomain []) .default := typeCursor
-            | throwError "Wrong final type binder {name}: {typeCursor}"
-          unless input == expectedInput && codomain == ``Nat do
-            throwError "Wrong final type {name}: {typeCursor}"
-          let .lam _ input body .default := valueCursor
-            | throwError "Wrong final body binder {name}: {valueCursor}"
-          unless input == expectedInput do throwError "Wrong final body domain {name}: {input}"
-          let expectedTagDomain := mkAppN (mkConst owner)
-            ((List.range domains.length).reverse.map (fun i => mkBVar (i + 1))).toArray
-          let .app (.app (.const tag _) domain) (.bvar 0) := body
-            | throwError "Unexpected generated body {name}: {body}"
-          unless tag == ``getObjTagNat && domain == expectedTagDomain do
-            throwError "Unexpected generated primitive/domain {name}: {tag} {domain}"
+          if name == `ANL.Boot.NativeByte.Fact.ctorIdx._impl then
+            let [universeName] := info.levelParams
+              | throwError "Wrong generated universe parameters {name}"
+            let universeLevel := Level.param universeName
+            let parameterType := mkSort (Level.succ universeLevel)
+            let factType := mkConst `ANL.Boot.NativeByte.Fact [universeLevel]
+            let .forallE _ parameter typeBody .implicit := info.type
+              | throwError "Wrong generated parameter binder {name}: {info.type}"
+            unless parameter == parameterType do
+              throwError "Wrong generated parameter type {name}: {parameter}"
+            let .forallE _ input (.const codomain []) .default := typeBody
+              | throwError "Wrong generated final type {name}: {typeBody}"
+            unless input == mkApp factType (mkBVar 0) && codomain == ``Nat do
+              throwError "Wrong generated input/codomain {name}: {typeBody}"
+            let .lam _ parameter valueBody .implicit := value
+              | throwError "Wrong generated body parameter {name}: {value}"
+            unless parameter == parameterType do
+              throwError "Wrong generated body parameter type {name}: {parameter}"
+            let .lam _ input body .default := valueBody
+              | throwError "Wrong generated final body {name}: {valueBody}"
+            unless input == mkApp factType (mkBVar 0) do
+              throwError "Wrong generated body input {name}: {input}"
+            let expectedBody := mkApp2 (mkConst ``getObjTagNat [Level.succ universeLevel])
+              (mkApp factType (mkBVar 1)) (mkBVar 0)
+            unless body == expectedBody do
+              throwError "Unexpected generated primitive/domain {name}: {body}"
+          else
+            let list (t : Expr) := mkApp (mkConst ``List [Level.zero]) t
+            -- Outcome is type-parameterized; KontCode has six indices.
+            let domains : List Expr := if owner == `ANL.Word.Outcome then
+              [mkSort (Level.succ Level.zero)]
+              else if owner == `ANL.Memory.Simulation.KontCode then
+              [mkConst ``Nat, mkConst `ANL.Memory.Lowering.Locals, list (mkConst ``Nat),
+                list (mkConst `ANL.Memory.Frame), mkConst `ANL.Memory.Simulation.ResultTarget,
+                list (mkConst `ANL.Memory.Simulation.Capture)]
+              else if owner == `ANL.Words.Simulation.KontCode then
+              [mkConst ``Nat, mkConst `ANL.Words.Lowering.Locals, list (mkConst ``Nat),
+                list (mkConst `ANL.Words.Frame), mkConst `ANL.Words.Simulation.ResultTarget,
+                list (mkConst `ANL.Words.Simulation.Capture)] else []
+            let mut typeCursor := info.type
+            let mut valueCursor := value
+            for expected in domains do
+              let .forallE _ domain body .implicit := typeCursor
+                | throwError "Wrong implicit type binder {name}: {typeCursor}"
+              unless domain == expected do throwError "Wrong implicit type domain {name}: {domain}"
+              typeCursor := body
+              let .lam _ domain body .implicit := valueCursor
+                | throwError "Wrong implicit body binder {name}: {valueCursor}"
+              unless domain == expected do throwError "Wrong implicit body domain {name}: {domain}"
+              valueCursor := body
+            let expectedInput := mkAppN (mkConst owner) ((List.range domains.length).reverse.map mkBVar).toArray
+            let .forallE _ input (.const codomain []) .default := typeCursor
+              | throwError "Wrong final type binder {name}: {typeCursor}"
+            unless input == expectedInput && codomain == ``Nat do
+              throwError "Wrong final type {name}: {typeCursor}"
+            let .lam _ input body .default := valueCursor
+              | throwError "Wrong final body binder {name}: {valueCursor}"
+            unless input == expectedInput do throwError "Wrong final body domain {name}: {input}"
+            let expectedTagDomain := mkAppN (mkConst owner)
+              ((List.range domains.length).reverse.map (fun i => mkBVar (i + 1))).toArray
+            let .app (.app (.const tag _) domain) (.bvar 0) := body
+              | throwError "Unexpected generated body {name}: {body}"
+            unless tag == ``getObjTagNat && domain == expectedTagDomain do
+              throwError "Unexpected generated primitive/domain {name}: {tag} {domain}"
           inspected := inspected.push name
           logInfo m!"INSPECTED_UNSAFE {name}\nTYPE {info.type}\nBODY {value}"
         let axioms ← collectAxioms name

@@ -2,10 +2,10 @@
 use crate::decode::{Decoded, Effect, Op, Operands, decode};
 use crate::text::elf::{self, ArtifactKind, ErrorClass, StructuralError};
 use crate::text::{MAX_TEXT_BYTES, MAX_WITNESS_ROWS, TextInspection};
-use anl::boot::IllegalSlotEmissionView;
+use anl::boot::{IllegalSlotEmissionView, V3UartEmissionView};
 use std::collections::BTreeMap;
 mod illegal;
-pub use illegal::IllegalSite;
+pub use illegal::{IllegalSite, V3IllegalSite};
 
 pub const MAX_WORDS: usize = (MAX_TEXT_BYTES / 4) as usize;
 pub const MAX_EDGES: usize = MAX_WORDS * 2;
@@ -134,6 +134,12 @@ pub struct MachineInspection<'a> {
     illegal: Option<IllegalSite<'a>>,
 }
 impl<'a> MachineInspection<'a> {
+    pub fn inventory(&self) -> MachineInventoryView<'_, 'a> {
+        MachineInventoryView {
+            text: &self.text,
+            inventory: &self.inventory,
+        }
+    }
     pub fn illegal_site(&self) -> Option<&IllegalSite<'a>> {
         self.illegal.as_ref()
     }
@@ -174,6 +180,89 @@ impl<'a> MachineInspection<'a> {
         self.inventory.edges
     }
 }
+/// Borrowed immutable inventory, with no typed slot authority or owned extraction.
+#[derive(Clone, Copy)]
+pub struct MachineInventoryView<'m, 'a> {
+    text: &'m TextInspection<'a>,
+    inventory: &'m Inventory,
+}
+impl<'a> MachineInventoryView<'_, 'a> {
+    pub fn text(&self) -> &TextInspection<'a> {
+        self.text
+    }
+    pub fn instructions(&self) -> &[Instruction] {
+        &self.inventory.instructions
+    }
+    pub fn local_edges(&self) -> &[LocalEdge] {
+        &self.inventory.local_edges
+    }
+    pub fn transfers(&self) -> &[Transfer] {
+        &self.inventory.transfers
+    }
+    pub fn continuations(&self) -> &[Continuation] {
+        &self.inventory.continuations
+    }
+    pub fn pairs(&self) -> &[Pair] {
+        &self.inventory.pairs
+    }
+    pub fn returns(&self) -> &[WordId] {
+        &self.inventory.returns
+    }
+    pub fn memory_sites(&self) -> &[WordId] {
+        &self.inventory.memory
+    }
+    pub fn csr_sites(&self) -> &[WordId] {
+        &self.inventory.csr
+    }
+    pub fn fence_sites(&self) -> &[WordId] {
+        &self.inventory.fences
+    }
+    pub fn witness_rows(&self) -> usize {
+        self.inventory.rows
+    }
+    pub fn edge_count(&self) -> usize {
+        self.inventory.edges
+    }
+}
+/// A V3 owner never masquerades as the V2 MachineInspection/IllegalSite domain.
+pub struct V3UartMachineInspection<'a> {
+    text: TextInspection<'a>,
+    inventory: Inventory,
+    emission: V3UartEmissionView<'a>,
+    illegal: Option<V3IllegalSite<'a>>,
+}
+impl<'a> V3UartMachineInspection<'a> {
+    pub fn emission(&self) -> &V3UartEmissionView<'a> {
+        &self.emission
+    }
+    pub fn illegal_site(&self) -> Option<&V3IllegalSite<'a>> {
+        self.illegal.as_ref()
+    }
+    pub fn inventory(&self) -> MachineInventoryView<'_, 'a> {
+        MachineInventoryView {
+            text: &self.text,
+            inventory: &self.inventory,
+        }
+    }
+}
+struct InspectionParts<'a> {
+    text: TextInspection<'a>,
+    inventory: Inventory,
+    illegal: Option<illegal::InspectedSlot<'a>>,
+}
+impl<'a> InspectionParts<'a> {
+    fn into_v2(self) -> Result<MachineInspection<'a>> {
+        Ok(MachineInspection {
+            text: self.text,
+            inventory: self.inventory,
+            illegal: self
+                .illegal
+                .map(illegal::InspectedSlot::into_v2)
+                .transpose()?,
+        })
+    }
+}
+
 #[derive(Default)]
 struct Inventory {
     instructions: Vec<Instruction>,
@@ -297,18 +386,35 @@ fn transfer(
 
 /// Consumes actual M1 evidence; no caller-supplied records or file reopening.
 pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection<'a>> {
-    inspect(text, None)
+    inspect(text, None)?.into_v2()
 }
 pub fn inspect_machine_with_illegal<'a>(
     text: TextInspection<'a>,
     view: IllegalSlotEmissionView<'a>,
 ) -> Result<MachineInspection<'a>> {
-    inspect(text, Some(view))
+    inspect(text, Some(illegal::SlotView::V2(view)))?.into_v2()
+}
+/// Inventory only: the checked UART rows do not yet authorize native I/O sites.
+pub fn inspect_uart_machine_v3<'a>(
+    text: TextInspection<'a>,
+    emission: V3UartEmissionView<'a>,
+) -> Result<V3UartMachineInspection<'a>> {
+    let slot = emission.illegal_slot().map(illegal::SlotView::V3);
+    let parts = inspect(text, slot)?;
+    Ok(V3UartMachineInspection {
+        text: parts.text,
+        inventory: parts.inventory,
+        emission,
+        illegal: parts
+            .illegal
+            .map(illegal::InspectedSlot::into_v3)
+            .transpose()?,
+    })
 }
 fn inspect<'a>(
     text: TextInspection<'a>,
-    view: Option<IllegalSlotEmissionView<'a>>,
-) -> Result<MachineInspection<'a>> {
+    view: Option<illegal::SlotView<'a>>,
+) -> Result<InspectionParts<'a>> {
     let image = elf::read_structure(text.inputs()[2], ArtifactKind::Image)
         .map_err(|e| imported(e, Stage::Structure))?;
     let mut inventory = Inventory {
@@ -674,7 +780,7 @@ fn inspect<'a>(
     let illegal = illegal
         .map(|slot| slot.finish(&index, &inventory))
         .transpose()?;
-    Ok(MachineInspection {
+    Ok(InspectionParts {
         text,
         inventory,
         illegal,

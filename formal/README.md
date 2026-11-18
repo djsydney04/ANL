@@ -634,6 +634,10 @@ proves finite-prefix frame separation, byte preservation, call-depth upper bound
 aligned return and root-stack substitution from explicit local/leaf execution and
 instruction-effect contracts. It does not discharge those contracts for emitted
 RISC-V code or prove compiler, ELF, firmware or guest correspondence.
+The separate [low-byte memory algebra](PROOFS.md#conditional-native-low-byte-memory-algebra)
+in `ANL/BootNativeByteMemory.lean` proves little-endian load/store and abstract
+fact preservation under nonwrapping-span and supported-width premises. It does
+not prove the Rust UART inspection, instruction decoder or native execution.
 
 ## Boot v2 Core static checking
 
@@ -747,9 +751,12 @@ The checked reader reuses the raw decoder, then applies the V3 checker. It retur
 There is no separate V3 command-line probe or runtime runner. The V1/V2 probes
 keep their existing revisions. The production Rust interfaces are
 `boot::import_core_v3` and `boot::import_pair_v3`; their implementation is not
-certified by the Lean reader theorem. All three existing native identity APIs
+certified by the Lean reader theorem. The three older native identity APIs
 reject V3 with their typed revision-unsupported result, including programs with
-no illegal operation.
+no illegal operation. The separate
+[UART inspection APIs](../spec/boot-bundle.md#conditional-v3-uart-inspection)
+accept V3 identities for conditional leaf analysis; they add no handler or
+source-to-native correspondence theorem.
 
 The [runtime results](PROOFS.md#boot-v3-entry-local-coherence-and-conditional-capture)
 use the unchanged raw V2 transitions under V3 well-formedness. Typed start/reset,
