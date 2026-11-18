@@ -1634,9 +1634,12 @@ upper bound `max(previous, d + h)`. The bound need not be reached.
 | [BootNativeFrameComposition](ANL/BootNativeFrameComposition.lean), `call_prefix_bound`, with `callee_prefix_rebased`, `sequential_peak` | Local and leaf contracts compose at actual caller SP `E - d`, with a maximum of sequential call bounds rather than their sum. |
 | `continuation_aligned`, `return_low_bit_neutral`, `call_return_frame` | From the actual linking instruction at aligned PC `P`, the return is `P + 4`; clearing its low bit is neutral. The supplied return and ownership contracts preserve caller slots and callee-saved registers and identify the owned continuation. |
 | `root_substitution`, `terminal_requirement` | A supplied stackless root contract establishes the declared stack with arbitrary incoming SP/RA. Separately supplied hardware/language root bounds fit a shared terminal reservation exactly when their maximum fits. This does not add either terminal bound to the abandoned boot continuation. |
+| [BootNativeFrameCut](ANL/BootNativeFrameCut.lean), `linked_cut_prefix`, `nonlinking_cut_prefix` | A supplied linking or nonlinking transfer extends the actual finite run and frame prefix to the slot with an empty memory-access list, preserving caller slots and hardware state. Linking sets RA to `P + 4`; nonlinking preserves the actual incoming RA, including an earlier AUIPC result. Neither theorem executes the slot. |
+| `independent_terminal_roots` | Supplied completed hardware and language roots establish separate frame prefixes and mapped access spans under a shared reservation bounded by their maximum. No interrupted boot-frame bound is added. |
 
 `LocalPrefixContract`, `LeafContract`, `WriteSound`, `LinkSound`, `ReturnSound`
-and `RootThunkContract` are explicit hypotheses, not facts inferred from a
+and `RootThunkContract`, together with `NonlinkingSound` for a nonlinking cut,
+are explicit hypotheses, not facts inferred from a
 binary or observations. Hardware state is separate; no universal fault rollback
 is assumed. Theorems over finite prefixes do not establish termination or exact
 peak reachability. Concrete instruction semantics, decoder/control-flow analysis,
@@ -1683,8 +1686,9 @@ The fault input and event vocabulary in [BootV2FaultAPI](ANL/BootV2FaultAPI.lean
 keeps an abstract pending request distinct from a supplied forwarding response.
 Its local predicates do not establish that execution reaches a request, that a
 response arrives, that a handler runs, or that the interrupted continuation
-cannot resume. No V2 progress, fault-transition, or liveness theorem follows from
-these definitions. The V1 runtime, session, and output theorems above do not
+cannot resume. These data definitions alone supply no transition or progress
+theorem; the runtime relations below specify the separate model transitions.
+The V1 runtime, session, and output theorems above do not
 extend automatically to this V2 operation.
 
 The module inventory, all-declaration audit, exact generated-wrapper allowlist,
@@ -1697,3 +1701,57 @@ only their retained artifacts and common admission domain. Boot MIR and origin
 correspondence, linked instruction identity, native execution, firmware
 forwarding, hardware delivery, and the complete ANL-authored OS remain outside
 this static and wire gateway.
+
+## Boot v2 origins, transitions and local coherence
+
+The V2 runtime uses the actual `ANL.Boot.V2.Program`. It shares the
+program-independent ordinary-machine operations and proof machinery, without
+executing a V1 carrier program or its dummy primitive bodies. Source origins
+remain attached to the active control and continuation stack.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootV2Origin](ANL/BootV2Origin.lean), [BootV2OriginProofs](ANL/BootV2OriginProofs.lean) | Origins resolve against actual V2 defined rows, including role roots. Ordinary defined-target admission excludes role and non-defined targets; it never invokes the synthetic carrier entry. Origin-aware stepping agrees with independent action selection and application; preservation lemmas retain supplied typing and source alignment under their stated premises. |
+| [BootV2RuntimeCore](ANL/BootV2RuntimeCore.lean), [BootV2RuntimeInput](ANL/BootV2RuntimeInput.lean) | State, phases, snapshots and events; checked input agrees with independent validity. Legacy delivery and fault response are distinct inputs, and after-operation delivery for an illegal operation is rejected. |
+| [BootV2RuntimeEntry](ANL/BootV2RuntimeEntry.lean) | Raw start and reset use actual defined-row lookup. Typed entry requires V2 well-formedness, role signatures, typed arguments and the initial world; raw lookup does not enforce a signature dynamically. |
+| [BootV2RuntimeEffects](ANL/BootV2RuntimeEffects.lean), [BootV2RuntimeEffectProofs](ANL/BootV2RuntimeEffectProofs.lean) | Legacy effects retain the exact V2 operation row and signature, with typed completion and an origin-preserving ordinary return bridge. |
+| [BootV2RuntimeFrontiers](ANL/BootV2RuntimeFrontiers.lean), [BootV2RuntimeFrontierProofs](ANL/BootV2RuntimeFrontierProofs.lean) | Source-selected legacy and fault frontiers, check/predicate agreement, and distinct before, commit and raised validity. `FaultAt` omits installation, hardware validity and the counter; phase checks belong to command readiness. |
+| [BootV2RuntimeCommands](ANL/BootV2RuntimeCommands.lean), [BootV2RuntimeCommandProofs](ANL/BootV2RuntimeCommandProofs.lean), `command_iff`, `atCut_iff` | Independent `Ready` and `Cut` relations agree with command selection and delivery cuts, with unique command and deterministic cut outcomes. |
+| [BootV2RuntimeTick](ANL/BootV2RuntimeTick.lean), [BootV2RuntimeTickProofs](ANL/BootV2RuntimeTickProofs.lean), `execute_iff`, `tickRaw_iff`, `tickRaw_step_iff` | Independent `Execute`, `BootOutcome` and `BootStep` relations agree with the total functions. Outcomes are deterministic; stopped outcomes retain exactly the input state. |
+| [BootV2RuntimeFaultLaws](ANL/BootV2RuntimeFaultLaws.lean) | Legacy delivery priority before fault commit, ordinal/latest-raised discipline, exact stable blocking for a valid pending fault with no response, and the fields retained or reset by forwarding. |
+| [BootV2RuntimeCoherence](ANL/BootV2RuntimeCoherence.lean), [BootV2RuntimeMachineSafety](ANL/BootV2RuntimeMachineSafety.lean), [BootV2RuntimeInterceptionSafety](ANL/BootV2RuntimeInterceptionSafety.lean) | Independent local coherence, ordinary/legacy machine preservation, reset and fault preservation, and direct typing/alignment projections for the fields actually stored in a passive snapshot. |
+| [BootV2RuntimeLocalPreservation](ANL/BootV2RuntimeLocalPreservation.lean), `ready_execute_coherent`, `tick_preserves_coherence`, `Reachable.coherent` | All commands preserve coherence under readiness, well-formed V2 source and valid input. Exact stopped-state retention extends this to total ticks; independently defined finite reachability inherits coherence from a valid start. |
+
+Before raising, the positive request ordinal equals the current counter and the
+fault response is unused. Commit additionally requires valid hardware and an
+installed handler. Raising advances the counter to the request ordinal plus one
+and records `latestRaised`; pending validity uses that post-raise counter. A
+missing response blocks only a valid pending request. Invalid pending state is
+not hidden by the absence of a response, and no legacy delivery is consulted
+while fault-pending.
+
+Forwarding consumes the response once, saves the actual `faultPending` caller
+snapshot, and starts the hardware handler as a terminal root with empty
+continuation and resource stacks. Its arguments are `[2, fault_pc, 0]`, stored
+in reverse order in the ordinary environment. It retains the world, read cursor,
+ordinal, legacy-delivery usage, interrupt-enable register and installed handler.
+The status transformation clears SIE, sets SPP and copies the former SIE into
+SPIE. Raw reset requires only the actual defined handler row; typed forwarding
+adds well-formed-source, valid-input and initial-world premises.
+
+`Coherent` is a local predicate, independent of `Reachable`, history and tick
+outcomes. It includes active caller typing, source alignment, machine memory,
+cursor and counter bounds, role/phase consistency, and only the fields present
+in a saved snapshot. In particular, coherence of `faultCommit` does not require
+an installed handler. A coherent uninstalled `faultBefore` state may advance to
+commit and then produce `invalidState`. Preservation therefore does not imply
+command eligibility or progress, nor does a static setup prefix substitute for
+a dynamic installation proof.
+
+These results do not port the V1 one-reset handler-history or session/output
+theorems to V2. They prove neither global event-history restrictions nor eventual
+delivery, handler progress or termination. The Lean runtime is a model, not a new
+CLI execution mode. Boot MIR/origin refinement, Rust or native correspondence,
+firmware behavior and complete OS implementation remain separate obligations.
+The existing all-owned declaration audit and exact constructor-wrapper checks
+apply to these modules, with the same three allowed logical axioms.

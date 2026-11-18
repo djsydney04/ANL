@@ -294,7 +294,26 @@ run_elab do
     `ANL.BootV2Wire,
     `ANL.BootV2WireSafety,
     `ANL.BootV2WireAdmission,
-    `ANL.BootV2WireIO]
+    `ANL.BootV2WireIO,
+    `ANL.BootV2Origin,
+    `ANL.BootV2OriginProofs,
+    `ANL.BootV2RuntimeCore,
+    `ANL.BootV2RuntimeInput,
+    `ANL.BootV2RuntimeEntry,
+    `ANL.BootV2RuntimeEffects,
+    `ANL.BootV2RuntimeEffectProofs,
+    `ANL.BootV2RuntimeFrontiers,
+    `ANL.BootV2RuntimeFrontierProofs,
+    `ANL.BootV2RuntimeCommands,
+    `ANL.BootV2RuntimeCommandProofs,
+    `ANL.BootV2RuntimeTick,
+    `ANL.BootV2RuntimeTickProofs,
+    `ANL.BootV2RuntimeFaultLaws,
+    `ANL.BootV2RuntimeCoherence,
+    `ANL.BootV2RuntimeMachineSafety,
+    `ANL.BootV2RuntimeInterceptionSafety,
+    `ANL.BootV2RuntimeLocalPreservation,
+    `ANL.BootNativeFrameCut]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -395,7 +414,11 @@ run_elab do
     `ANL.Boot.NativeFrame.RootRole.ctorIdx._impl,
     `ANL.Boot.V2.Operation.ctorIdx._impl,
     `ANL.Boot.V2.Declaration.ctorIdx._impl,
-    `ANL.Boot.V2.Fault.Event.ctorIdx._impl]
+    `ANL.Boot.V2.Fault.Event.ctorIdx._impl,
+    `ANL.Boot.V2.Runtime.Phase.ctorIdx._impl,
+    `ANL.Boot.V2.Runtime.Event.ctorIdx._impl,
+    `ANL.Boot.V2.Runtime.TickResult.ctorIdx._impl,
+    `ANL.Boot.V2.Runtime.Command.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

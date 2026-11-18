@@ -9,8 +9,10 @@ use std::ops::Range;
 
 mod setup;
 pub use setup::{
-    CallUse, ConditionalSetupStackBounds, IdentityJoin, ReturningSetupLeaf, RootEntry,
-    SetupStackInspection, StackError, inspect_setup_stacks,
+    CallUse, ConditionalBootFaultPrefix, ConditionalRoleDepth, ConditionalSetupStackBounds,
+    ExceptionStackError, ExceptionStackInspection, FaultStackObservation, IdentityJoin,
+    ReturningSetupLeaf, RootEntry, SetupStackInspection, StackError,
+    inspect_exception_setup_stacks, inspect_setup_stacks,
 };
 
 pub const MAX_STATES: usize = 100_000;
@@ -27,6 +29,7 @@ pub enum Stage {
     SetupLeaf,
     SetupResume,
     SetupRoot,
+    ExceptionCut,
 }
 #[derive(Debug)]
 pub struct FrameError {
@@ -122,6 +125,15 @@ pub enum FrontierKind {
         link_register: u8,
         continuation: Option<WordId>,
         link_value: Option<u64>,
+    },
+    ArchitecturalException {
+        transfer_index: usize,
+        target: WordId,
+        link_register: u8,
+        continuation: Option<WordId>,
+        link_value: Option<u64>,
+        sp: Fact,
+        ra: Fact,
     },
     SpOutsideDomain {
         value: Fact,
@@ -625,6 +637,10 @@ enum Policy<'p> {
     Local,
     Leaf(&'p setup::LeafRule),
     Role(&'p [setup::ReturningSetupLeaf]),
+    ExceptionRole {
+        leaves: &'p [setup::ReturningSetupLeaf],
+        slot: WordId,
+    },
 }
 #[allow(clippy::large_enum_variant)]
 enum Step {
@@ -650,13 +666,41 @@ fn step(
     let decoded = ordinary(instruction, stage)?;
     let links = graph.links[instruction.id];
     if let Some(id) = links.transfer {
-        if let Policy::Role(leaves) = policy
+        let transfer = machine.transfers()[id];
+        if let Policy::ExceptionRole { slot, .. } = policy
+            && transfer.target == slot
+        {
+            let link_value =
+                if transfer.link_register == 0 {
+                    None
+                } else {
+                    Some(instruction.pc.checked_add(4).ok_or_else(|| {
+                        invariant(Stage::ExceptionCut, "exception link PC overflows")
+                    })?)
+                };
+            return Ok(Step::Frontier(
+                FrontierKind::ArchitecturalException {
+                    transfer_index: id,
+                    target: slot,
+                    link_register: transfer.link_register,
+                    continuation: links.continuation,
+                    link_value,
+                    sp: state.registers[2],
+                    ra: link_value.map_or(state.registers[1], Fact::Const),
+                },
+                None,
+            ));
+        }
+        let leaves = match policy {
+            Policy::Role(leaves) | Policy::ExceptionRole { leaves, .. } => Some(leaves),
+            _ => None,
+        };
+        if let Some(leaves) = leaves
             && let Some(resumed) =
                 setup::resume(machine, graph, instruction, state, budget, stage, leaves)?
         {
             return Ok(resumed);
         }
-        let transfer = machine.transfers()[id];
         let link_value = if transfer.link_register == 0 {
             None
         } else {
@@ -680,7 +724,7 @@ fn step(
     }
     if links.returns {
         let mut evidence = return_evidence(instruction.id, state);
-        if matches!(policy, Policy::Role(_)) {
+        if matches!(policy, Policy::Role(_) | Policy::ExceptionRole { .. }) {
             // A root begins with arbitrary RA, never an ordinary aligned return premise.
             evidence.established = false;
         }
@@ -1046,6 +1090,9 @@ impl<'m, 'a> Engine<'m, 'a> {
         Ok(())
     }
     fn into_data(self) -> Result<FrameData> {
+        self.into_data_and_budget().map(|(data, _)| data)
+    }
+    fn into_data_and_budget(self) -> Result<(FrameData, Budget)> {
         let Self {
             machine,
             mut budget,
@@ -1077,15 +1124,18 @@ impl<'m, 'a> Engine<'m, 'a> {
             charged_rows: budget.rows,
         };
 
-        Ok(FrameData {
-            states,
-            contributions,
-            frontiers,
-            memory,
-            returns,
-            counters,
-            calls,
-        })
+        Ok((
+            FrameData {
+                states,
+                contributions,
+                frontiers,
+                memory,
+                returns,
+                counters,
+                calls,
+            },
+            budget,
+        ))
     }
 }
 fn budget(machine: &MachineInspection<'_>) -> Budget {

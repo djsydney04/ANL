@@ -2,8 +2,13 @@
 //! All conclusions remain conditional on the documented native refinement premises.
 use super::*;
 use crate::machine::decode::CsrSource;
+use crate::machine::text::TextInspection;
 use crate::machine::text::elf::{self, ArtifactKind};
-use anl::boot::{Bundle, SetupEmissionView, SetupOperation, SetupRole};
+use crate::machine::{MachineError, inspect_machine_with_illegal};
+use anl::boot::{
+    Bundle, ExceptionSetupEmissionView, ExceptionSetupUnsupported, IllegalSlotUnsupported,
+    SetupAbi, SetupEmissionView, SetupFunction, SetupOperation, SetupPrimitive, SetupRole,
+};
 
 pub type StackError = FrameError;
 
@@ -167,6 +172,250 @@ impl<'b, 'a> SetupStackInspection<'b, 'a> {
     }
 }
 
+#[derive(Debug)]
+pub enum ExceptionStackError {
+    Projection(ExceptionSetupUnsupported),
+    Machine(MachineError),
+    Frame(FrameError),
+}
+impl ExceptionStackError {
+    pub fn class(&self) -> ErrorClass {
+        match self {
+            Self::Projection(_) => ErrorClass::Unsupported,
+            Self::Machine(e) => e.class,
+            Self::Frame(e) => e.class,
+        }
+    }
+}
+impl From<FrameError> for ExceptionStackError {
+    fn from(e: FrameError) -> Self {
+        Self::Frame(e)
+    }
+}
+
+pub struct FaultStackObservation {
+    caller: WordId,
+    contribution: ContributionId,
+    slot: WordId,
+    slot_pc: u64,
+    primitive: usize,
+    transfer: usize,
+    pair: Option<usize>,
+    continuation: Option<WordId>,
+    link_register: u8,
+    link_value: Option<u64>,
+    sp: Fact,
+    ra: Fact,
+    live: Option<(u64, u64)>,
+}
+impl FaultStackObservation {
+    pub fn role(&self) -> SetupRole {
+        SetupRole::Boot
+    }
+    pub fn caller(&self) -> WordId {
+        self.caller
+    }
+    pub fn contribution(&self) -> ContributionId {
+        self.contribution
+    }
+    pub fn slot(&self) -> WordId {
+        self.slot
+    }
+    pub fn slot_pc(&self) -> u64 {
+        self.slot_pc
+    }
+    pub fn primitive(&self) -> usize {
+        self.primitive
+    }
+    pub fn transfer(&self) -> usize {
+        self.transfer
+    }
+    pub fn pair(&self) -> Option<usize> {
+        self.pair
+    }
+    pub fn continuation(&self) -> Option<WordId> {
+        self.continuation
+    }
+    pub fn link_register(&self) -> u8 {
+        self.link_register
+    }
+    pub fn link_value(&self) -> Option<u64> {
+        self.link_value
+    }
+    pub fn sp(&self) -> Fact {
+        self.sp
+    }
+    pub fn ra(&self) -> Fact {
+        self.ra
+    }
+    pub fn live_depth(&self) -> Option<u64> {
+        self.live.map(|v| v.0)
+    }
+    pub fn absolute_sp(&self) -> Option<u64> {
+        self.live.map(|v| v.1)
+    }
+}
+pub struct ConditionalBootFaultPrefix {
+    reservation: Range<u64>,
+    peak: u64,
+    faults: Vec<usize>,
+}
+impl ConditionalBootFaultPrefix {
+    pub fn reservation(&self) -> Range<u64> {
+        self.reservation.clone()
+    }
+    pub fn entry_top(&self) -> u64 {
+        self.reservation.end
+    }
+    pub fn peak(&self) -> u64 {
+        self.peak
+    }
+    pub fn fault_indices(&self) -> &[usize] {
+        &self.faults
+    }
+    pub fn premise_profile(&self) -> &'static str {
+        "exception_setup_normal_prefix_refinement"
+    }
+}
+pub struct ConditionalRoleDepth {
+    role: SetupRole,
+    reservation: Range<u64>,
+    peak: u64,
+}
+impl ConditionalRoleDepth {
+    pub fn role(&self) -> SetupRole {
+        self.role
+    }
+    pub fn reservation(&self) -> Range<u64> {
+        self.reservation.clone()
+    }
+    pub fn entry_top(&self) -> u64 {
+        self.reservation.end
+    }
+    pub fn peak(&self) -> u64 {
+        self.peak
+    }
+    pub fn premise_profile(&self) -> &'static str {
+        "exception_setup_normal_prefix_refinement"
+    }
+}
+pub struct ExceptionStackInspection<'a> {
+    emission: ExceptionSetupEmissionView<'a>,
+    machine: MachineInspection<'a>,
+    joins: Vec<IdentityJoin>,
+    leaves: Vec<ReturningSetupLeaf>,
+    roots: Vec<RootEntry>,
+    data: FrameData,
+    faults: Vec<FaultStackObservation>,
+    boot_prefix: Option<ConditionalBootFaultPrefix>,
+    terminal: [Option<ConditionalRoleDepth>; 2],
+}
+impl<'a> ExceptionStackInspection<'a> {
+    pub fn emission(&self) -> &ExceptionSetupEmissionView<'a> {
+        &self.emission
+    }
+    pub fn machine(&self) -> &MachineInspection<'a> {
+        &self.machine
+    }
+    pub fn joins(&self) -> &[IdentityJoin] {
+        &self.joins
+    }
+    pub fn leaves(&self) -> &[ReturningSetupLeaf] {
+        &self.leaves
+    }
+    pub fn roots(&self) -> &[RootEntry] {
+        &self.roots
+    }
+    pub fn state(&self, word: WordId) -> Option<&State> {
+        self.data.states.get(word).and_then(Option::as_deref)
+    }
+    pub fn contributions(&self) -> &[ContributionFrames] {
+        &self.data.contributions
+    }
+    pub fn frontiers(&self) -> &[Frontier] {
+        &self.data.frontiers
+    }
+    pub fn memory(&self) -> &[MemoryObservation] {
+        &self.data.memory
+    }
+    pub fn returns(&self) -> &[ReturnEvidence] {
+        &self.data.returns
+    }
+    pub fn calls(&self) -> &[CallUse] {
+        &self.data.calls
+    }
+    pub fn counters(&self) -> Counters {
+        self.data.counters
+    }
+    pub fn faults(&self) -> &[FaultStackObservation] {
+        &self.faults
+    }
+    pub fn boot_prefix(&self) -> Option<&ConditionalBootFaultPrefix> {
+        self.boot_prefix.as_ref()
+    }
+    pub fn hardware_bound(&self) -> Option<&ConditionalRoleDepth> {
+        self.terminal[0].as_ref()
+    }
+    pub fn language_bound(&self) -> Option<&ConditionalRoleDepth> {
+        self.terminal[1].as_ref()
+    }
+    pub fn terminal_bound(&self) -> Option<u128> {
+        Some(u128::from(
+            self.hardware_bound()?.peak.max(self.language_bound()?.peak),
+        ))
+    }
+    pub fn native_admitted(&self) -> bool {
+        false
+    }
+    pub fn formal_native_correspondence(&self) -> bool {
+        false
+    }
+    pub fn source_correspondence_established(&self) -> bool {
+        false
+    }
+    pub fn stack_metadata_agreement(&self) -> bool {
+        false
+    }
+    pub fn firmware_forwarding_established(&self) -> bool {
+        false
+    }
+}
+
+#[derive(Clone, Copy)]
+enum IdentityView<'v, 'a> {
+    V1(&'v SetupEmissionView<'a>),
+    V2(&'v ExceptionSetupEmissionView<'a>),
+}
+impl IdentityView<'_, '_> {
+    fn functions(&self) -> &[SetupFunction; 3] {
+        match self {
+            Self::V1(v) => v.functions(),
+            Self::V2(v) => v.functions(),
+        }
+    }
+    fn primitives(&self) -> &[SetupPrimitive] {
+        match self {
+            Self::V1(v) => v.primitives(),
+            Self::V2(v) => v.setup_primitives(),
+        }
+    }
+    fn abi(&self) -> &[SetupAbi; 3] {
+        match self {
+            Self::V1(v) => v.abi(),
+            Self::V2(v) => v.abi(),
+        }
+    }
+    fn helper_count(&self) -> usize {
+        match self {
+            Self::V1(v) => v.helper_count(),
+            Self::V2(v) => v.helper_count(),
+        }
+    }
+    fn exception(&self) -> bool {
+        matches!(self, Self::V2(_))
+    }
+}
+
 fn fail(
     class: ErrorClass,
     stage: Stage,
@@ -296,9 +545,10 @@ struct Bound {
     joins: Vec<IdentityJoin>,
     roles: [ContributionId; 3],
     thunks: [ContributionId; 3],
+    slot: Option<WordId>,
 }
 fn bind(
-    view: &SetupEmissionView<'_>,
+    view: IdentityView<'_, '_>,
     machine: &MachineInspection<'_>,
     budget: &mut Budget,
 ) -> Result<Bound> {
@@ -371,6 +621,25 @@ fn bind(
             budget,
         )?;
     }
+    let slot = if view.exception() {
+        let site = machine.illegal_site().ok_or_else(|| {
+            invariant(Stage::SetupBind, "V2 setup context lacks its illegal site")
+        })?;
+        budget
+            .evaluation(Stage::SetupBind)
+            .map_err(|e| located(e, Site::of(machine.instructions()[site.word()])))?;
+        require(
+            !joins.iter().any(|r| r.contribution == site.contribution()),
+            Stage::SetupBind,
+            "illegal slot shares another typed identity",
+            machine,
+            site.word(),
+        )?;
+        charge(budget, Stage::SetupBind, machine, site.word())?;
+        Some(site.word())
+    } else {
+        None
+    };
     // Complete privileged-site ownership precedes every coverage7 shape/alias result.
     let mut counts = [0_usize; 9];
     for &word in machine.csr_sites() {
@@ -472,6 +741,57 @@ fn bind(
     }
     for transfer in machine.transfers() {
         let caller = machine.instructions()[transfer.source].contribution;
+        if let Some(slot) = slot {
+            budget
+                .evaluation(Stage::SetupBind)
+                .map_err(|e| located(e, Site::of(machine.instructions()[transfer.source])))?;
+            let caller_row = joins.iter().find(|r| r.contribution == caller);
+            let target = joins
+                .iter()
+                .find(|r| r.contribution == transfer.target_contribution);
+            let privileged =
+                transfer.target == slot || target.is_some_and(|r| r.primitive.is_some());
+            if privileged {
+                require(
+                    caller_row.is_some_and(|r| r.role == Some(SetupRole::Boot) && !r.entry_thunk)
+                        && view
+                            .functions()
+                            .iter()
+                            .any(|f| f.role() == SetupRole::Boot && f.effects().contains(&0))
+                        && transfer.target
+                            == contribution_words(machine, transfer.target_contribution).start,
+                    Stage::SetupBind,
+                    "transfer lacks typed boot authority for setup or illegal slot",
+                    machine,
+                    transfer.source,
+                )?;
+            } else if let Some(row) = caller_row {
+                if row.entry_thunk {
+                    let role = row
+                        .role
+                        .ok_or_else(|| invariant(Stage::SetupBind, "thunk role missing"))?;
+                    require(
+                        transfer.link_register == 0
+                            && transfer.target_contribution == roles[role_index(role)]
+                            && transfer.target
+                                == contribution_words(machine, transfer.target_contribution).start,
+                        Stage::SetupBind,
+                        "root thunk transfers outside its nonlinking typed role entry",
+                        machine,
+                        transfer.source,
+                    )?;
+                } else {
+                    require(
+                        target.is_none(),
+                        Stage::SetupBind,
+                        "role or setup leaf transfers to another role or root thunk",
+                        machine,
+                        transfer.source,
+                    )?;
+                }
+            }
+            continue;
+        }
         let Some(caller_row) = joins.iter().find(|r| r.contribution == caller) else {
             continue;
         };
@@ -512,9 +832,10 @@ fn bind(
             ));
         }
     }
-    if joins.len() != machine.text().contributions().len() {
+    let slot_contribution = slot.map(|w| machine.instructions()[w].contribution);
+    if joins.len() + usize::from(slot.is_some()) != machine.text().contributions().len() {
         let c = (0..machine.text().contributions().len())
-            .find(|c| !joins.iter().any(|r| r.contribution == *c))
+            .find(|c| Some(*c) != slot_contribution && !joins.iter().any(|r| r.contribution == *c))
             .ok_or_else(|| {
                 fail(
                     ErrorClass::Infrastructure,
@@ -535,6 +856,7 @@ fn bind(
         joins,
         roles,
         thunks,
+        slot,
     })
 }
 
@@ -1106,27 +1428,23 @@ fn root_entry(
     })
 }
 
-pub fn inspect_setup_stacks<'b, 'a>(
-    bundle: &'b Bundle,
-    machine: MachineInspection<'a>,
-) -> Result<SetupStackInspection<'b, 'a>> {
-    require_ordinary(&machine, Stage::SetupBind)?;
-    let emission = bundle.setup_identity().map_err(|_| {
-        error(
-            ErrorClass::Unsupported,
-            Stage::SetupBind,
-            "bundle is outside the setup-only emission profile",
-        )
-    })?;
-    let mut budget = budget(&machine);
-    let bound = bind(&emission, &machine, &mut budget)?;
-    let stacks = stack_ranges(&machine)?;
-    let mut engine = Engine::new(&machine, budget)?;
+struct PreparedSetup<'m, 'a> {
+    engine: Engine<'m, 'a>,
+    roots: Vec<RootEntry>,
+    leaves: Vec<ReturningSetupLeaf>,
+}
+fn prepare_setup<'m, 'a>(
+    machine: &'m MachineInspection<'a>,
+    budget: Budget,
+    bound: &Bound,
+    stacks: &[Range<u64>; 2],
+) -> Result<PreparedSetup<'m, 'a>> {
+    let mut engine = Engine::new(machine, budget)?;
     let mut roots = Vec::new();
     for role in [SetupRole::Boot, SetupRole::Hardware, SetupRole::Language] {
         let i = role_index(role);
         roots.push(root_entry(
-            &machine,
+            machine,
             &engine.graph,
             role,
             bound.thunks[i],
@@ -1147,7 +1465,7 @@ pub fn inspect_setup_stacks<'b, 'a>(
             continue;
         };
         let rule = leaf_rule(
-            &machine,
+            machine,
             &engine.graph,
             row,
             hardware_entry,
@@ -1159,7 +1477,7 @@ pub fn inspect_setup_stacks<'b, 'a>(
             .contributions
             .last()
             .ok_or_else(|| invariant(Stage::SetupLeaf, "missing completed setup leaf"))?;
-        let range = contribution_words(&machine, contribution);
+        let range = contribution_words(machine, contribution);
         let Some(summary) = frame.local_return_summary() else {
             let word = engine
                 .frontiers
@@ -1169,7 +1487,7 @@ pub fn inspect_setup_stacks<'b, 'a>(
             return Err(unsupported(
                 Stage::SetupLeaf,
                 "setup leaf frame/ordinary return is not established",
-                &machine,
+                machine,
                 word,
             ));
         };
@@ -1177,13 +1495,13 @@ pub fn inspect_setup_stacks<'b, 'a>(
             return Err(unsupported(
                 Stage::SetupLeaf,
                 "setup leaf does not cover its complete body and single return",
-                &machine,
+                machine,
                 range.start,
             ));
         }
         let depth = summary.local_depth_bound();
         let return_word = engine.returns[frame.return_indices.start].word;
-        charge(&mut engine.budget, Stage::SetupLeaf, &machine, range.start)?;
+        charge(&mut engine.budget, Stage::SetupLeaf, machine, range.start)?;
         leaves.push(ReturningSetupLeaf {
             contribution,
             operation: rule.operation,
@@ -1192,6 +1510,89 @@ pub fn inspect_setup_stacks<'b, 'a>(
             depth,
         });
     }
+    Ok(PreparedSetup {
+        engine,
+        roots,
+        leaves,
+    })
+}
+
+fn root_peak(
+    machine: &MachineInspection<'_>,
+    data: &FrameData,
+    root: &RootEntry,
+    mut extra: Option<&mut Budget>,
+) -> Result<u64> {
+    let capacity = u128::from(root.stack.end) - u128::from(root.stack.start);
+    let mut peak = 0_u128;
+    // Only final-rooted retained states/calls can demonstrate a capacity contradiction.
+    // Partial coverage does not erase a known earlier violation.
+    for instruction in machine
+        .instructions()
+        .iter()
+        .filter(|w| w.contribution == root.target)
+    {
+        if let Some(budget) = extra.as_deref_mut() {
+            budget
+                .evaluation(Stage::SetupRoot)
+                .map_err(|e| located(e, Site::of(*instruction)))?;
+        }
+        if let Some(state) = data.states[instruction.id].as_deref()
+            && let Fact::EntrySpPlus(offset) = state.registers[2]
+            && offset <= 0
+        {
+            let depth = (-i128::from(offset)) as u128;
+            require(
+                depth <= capacity && depth <= u128::from(root.stack.end),
+                Stage::SetupRoot,
+                "root stack bound exceeds its actual reservation or wraps",
+                machine,
+                instruction.id,
+            )?;
+            peak = peak.max(depth);
+        }
+    }
+    for call in &data.calls {
+        if let Some(budget) = extra.as_deref_mut() {
+            budget
+                .evaluation(Stage::SetupRoot)
+                .map_err(|e| located(e, Site::of(machine.instructions()[call.caller])))?;
+        }
+        if machine.instructions()[call.caller].contribution == root.target {
+            require(
+                call.combined_depth <= capacity
+                    && call.combined_depth <= u128::from(root.stack.end),
+                Stage::SetupRoot,
+                "root call stack bound exceeds its actual reservation or wraps",
+                machine,
+                call.caller,
+            )?;
+            peak = peak.max(call.combined_depth);
+        }
+    }
+    u64::try_from(peak).map_err(|_| invariant(Stage::SetupRoot, "bounded root peak cannot narrow"))
+}
+
+pub fn inspect_setup_stacks<'b, 'a>(
+    bundle: &'b Bundle,
+    machine: MachineInspection<'a>,
+) -> Result<SetupStackInspection<'b, 'a>> {
+    require_ordinary(&machine, Stage::SetupBind)?;
+    let emission = bundle.setup_identity().map_err(|_| {
+        error(
+            ErrorClass::Unsupported,
+            Stage::SetupBind,
+            "bundle is outside the setup-only emission profile",
+        )
+    })?;
+    let mut budget = budget(&machine);
+    let bound = bind(IdentityView::V1(&emission), &machine, &mut budget)?;
+    let stacks = stack_ranges(&machine)?;
+    let PreparedSetup {
+        mut engine,
+        roots,
+        leaves,
+    } = prepare_setup(&machine, budget, &bound, &stacks)?;
     for contribution in bound.roles {
         engine.worklist(contribution, Policy::Role(&leaves))?;
         engine.finish(contribution, Policy::Role(&leaves))?;
@@ -1205,48 +1606,11 @@ pub fn inspect_setup_stacks<'b, 'a>(
             .iter()
             .find(|f| f.contribution == root.target)
             .ok_or_else(|| invariant(Stage::SetupRoot, "missing completed root body"))?;
-        let capacity = u128::from(root.stack.end) - u128::from(root.stack.start);
-        let mut peak = 0_u128;
-        // Only final-rooted retained states/calls can demonstrate a capacity contradiction.
-        // Partial coverage does not erase a known earlier violation.
-        for instruction in machine
-            .instructions()
-            .iter()
-            .filter(|w| w.contribution == root.target)
-        {
-            if let Some(state) = data.states[instruction.id].as_deref()
-                && let Fact::EntrySpPlus(offset) = state.registers[2]
-                && offset <= 0
-            {
-                let depth = (-i128::from(offset)) as u128;
-                require(
-                    depth <= capacity && depth <= u128::from(root.stack.end),
-                    Stage::SetupRoot,
-                    "root stack bound exceeds its actual reservation or wraps",
-                    &machine,
-                    instruction.id,
-                )?;
-                peak = peak.max(depth);
-            }
-        }
-        for call in &data.calls {
-            if machine.instructions()[call.caller].contribution == root.target {
-                require(
-                    call.combined_depth <= capacity
-                        && call.combined_depth <= u128::from(root.stack.end),
-                    Stage::SetupRoot,
-                    "root call stack bound exceeds its actual reservation or wraps",
-                    &machine,
-                    call.caller,
-                )?;
-                peak = peak.max(call.combined_depth);
-            }
-        }
+        let peak = root_peak(&machine, &data, root, None)?;
         if frame.local_depth_bound().is_none() {
             complete = false;
         }
-        peaks[role_index(root.role)] = u64::try_from(peak)
-            .map_err(|_| invariant(Stage::SetupRoot, "bounded root peak cannot narrow"))?;
+        peaks[role_index(root.role)] = peak;
     }
     let bounds = complete.then(|| ConditionalSetupStackBounds {
         boot: peaks[0],
@@ -1262,5 +1626,222 @@ pub fn inspect_setup_stacks<'b, 'a>(
         roots,
         data,
         bounds,
+    })
+}
+
+pub fn inspect_exception_setup_stacks<'a>(
+    bundle: &'a Bundle,
+    text: TextInspection<'a>,
+) -> std::result::Result<ExceptionStackInspection<'a>, ExceptionStackError> {
+    let emission = bundle
+        .exception_setup_identity()
+        .map_err(ExceptionStackError::Projection)?;
+    let illegal = bundle
+        .illegal_slot_identity()
+        .map_err(|e| {
+            ExceptionStackError::Projection(match e {
+                IllegalSlotUnsupported::Revision { profile } => {
+                    ExceptionSetupUnsupported::Revision { profile }
+                }
+            })
+        })?
+        .ok_or(ExceptionStackError::Projection(
+            ExceptionSetupUnsupported::MissingIllegalSlot,
+        ))?;
+    let held = emission.illegal_slot();
+    if illegal.primitive() != held.primitive()
+        || illegal.symbol() != held.symbol()
+        || illegal.assembly_range() != held.assembly_range()
+    {
+        return Err(invariant(Stage::SetupBind, "held V2 views disagree").into());
+    }
+    let machine =
+        inspect_machine_with_illegal(text, illegal).map_err(ExceptionStackError::Machine)?;
+    let mut budget = budget(&machine);
+    let bound = bind(IdentityView::V2(&emission), &machine, &mut budget)?;
+    let slot = bound
+        .slot
+        .ok_or_else(|| invariant(Stage::SetupBind, "bound V2 slot is missing"))?;
+    let stacks = stack_ranges(&machine)?;
+    let PreparedSetup {
+        mut engine,
+        roots,
+        leaves,
+    } = prepare_setup(&machine, budget, &bound, &stacks)?;
+    for role in [SetupRole::Boot, SetupRole::Hardware, SetupRole::Language] {
+        let contribution = bound.roles[role_index(role)];
+        let policy = if role == SetupRole::Boot {
+            Policy::ExceptionRole {
+                leaves: &leaves,
+                slot,
+            }
+        } else {
+            Policy::Role(&leaves)
+        };
+        engine.worklist(contribution, policy)?;
+        engine.finish(contribution, policy)?;
+    }
+    let (mut data, mut budget) = engine.into_data_and_budget()?;
+    let mut peaks = [0_u64; 3];
+    // Capacity contradictions survive incomplete coverage; provisional states do not.
+    for root in &roots {
+        peaks[role_index(root.role)] = root_peak(&machine, &data, root, Some(&mut budget))?;
+    }
+    let boot = roots
+        .iter()
+        .find(|r| r.role == SetupRole::Boot)
+        .ok_or_else(|| invariant(Stage::SetupRoot, "boot root is missing"))?;
+    let site = machine
+        .illegal_site()
+        .ok_or_else(|| invariant(Stage::ExceptionCut, "contextual illegal site is missing"))?;
+    let mut faults = Vec::new();
+    let mut boot_only_cuts = true;
+    let mut known_fault_depths = true;
+    for frontier in &data.frontiers {
+        let instruction = machine.instructions()[frontier.word];
+        budget
+            .evaluation(Stage::FinalGraph)
+            .map_err(|e| located(e, Site::of(instruction)))?;
+        let FrontierKind::ArchitecturalException {
+            transfer_index,
+            target,
+            link_register,
+            continuation,
+            link_value,
+            sp,
+            ra,
+        } = frontier.kind
+        else {
+            if instruction.contribution == boot.target {
+                boot_only_cuts = false;
+            }
+            continue;
+        };
+        require(
+            instruction.contribution == boot.target && target == site.word(),
+            Stage::ExceptionCut,
+            "exception cut is outside its typed boot/slot identity",
+            &machine,
+            frontier.word,
+        )?;
+        let state = data.states[frontier.word].as_deref().ok_or_else(|| {
+            fail(
+                ErrorClass::Infrastructure,
+                Stage::ExceptionCut,
+                "exception cut lacks its retained caller state",
+                &machine,
+                Some(frontier.word),
+            )
+        })?;
+        let transfer = machine.transfers()[transfer_index];
+        require(
+            transfer.source == frontier.word
+                && transfer.target == target
+                && transfer.link_register == link_register
+                && sp == state.registers[2]
+                && ra == link_value.map_or(state.registers[1], Fact::Const),
+            Stage::ExceptionCut,
+            "exception cut lost its caller transfer state",
+            &machine,
+            frontier.word,
+        )?;
+        let live = match sp {
+            Fact::EntrySpPlus(offset) if offset <= 0 && offset % 16 == 0 => {
+                let depth = (-i128::from(offset)) as u64;
+                let absolute = boot.stack.end.checked_sub(depth).ok_or_else(|| {
+                    fail(
+                        ErrorClass::Infrastructure,
+                        Stage::ExceptionCut,
+                        "exception caller SP wraps",
+                        &machine,
+                        Some(frontier.word),
+                    )
+                })?;
+                Some((depth, absolute))
+            }
+            _ => None,
+        };
+        known_fault_depths &= live.is_some();
+        charge(&mut budget, Stage::FinalGraph, &machine, frontier.word)?;
+        faults.push(FaultStackObservation {
+            caller: frontier.word,
+            contribution: instruction.contribution,
+            slot: target,
+            slot_pc: site.pc(),
+            primitive: site.emission().primitive(),
+            transfer: transfer_index,
+            pair: transfer.pair,
+            continuation,
+            link_register,
+            link_value,
+            sp,
+            ra,
+            live,
+        });
+    }
+    let boot_frame = data
+        .contributions
+        .iter()
+        .find(|f| f.contribution == boot.target)
+        .ok_or_else(|| invariant(Stage::SetupRoot, "completed boot frame is missing"))?;
+    let boot_prefix = if !faults.is_empty()
+        && boot_only_cuts
+        && known_fault_depths
+        && boot_frame.covered_prefix_depth.is_some()
+        && boot_frame.return_indices.is_empty()
+    {
+        let mut indices = Vec::new();
+        for (index, fault) in faults.iter().enumerate() {
+            charge(&mut budget, Stage::FinalGraph, &machine, fault.caller)?;
+            indices.push(index);
+        }
+        charge(
+            &mut budget,
+            Stage::FinalGraph,
+            &machine,
+            contribution_words(&machine, boot.target).start,
+        )?;
+        Some(ConditionalBootFaultPrefix {
+            reservation: boot.stack.clone(),
+            peak: peaks[0],
+            faults: indices,
+        })
+    } else {
+        None
+    };
+    let mut terminal = [None, None];
+    for root in roots.iter().filter(|r| r.role != SetupRole::Boot) {
+        let frame = data
+            .contributions
+            .iter()
+            .find(|f| f.contribution == root.target)
+            .ok_or_else(|| invariant(Stage::SetupRoot, "completed terminal frame is missing"))?;
+        if frame.local_depth_bound().is_some() {
+            charge(
+                &mut budget,
+                Stage::FinalGraph,
+                &machine,
+                contribution_words(&machine, root.target).start,
+            )?;
+            let index = role_index(root.role);
+            terminal[index - 1] = Some(ConditionalRoleDepth {
+                role: root.role,
+                reservation: root.stack.clone(),
+                peak: peaks[index],
+            });
+        }
+    }
+    data.counters.transfer_evaluations = budget.evaluations;
+    data.counters.charged_rows = budget.rows;
+    Ok(ExceptionStackInspection {
+        emission,
+        machine,
+        joins: bound.joins,
+        leaves,
+        roots,
+        data,
+        faults,
+        boot_prefix,
+        terminal,
     })
 }

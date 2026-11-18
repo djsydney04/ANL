@@ -106,9 +106,50 @@ acceptance guarantees. It does not independently validate boot MIR.
 
 The formal static model checks the new declaration, authority, discovery and
 ordinary typing rules. Its fault data predicates cover slot bounds, input
-presence, fixed payload fields and status-bit calculations. These results do
-not establish an executable fault transition system, source-to-native
-correspondence, firmware correctness or a complete operating system.
+presence, fixed payload fields and status-bit calculations. The separate
+[runtime model](../formal/PROOFS.md#boot-v2-origins-transitions-and-local-coherence)
+defines executable abstract transitions and their independent relational
+specifications. It adds no CLI execution route or source-to-native proof.
+
+## Formal runtime contract
+
+The runtime retains the actual V2 program and source origins. Ordinary calls
+cannot delegate primitive, role, synthetic or missing targets to the shared
+ordinary machine. Raw handler entry requires a defined declaration; its typed
+entry theorem separately requires well-formed V2 source, correctly typed
+arguments and the initial world. Raw lookup alone does not recheck a signature.
+
+The environment separates legacy delivery `D` from fault forwarding `F`.
+Fault capture records the actual caller and a positive occurrence ordinal.
+At `faultBefore`, a matching `D` is considered before advancing to commit.
+Commit requires valid hardware and an installed handler; raising then records
+the request, increments the ordinal and enters `faultPending`. No legacy
+after-operation delivery is admitted for the illegal operation.
+
+A valid pending request without `F` produces `blockedForwarding` with exactly
+the same state. Malformed pending states instead produce `invalidState`.
+Forwarding consumes `F`, saves the actual pending snapshot, and enters the
+declared hardware handler with arguments `[2, fault_pc, 0]`. The ordinary-machine
+environment stores those arguments in reverse order. The new terminal root has
+empty continuation and resource stacks. The world, read cursor, ordinal, prior
+legacy-delivery consumption, interrupt-enable register and installed handler are
+retained. The status update clears SIE, copies its former value into SPIE and
+sets SPP. This transition neither consults `D` nor resumes the saved caller PC.
+
+Local coherence is preserved under explicit well-formed-program and valid-input
+premises. It includes active typing, source alignment, memory, phase and stored
+snapshot fields. It is weaker than execution eligibility: a coherent uninstalled
+`faultBefore` state may advance to coherent `faultCommit`, where the next tick
+is `invalidState`. The model does not infer dynamic handler installation merely
+from the static setup prefix. Snapshot coherence does not assert event-history
+provenance for fields that the snapshot does not store.
+
+The separate conditional frame algebra covers transfers to a slot and the
+maximum reservation for independent hardware and language terminal roots. Its
+step, frame and root contracts remain assumptions; it does not execute the slot
+or prove a Rust checker or RISC-V instruction implementation. Neither this
+algebra nor local runtime preservation establishes global event histories,
+progress, firmware forwarding, source-to-native correspondence or a complete OS.
 
 ANL remains the authored language for boot policy and handlers. Compiler-generated
 ABI adaptation and instruction templates are compiler mechanisms. They do not

@@ -675,9 +675,39 @@ canonical primitive discovery, and the complete acyclic call graph. The new
 machine authority zero. Only the boot entry may call it after the setup prefix.
 Its presence does not skip later typing or permit a handler or dead helper call.
 
-The [V2 proof scope](PROOFS.md#boot-v2-static-model-and-core-reader) covers decoded
-static acceptance and local fault-data predicates. It does not execute an
-exception, establish firmware forwarding, or extend the V1 runtime and session
-theorems to V2. JSON parsing, compiled IO, source translation, boot MIR and
-origin correspondence, native behavior, and the complete ANL-authored OS remain
-separate boundaries.
+The [static V2 proof scope](PROOFS.md#boot-v2-static-model-and-core-reader) covers
+decoded acceptance and local fault-data predicates. The probe remains a static
+checker; it does not run the runtime model below. JSON parsing, compiled IO,
+source translation, boot MIR and origin correspondence, native behavior, and
+the complete ANL-authored OS remain separate boundaries.
+
+## Boot v2 local runtime model
+
+The [runtime proofs](PROOFS.md#boot-v2-origins-transitions-and-local-coherence)
+operate directly on the V2 program, its ordinary-machine state and source
+origins. Independent `Ready`, `Execute`, `BootOutcome` and `BootStep` relations
+agree with command selection and the total `tickRaw` function. A validated-input
+wrapper exposes `tick`; neither function adds a boot execution route to the CLI.
+
+Illegal-instruction capture, raising and externally supplied forwarding are
+separate transitions. A matching legacy delivery has priority before fault
+commit. A valid pending fault with no forwarding response is stable and blocked;
+an invalid pending state is rejected. Forwarding starts the declared hardware
+handler with fresh terminal-root continuations, saving the actual pending caller
+snapshot instead of resuming it.
+
+The local `Coherent` predicate covers active typing, origins, machine memory,
+input cursor, ordinal, stack role, phase and the fields stored in an interrupted
+snapshot. Well-formed V2 source and valid input are explicit premises of its
+preservation theorem. Coherence does not imply that the next command is eligible:
+an uninstalled fault may advance to commit and then report `invalidState`.
+The finite `Reachable.coherent` corollary does not establish progress, forwarding
+availability or a global event-history theorem.
+
+These modules are included in the existing `formal/check.sh` inventory, complete
+axiom audit and separate-module kernel replay. The separate
+[transfer-cut proofs](PROOFS.md#conditional-native-call-frame-algebra) preserve a
+supplied frame prefix through a linked or nonlinking transfer to a slot and bound
+two independent terminal roots by their maximum. They assume the concrete-step
+and root contracts; they do not prove Rust analysis, instruction decoding,
+exception delivery or source-to-native correspondence.

@@ -4,7 +4,9 @@
 pub use anl_native_machine as machine;
 pub mod frames;
 pub use frames::{
-    FrameError, LocalFrameInspection, SetupStackInspection, StackError, inspect_local_frames,
+    ConditionalBootFaultPrefix, ConditionalRoleDepth, ExceptionStackError,
+    ExceptionStackInspection, FaultStackObservation, FrameError, LocalFrameInspection,
+    SetupStackInspection, StackError, inspect_exception_setup_stacks, inspect_local_frames,
     inspect_setup_stacks,
 };
 

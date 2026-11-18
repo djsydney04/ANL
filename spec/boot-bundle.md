@@ -259,6 +259,46 @@ execution and ANL source remains open, as do stack-metadata agreement and exact
 selected-loop/DWARF correspondence. The result's flags for native admission, formal native correspondence, source
 correspondence and stack metadata agreement remain false.
 
+The `inspect_exception_setup_stacks(&Bundle, TextInspection)` entry point adds
+conditional v2 frame analysis for the closed exception setup profile: three
+roles, three returning setup primitives and one intentional illegal slot, with
+no additional definitions or scalar helpers. It obtains both typed views from
+the same held bundle and runs contextual machine inspection internally. The producer chain from the
+six emitted payloads to the supplied objects and image remains a separate
+premise; matching opaque role and symbol identities does not establish it. Once
+contribution identities are uniquely bound, it checks privileged instructions
+and transfer authority across owned bodies, including unreachable code, before
+local alias or shape coverage checks. Earlier text/machine errors and ambiguous
+identity failures retain their own stage and classification.
+
+A supported boot transfer to the illegal slot becomes an
+`ArchitecturalException` frontier at the caller. The slot receives no ordinary
+entry state, return summary or continuation traversal. Linking transfers record
+the transfer instruction's PC+4 in RA; nonlinking transfers retain the current
+RA, including a value changed by a preceding AUIPC. This describes the transfer
+cut before architectural trap entry. It does not establish exception delivery
+or the hardware state after a trap.
+
+Fault rows and stack bounds use only the final rooted states after joins have
+stabilized. A conditional boot-prefix bound requires at least one retained
+fault cut and complete supported coverage of the other rooted obligations. It
+is the maximum local or caller-plus-leaf depth across that root, including
+ordinary loops; it does not prove that a cut is dynamically reached or that a
+loop terminates. Unknown stack facts can leave a descriptive cut without a
+numeric bound. Known retained capacity violations are rejected even when an
+unresolved frontier prevents completeness. Unreachable instructions after a
+cut contribute to the machine inventory but not to rooted stack facts.
+
+Hardware and language roots receive independent terminal-stack bounds; their
+shared requirement is the maximum of the two. The live boot frame is not added
+to that reservation, and no transition from a fault cut to either root is
+inferred. The bounds assume valid nonwrapping storage, the stated transfer and
+root-thunk contracts, and ordinary instruction completion. The result keeps
+native admission, formal native correspondence, source correspondence, stack
+metadata agreement and firmware forwarding false. The mathematical
+`BootNativeFrameCut` lemmas compose explicit step/frame/thunk premises; they do
+not prove the Rust analysis or the concrete instruction implementation.
+
 This standalone library also links the compiler's `anl` library to obtain the
 opaque emitted `Bundle`; it accepts no caller-supplied leaf summary or authority
 map. It remains outside the compiler's ordinary module and build-command paths.
