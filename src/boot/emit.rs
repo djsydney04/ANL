@@ -48,6 +48,40 @@ fn rendered(text: Buffer, result: fmt::Result) -> Result<String, OutputError> {
 fn identity(path: &str, text: &str) -> Value {
     json!({"path":path,"bytes":text.len(),"sha256":format!("{:x}",Sha256::digest(text.as_bytes()))})
 }
+fn selected_park(
+    pair: &CheckedPair,
+    function: usize,
+) -> Result<Option<crate::mir::Temp>, OutputError> {
+    let mut parks = pair.parks().iter().filter(|park| park.function == function);
+    let Some(park) = parks.next() else {
+        return if pair.program.entries.contains(&function) {
+            Err(invariant("missing selected park for role"))
+        } else {
+            Ok(None)
+        };
+    };
+    if parks.next().is_some() || !pair.program.entries.contains(&function) {
+        return Err(invariant("duplicate or nonrole selected park"));
+    }
+    let source = super::mir::core_at(&pair.program.functions[function].body, &park.core_path)
+        .ok_or_else(|| invariant("unresolved selected Core park"))?;
+    let crate::types::ExprKind::While { condition, body } = &source.kind else {
+        return Err(invariant("selected Core park is not while"));
+    };
+    if !matches!(condition.kind, crate::types::ExprKind::Boolean(true))
+        || !matches!(body.kind, crate::types::ExprKind::Unit)
+    {
+        return Err(invariant("selected Core park is not literal true/unit"));
+    }
+    let instruction = super::mir::mir_at(&pair.functions[function].body, &park.mir_path)
+        .ok_or_else(|| invariant("unresolved selected MIR park"))?;
+    if !matches!(instruction.kind, crate::mir::Operation::While { .. })
+        || instruction.destination.ty != Type::Unit
+    {
+        return Err(invariant("selected MIR park is not unit while"));
+    }
+    Ok(Some(instruction.destination))
+}
 fn byte_range(range: Range<usize>, text: &str) -> Result<Value, OutputError> {
     if range.start >= range.end
         || range.end > text.len()
@@ -138,6 +172,12 @@ fn signature(
 pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let core = super::export_pair_core(pair)?;
     let mir = super::export_mir(pair)?;
+    let selected_parks: Vec<_> = (0..pair.functions.len())
+        .map(|function| selected_park(pair, function))
+        .collect::<Result<_, _>>()?;
+    if selected_parks.iter().flatten().count() != 3 {
+        return Err(invariant("selected park inventory is not three"));
+    }
     let mut c = Buffer::new(
         Some(codegen::MAX_PRODUCT_C_BYTES),
         "boot C output exceeds 67108864 bytes",
@@ -166,14 +206,15 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
             let start = c.len();
             signature(id, function, role, &mut c)?;
             c.write_str(" {\n")?;
-            let mut body = codegen::BodyEmission::boot();
+            let mut body = codegen::BodyEmission::boot(selected_parks[id]);
             codegen::emit_block(&function.body, &mut c, 1, id, None, &mut body)?;
+            let ranges = body.finish()?;
             if !role {
                 writeln!(c, "    return t{};", function.body.yield_value.id)?;
             }
             c.write_str("}\n")?;
             function_ranges.push(start..c.len());
-            for (temp, range) in body.ranges {
+            for (temp, range) in ranges {
                 if instruction_ranges.insert((id, temp), range).is_some() {
                     return Err(fmt::Error);
                 }

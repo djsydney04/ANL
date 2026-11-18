@@ -91,6 +91,10 @@ and `range`. `origins` records `function`, `core_path`, `mir_path`, `source_span
 and `c_range` for every emitted MIR instruction in structural order. Source
 spans are null for imported Core. All ranges use inclusive `start`, exclusive
 `end` UTF-8 byte offsets; structured parent C ranges may contain child ranges.
+For each selected park, the constant condition and empty Unit body map to the
+actual inline C fragments `true` and `(void)0;`. These two instructions retain
+their original Core/MIR origins without separate C temporary declarations.
+Other instructions keep their ordinary emission.
 
 `parks` and `abi` each have `boot`, `hardware`, and `language` keys. A park records
 `function`, `core_path`, `mir_path` for the initializer-first selected terminal

@@ -300,20 +300,29 @@ pub(crate) fn emit_boot_helpers(functions: &[mir::Function], text: &mut Buffer) 
 }
 pub(crate) struct BodyEmission {
     pub(crate) boot: bool,
-    pub(crate) ranges: Vec<(usize, std::ops::Range<usize>)>,
+    selected_park: Option<mir::Temp>,
+    ranges: Vec<(usize, std::ops::Range<usize>)>,
 }
 impl BodyEmission {
     fn hosted() -> Self {
         Self {
             boot: false,
+            selected_park: None,
             ranges: Vec::new(),
         }
     }
-    pub(crate) fn boot() -> Self {
+    pub(crate) fn boot(selected_park: Option<mir::Temp>) -> Self {
         Self {
             boot: true,
+            selected_park,
             ranges: Vec::new(),
         }
+    }
+    pub(crate) fn finish(self) -> Result<Vec<(usize, std::ops::Range<usize>)>, fmt::Error> {
+        if self.selected_park.is_some() {
+            return Err(fmt::Error);
+        }
+        Ok(self.ranges)
     }
 }
 pub(crate) fn emit_block(
@@ -412,15 +421,52 @@ fn emit_instruction(
             return Ok(());
         }
         Operation::While { condition, body } => {
-            writeln!(text, "{padding}for (;;) {{")?;
-            emit_block(condition, text, indent + 1, function, profile, emission)?;
-            write!(
-                text,
-                "{padding}    if (!t{}) break;\n{padding}    {{\n",
-                condition.yield_value.id
-            )?;
-            emit_block(body, text, indent + 2, function, profile, emission)?;
-            write!(text, "{padding}    }}\n{padding}}}\n")?;
+            if emission.selected_park == Some(target) {
+                let ([condition_value], [body_value]) = (
+                    condition.instructions.as_slice(),
+                    body.instructions.as_slice(),
+                ) else {
+                    return Err(fmt::Error);
+                };
+                if !emission.boot
+                    || target.ty != Type::Unit
+                    || condition_value.destination != condition.yield_value
+                    || condition_value.destination.ty != Type::Bool
+                    || !matches!(condition_value.kind, Operation::Boolean(true))
+                    || body_value.destination != body.yield_value
+                    || body_value.destination.ty != Type::Unit
+                    || !matches!(body_value.kind, Operation::Unit)
+                    || condition_value.destination.id == body_value.destination.id
+                    || condition_value.destination.id == target.id
+                    || body_value.destination.id == target.id
+                {
+                    return Err(fmt::Error);
+                }
+                emission.selected_park = None;
+                write!(text, "{padding}while (")?;
+                let start = text.len();
+                text.write_str("true")?;
+                emission
+                    .ranges
+                    .push((condition_value.destination.id, start..text.len()));
+                write!(text, ") {{\n{padding}    ")?;
+                let start = text.len();
+                text.write_str("(void)0;")?;
+                emission
+                    .ranges
+                    .push((body_value.destination.id, start..text.len()));
+                write!(text, "\n{padding}}}\n")?;
+            } else {
+                writeln!(text, "{padding}for (;;) {{")?;
+                emit_block(condition, text, indent + 1, function, profile, emission)?;
+                write!(
+                    text,
+                    "{padding}    if (!t{}) break;\n{padding}    {{\n",
+                    condition.yield_value.id
+                )?;
+                emit_block(body, text, indent + 2, function, profile, emission)?;
+                write!(text, "{padding}    }}\n{padding}}}\n")?;
+            }
         }
         Operation::Store(slot, value) => {
             writeln!(text, "{padding}s{} = t{};", slot.id, value.id)?;

@@ -109,11 +109,31 @@ def check_bundle(folder,source,root):
  for row,p in zip(manifest['primitives'],primitive):
   keys(row,'id operation symbol artifact range');need(row['id']==p['id'] and row['operation']==p['operation'] and row['symbol']=='anl_boot_f'+str(p['id']) and row['artifact']=='c','primitive mapping');need(slice_range(row['range'],data['program.c']).decode()==expected_primitive(p),'exact primitive template')
  instructions={(f['id'],p):ins for f in mir['functions'] if f['kind']=='defined' for p,ins in paths(f['body'])};ordered=[];seen_core=set();ranges={}
+ fused={};selected_ranges={}
+ keys(manifest['parks'],'boot hardware language')
+ for role in ['boot','hardware','language']:
+  park=manifest['parks'][role];keys(park,'function core_path mir_path');function=core['entries'][role]['function'];need(park['function']==function,'selected role function')
+  selected=selected_tail(core['functions'][function]['body']);need(selected is not None and same(park['core_path'],selected),'independent selected Core occurrence')
+  location=path_key(park['mir_path']);parent=(function,location);need(parent in instructions and parent not in selected_ranges,'unique selected MIR occurrence');ins=instructions[parent];op=ins['operation'];need(op['tag']=='while' and ins['destination']['ty']=='unit','selected MIR while type')
+  selected_ranges[parent]=park
+  for child,field,tag,ty,fragment in [('whileCondition','condition','boolean','bool',b'true'),('whileBody','body','unit','unit',b'(void)0;')]:
+   block=op[field];need(len(block['instructions'])==1,'canonical selected singleton block');value=block['instructions'][0]
+   need(same(value['destination'],block['yield']) and value['destination']['ty']==ty and value['operation']['tag']==tag,'selected literal yield and type')
+   if tag=='boolean':need(value['operation']['value'] is True,'literal true selected condition')
+   key=(function,(location[0]+((location[1],child),),0));need(key not in fused and key in instructions,'unique selected child');need(value['destination']['id']!=ins['destination']['id'],'distinct selected parent and child');fused[key]=fragment
+  need(op['condition']['yield']['id']!=op['body']['yield']['id'],'distinct selected children')
  for row in manifest['origins']:
   keys(row,'function core_path mir_path source_span c_range');key=(row['function'],path_key(row['mir_path']));need(key in instructions and key not in ordered,'unique structural MIR occurrence');ordered.append(key)
   ck=(row['function'],json.dumps(row['core_path'],sort_keys=True));need(ck not in seen_core,'unique emitting Core occurrence');seen_core.add(ck)
-  expr=core_at(core['functions'][row['function']]['body'],row['core_path']);ins=instructions[key];need(expr['ty']==ins['destination']['ty'],'origin type');span(row['source_span']);text=slice_range(row['c_range'],data['program.c']);ranges[key]=row['c_range'];need(('t'+str(ins['destination']['id'])).encode() in text,'actual destination range')
+  expr=core_at(core['functions'][row['function']]['body'],row['core_path']);ins=instructions[key];need(expr['ty']==ins['destination']['ty'],'origin type');span(row['source_span']);text=slice_range(row['c_range'],data['program.c']);ranges[key]=row['c_range']
+  if key in fused:need(text==fused[key],'exact selected literal C range')
+  else:need(('t'+str(ins['destination']['id'])).encode() in text,'actual destination range')
  need(ordered==list(instructions),'complete ordered structural MIR map')
+ for parent in selected_ranges:
+  function,(blocks,index)=parent;pr=ranges[parent];text=slice_range(pr,data['program.c']);match=re.fullmatch(rb'( *)while \(true\) \{\n\1    \(void\)0;\n\1\}\n\1unsigned char t([0-9]+) = 0;\n',text)
+  need(match is not None and int(match.group(2))==instructions[parent]['destination']['id'],'exact selected parent C emission')
+  condition=ranges[(function,(blocks+((index,'whileCondition'),),0))];body=ranges[(function,(blocks+((index,'whileBody'),),0))]
+  a=pr['start']+text.index(b'true');b=pr['start']+text.index(b'(void)0;');need(condition==dict(start=a,end=a+4) and body==dict(start=b,end=b+8),'exact inline child offsets within selected parent')
  for (f,(blocks,index)),r in ranges.items():
   if blocks:
    parent=(f,(blocks[:-1],blocks[-1][0]));pr=ranges[parent];need(pr['start']<=r['start']<r['end']<=pr['end'],'structured C containment')

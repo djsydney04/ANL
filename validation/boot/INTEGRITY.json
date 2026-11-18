@@ -1,8 +1,8 @@
 {
   "files": {
     "bundle_oracle.py": {
-      "bytes": 12740,
-      "sha256": "0fd42f533f96bec5c76d920485b90c75e7d25dcd315f04c69898f5878901467f"
+      "bytes": 15149,
+      "sha256": "b1fe5deaf9dd118d6dfa9a2936c67d0a295105fb6ab8e2daea2fb4ea40c348d1"
     },
     "expected-link.ld": {
       "bytes": 1674,
