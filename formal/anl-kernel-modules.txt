@@ -237,4 +237,9 @@ ANL.BootSessionOffsets
 ANL.BootSessionSlices
 ANL.BootSessionEntry
 ANL.BootSessionExecutedBounds
+ANL.BootReferenceAdmission
+ANL.BootReferenceRequest
+ANL.BootReferenceRequestWire
+ANL.BootReferenceInputProofs
+ANL.BootReferenceInputBounds
 BootRawProbe

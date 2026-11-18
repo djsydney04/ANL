@@ -239,7 +239,12 @@ run_elab do
     `ANL.BootSessionOffsets,
     `ANL.BootSessionSlices,
     `ANL.BootSessionEntry,
-    `ANL.BootSessionExecutedBounds]
+    `ANL.BootSessionExecutedBounds,
+    `ANL.BootReferenceAdmission,
+    `ANL.BootReferenceRequest,
+    `ANL.BootReferenceRequestWire,
+    `ANL.BootReferenceInputProofs,
+    `ANL.BootReferenceInputBounds]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,

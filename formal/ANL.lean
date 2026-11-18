@@ -230,3 +230,8 @@ import ANL.BootSessionOffsets
 import ANL.BootSessionSlices
 import ANL.BootSessionEntry
 import ANL.BootSessionExecutedBounds
+import ANL.BootReferenceAdmission
+import ANL.BootReferenceRequest
+import ANL.BootReferenceRequestWire
+import ANL.BootReferenceInputProofs
+import ANL.BootReferenceInputBounds

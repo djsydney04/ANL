@@ -1521,5 +1521,51 @@ classifier or tick calls and are outside the nonempty-row formula.
 
 These counts describe source call sites, not elapsed time, allocation or native
 instructions. The pure input domain remains `Nat`; delivery ordinals are not
-restricted by action budgets. Parser limits, wire encoding, host stack/resource
-qualification, a session CLI and native correspondence remain separate work.
+restricted by action budgets. The reference input layer below supplies parser limits. Wire encoding, host
+stack/resource qualification, a session CLI and native correspondence remain
+separate work.
+
+
+### Reference input admission
+
+The pure reference gateway accepts a strict Core document and a request for the
+same checked program. Core admission limits the program to 128 declarations,
+8,192 raw body nodes and 64 parameters or ordinary call arguments. Node counting
+visits every constructor child, including unused and forbidden memory forms.
+These caps precede the existing complete static checker.
+
+Requests contain initial register words, a finite read-byte sequence, optional
+scoped fault delivery and a nonempty action list. The first action must be `run`;
+later actions must be `continue` or `resume`. The complete list is validated
+before a runtime state is created.
+
+| Limit | Bound |
+| --- | --- |
+| Request bytes / container depth | 1 MiB / 16 |
+| Read bytes / supplied delivery-origin edges | 65,536 / 128 |
+| Actions | 32 |
+| Transitions per action and across all actions | 65,536 |
+
+Delivery ordinals are positive uint64 values and may exceed the transition
+budget. Register words use canonical unsigned decimal strings; read values are
+bytes. An opaque device-tree word is an abstract input, without a physical-address
+validity claim.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootReferenceAdmission](ANL/BootReferenceAdmission.lean), `checkAdmission_iff`, `checkCoreDocument_iff` | Executable admission agrees with independent structural limits and the original strict Core checker. |
+| [BootReferenceRequest](ANL/BootReferenceRequest.lean), `checkRequest_iff` | Scalar form, resource limits, action shape and actual input scope agree with independent request validity. |
+| [BootReferenceRequestWire](ANL/BootReferenceRequestWire.lean), [BootReferenceInputProofs](ANL/BootReferenceInputProofs.lean), `checkDocuments_iff`, `checked_start_exists` | Strict decoded requests use the same admitted program and provide an actual valid runtime start. |
+| [BootReferenceInputBounds](ANL/BootReferenceInputBounds.lean), `boundedArray_iff`, `array_limit_before_elements`, `checked_session_calls` | Array caps precede element mapping; checked requests bound logical classifier calls to 65,632 and tick attempts to 65,536. |
+
+Error order follows the actual stages. Byte and depth guards precede shared JSON
+parsing. Array counts precede element decoding; decoded scalar validation
+precedes budgets, action shape and environment scope. An oversized collection
+can therefore reject before a malformed unvisited element is inspected.
+
+The decoding theorems are conditional on actual parser results. UTF-8, JSON,
+lexical numeric checks and decoded-key handling retain their existing trust and
+qualification boundary. The depth theorem proves that the concrete guard
+succeeded, without an independent JSON-depth semantics theorem. These modules
+provide no result encoder, IO/CLI, host allocation or stack bound, native
+correspondence, or guest execution claim.
