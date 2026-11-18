@@ -1408,10 +1408,39 @@ identical loop text elsewhere is insufficient. Each handler episode exposes
 its park observation once. Event order is an export projection of a list built
 by constant-time cons operations, with no reverse scan in each transition.
 
-These modules prove single-step behavior and start/reset establishment of a
-local invariant. General invariant preservation, progress, complete event
-history, allocation-response irrelevance and handler nonreentry are separate
-obligations. No finite runner, budget policy, runtime CLI, Core/MIR boot
-correspondence, stack/ELF/ABI qualification, firmware mediation or native
-execution result follows from this model. The ordinary no-return theorems
-above are not yet extended across primitive interception and handler reset.
+These modules establish single-step behavior and start/reset invariants. The
+following preservation results extend them to finite execution prefixes.
+
+### Checked boot execution prefixes
+
+For a well-formed boot program and valid input, every finite execution from
+the checked entry preserves typing, structural origins, the empty memory
+world and the continuation barrier that prevents returning from an entry role.
+The next tick either advances safely, blocks on an absent read response, or
+retains the state at an ineligible delivery. It cannot report a defensive
+invalid state under these premises.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootRuntimeOrdinarySafety](ANL/BootRuntimeOrdinarySafety.lean), `ordinary_local_preservation`, `OriginStep.response_irrelevant` | Ordinary steps preserve the local invariant, caller chain and empty resources. Their result does not depend on allocation responses. |
+| [BootRuntimeInterceptionSafety](ANL/BootRuntimeInterceptionSafety.lean), `capture_complete`, `return_typed`, and [BootRuntimeInterceptionBoundary](ANL/BootRuntimeInterceptionBoundary.lean), `primitive_dispatch`, `primitive_return_retains` | A typed primitive frontier is intercepted before any carrier body executes. Its result has the declared type and returns through the actual retained caller continuation. |
+| [BootRuntimeNoReturn](ANL/BootRuntimeNoReturn.lean), `BootStep.shield`, `BootStep.localSafety` | Ordinary, primitive, administrative and reset transitions preserve the continuation barrier and local safety. |
+| [BootRuntimeSafety](ANL/BootRuntimeSafety.lean), `checked_entry_safety`, `checked_entry_progress`, and [BootRuntimeReachableFacts](ANL/BootRuntimeReachableFacts.lean), `checked_entry_not_invalid` | Every actual finite prefix from checked entry preserves the combined invariant and admits only the stated advance or blocking outcomes. |
+| [BootRuntimeAuthority](ANL/BootRuntimeAuthority.lean), `PendingAt.authority`, `PendingAt.machine_authority` | The checked source occurrence supplies authority. Machine operations are confined to the three initialization call paths; ordinary primitive calls require the caller's device capability. |
+| [BootRuntimeEventPrefixes](ANL/BootRuntimeEventPrefixes.lean), `checked_prefix_events`, `BootStepsN.ordered_event_prefix` | Committed ordinals are consecutive, consumed read values equal the supplied prefix, and at most one terminal reset occurs. Each successful step adds at most one event in execution order. |
+| [BootRuntimeHandlerSteps](ANL/BootRuntimeHandlerSteps.lean), `HandlerAt.tick`, and [BootRuntimeReachableFacts](ANL/BootRuntimeReachableFacts.lean), `handler_prefix_retains` | The exact handler control shapes agree with the actual tick. Handler execution retains transactions, hardware, counters, delivery status and the interrupted snapshot. |
+| [BootRuntimeSelectedSpin](ANL/BootRuntimeSelectedSpin.lean), `observed_park_resumes`, `selected_spin_retains`, `selected_park_not_observed_again` | Resuming an observed selected park takes one actual step into its literal-true loop, retaining its lower continuation and origin stack. Further steps cannot observe that park again. |
+
+The safety invariant describes current control, handler shape and transaction
+history independently of the executable tick or any future trace. Its history
+component alone does not establish control reachability; that connection uses
+the actual `BootStepsN` transitions from entry. Read payload projections leave
+the unused input suffix intact. Ineligible delivery from a safe state occurs
+before handler installation and before any installation event; it is distinct
+from read exhaustion.
+
+These are finite-prefix theorems, not a claim that arbitrary boot code reaches
+its selected park. An ordinary helper may diverge earlier. No finite runner,
+budget policy, runtime CLI, Core/MIR boot correspondence, stack/ELF/ABI
+qualification, firmware mediation or native execution result follows from
+these proofs.

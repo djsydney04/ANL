@@ -201,7 +201,25 @@ run_elab do
     `ANL.BootRuntimeInvariant,
     `ANL.BootRuntimeLaws,
     `ANL.BootRuntimeResetProofs,
-    `ANL.BootRuntimeBoundaryProofs]
+    `ANL.BootRuntimeBoundaryProofs,
+    `ANL.BootRuntimeSupported,
+    `ANL.BootRuntimeOrdinarySafety,
+    `ANL.BootRuntimeOccurrenceTyping,
+    `ANL.BootRuntimeInterceptionSafety,
+    `ANL.BootRuntimeLocalPreservation,
+    `ANL.BootRuntimeNoReturn,
+    `ANL.BootRuntimeInterceptionBoundary,
+    `ANL.BootRuntimeEffectCompletion,
+    `ANL.BootRuntimeProgress,
+    `ANL.BootRuntimeHistory,
+    `ANL.BootRuntimeHandlerOrbit,
+    `ANL.BootRuntimeHandlerSteps,
+    `ANL.BootRuntimeHistoryPreservation,
+    `ANL.BootRuntimeSafety,
+    `ANL.BootRuntimeAuthority,
+    `ANL.BootRuntimeEventPrefixes,
+    `ANL.BootRuntimeSelectedSpin,
+    `ANL.BootRuntimeReachableFacts]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
