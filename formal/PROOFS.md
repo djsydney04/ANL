@@ -1374,3 +1374,44 @@ These theorems stop before hardware primitives. They establish no device effect,
 trap-handler reset, delivery schedule, event history, runtime budget, Core/MIR
 correspondence or native execution. Raw defensive guard failures remain distinct
 from language traps; the typed, aligned theorem domain excludes those failures.
+
+### Core boot effects and trap transitions
+
+The `ANL.Boot.Runtime` model extends ordinary source-occurrence steps with
+primitive capture, before/after delivery points, device and CSR transactions,
+terminal-handler entry, and recognition of the selected park occurrence. Its
+independent `BootStep` rules describe transitions from current state; they do
+not define correctness by equality with the executable tick or a future trace.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootRuntimeInputProofs](ANL/BootRuntimeInputProofs.lean), `checkInput_iff` | Input checking agrees with independent bounds and delivery-scope rules. `ValidatedInput` carries this check once; ticking does not revalidate the complete read vector. |
+| [BootRuntimeEntryProofs](ANL/BootRuntimeEntryProofs.lean), `enter_iff`, `Start.typed`, `HardwareReset.typed`, `LanguageReset.typed` | Entry uses the actual declared body, correctly ordered typed arguments, empty continuations/resources and root origins. Reset retains the ordinary world and records the abandoned state without fabricating heap cleanup. |
+| [BootRuntimeTickProofs](ANL/BootRuntimeTickProofs.lean), `tickRaw_iff`, `tickRaw_step_iff` | The actual tick agrees with independent outcome and transition rules on raw states. The admitted transition is deterministic. |
+| [BootRuntimeLaws](ANL/BootRuntimeLaws.lean), `pre_delivery`, `post_delivery`, `blocked_iff` | Before-delivery issues no primitive transaction or read. After-delivery retains the committed result and counters. A missing read response blocks with the state unchanged. |
+| [BootRuntimeBoundaryProofs](ANL/BootRuntimeBoundaryProofs.lean), `clear64_testBit`, `primitive_grant_rejected`, `park_boot_seen` | CSR clearing follows the width-64 bit semantics; reserved primitive grants cannot enter fabricated bodies; the observed boot park cannot open a second delivery window. |
+| [BootRuntimeResetProofs](ANL/BootRuntimeResetProofs.lean), `Start.invariant`, `HardwareReset.invariant`, `LanguageReset.invariant` | Checked start establishes the local runtime invariant, and handler reset preserves it from an existing invariant. |
+
+Captured primitives retain their actual declaration, structural occurrence,
+complete forward argument vector and transaction ordinal. Successful commit
+adds one event and advances the ordinal once; a successful read consumes one
+supplied byte. CSR writes reduce modulo 2^64. The hardware record describes
+bounded CSR values and trap installation, not a UART emulator or a proof of
+physical device effects. Language tags 1, 2 and 3 denote overflow, division by
+zero and invalid shift; unsupported traps remain defensive invalid states.
+
+Delivery is modeled only at the stated boundaries. A delivery before trap
+installation is ineligible; delivery after installation sees the new marker.
+Handler entry receives raw bounded `scause`, `sepc` and `stval`, including zero
+`stval`. Park recognition uses the selected function and structural path, so
+identical loop text elsewhere is insufficient. Each handler episode exposes
+its park observation once. Event order is an export projection of a list built
+by constant-time cons operations, with no reverse scan in each transition.
+
+These modules prove single-step behavior and start/reset establishment of a
+local invariant. General invariant preservation, progress, complete event
+history, allocation-response irrelevance and handler nonreentry are separate
+obligations. No finite runner, budget policy, runtime CLI, Core/MIR boot
+correspondence, stack/ELF/ABI qualification, firmware mediation or native
+execution result follows from this model. The ordinary no-return theorems
+above are not yet extended across primitive interception and handler reset.

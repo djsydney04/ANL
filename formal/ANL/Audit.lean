@@ -184,7 +184,24 @@ run_elab do
     `ANL.BootOriginAdvanceProofs,
     `ANL.BootOriginAlignment,
     `ANL.BootOriginProgress,
-    `ANL.BootOriginReachable]
+    `ANL.BootOriginReachable,
+    `ANL.BootRuntimeCore,
+    `ANL.BootRuntimeInput,
+    `ANL.BootRuntimeInputProofs,
+    `ANL.BootRuntimeEntry,
+    `ANL.BootRuntimeEntryProofs,
+    `ANL.BootRuntimeEffects,
+    `ANL.BootRuntimeEffectProofs,
+    `ANL.BootRuntimeFrontiers,
+    `ANL.BootRuntimeFrontierProofs,
+    `ANL.BootRuntimeCommands,
+    `ANL.BootRuntimeCommandProofs,
+    `ANL.BootRuntimeTick,
+    `ANL.BootRuntimeTickProofs,
+    `ANL.BootRuntimeInvariant,
+    `ANL.BootRuntimeLaws,
+    `ANL.BootRuntimeResetProofs,
+    `ANL.BootRuntimeBoundaryProofs]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -260,7 +277,15 @@ run_elab do
     `ANL.Boot.Declaration.ctorIdx._impl,
     `ANL.Boot.TailEdge.ctorIdx._impl,
     `ANL.Boot.Origin.Edge.ctorIdx._impl,
-    `ANL.Boot.Origin.Action.ctorIdx._impl]
+    `ANL.Boot.Origin.Action.ctorIdx._impl,
+    `ANL.Boot.Runtime.Landmark.ctorIdx._impl,
+    `ANL.Boot.Runtime.Episode.ctorIdx._impl,
+    `ANL.Boot.Runtime.StackRole.ctorIdx._impl,
+    `ANL.Boot.Runtime.Payload.ctorIdx._impl,
+    `ANL.Boot.Runtime.Event.ctorIdx._impl,
+    `ANL.Boot.Runtime.Phase.ctorIdx._impl,
+    `ANL.Boot.Runtime.TickResult.ctorIdx._impl,
+    `ANL.Boot.Runtime.Command.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do
