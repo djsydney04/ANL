@@ -1,6 +1,6 @@
-# ANL
+# ANL (Agent Native Language)
 
-ANL is a programming language under development for native systems software and
+ANL (Agent Native Language) is a programming language under development for native systems software and
 capability-controlled agent applications, with strong static types and integrated
 formal verification.
 
