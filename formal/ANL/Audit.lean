@@ -228,7 +228,18 @@ run_elab do
     `ANL.BootRuntimeObservationLaws,
     `ANL.BootRuntimeTailRun,
     `ANL.BootRuntimeHistoryCounts,
-    `ANL.BootRuntimeTailLaws]
+    `ANL.BootRuntimeTailLaws,
+    `ANL.BootSessionCore,
+    `ANL.BootSessionPolicy,
+    `ANL.BootSessionMeaning,
+    `ANL.BootSessionRunnerCalls,
+    `ANL.BootSessionCalls,
+    `ANL.BootSessionBounds,
+    `ANL.BootSessionCostProofs,
+    `ANL.BootSessionOffsets,
+    `ANL.BootSessionSlices,
+    `ANL.BootSessionEntry,
+    `ANL.BootSessionExecutedBounds]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -314,7 +325,11 @@ run_elab do
     `ANL.Boot.Runtime.TickResult.ctorIdx._impl,
     `ANL.Boot.Runtime.Command.ctorIdx._impl,
     `ANL.Boot.Runtime.ObservationKind.ctorIdx._impl,
-    `ANL.Boot.Runtime.StopReason.ctorIdx._impl]
+    `ANL.Boot.Runtime.StopReason.ctorIdx._impl,
+    `ANL.Boot.Runtime.Session.ActionKind.ctorIdx._impl,
+    `ANL.Boot.Runtime.Session.DeliveryView.ctorIdx._impl,
+    `ANL.Boot.Runtime.Session.Ending.ctorIdx._impl,
+    `ANL.Boot.Runtime.Session.StartResult.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

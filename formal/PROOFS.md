@@ -1488,5 +1488,38 @@ zero-budget behavior, blocking and invalid results remain unchanged.
 `State.eventCount` reads the ordinal and episode without traversing the event
 list. Its length identity requires History; arbitrary forged summaries are not
 certified. Source-level tail position does not establish native stack usage or
-host resource bounds. Session applicability, protocol encoding and native
-execution remain separate obligations.
+host resource bounds. Protocol encoding and native execution remain separate
+obligations.
+
+### Finite action sessions
+
+`sessionRaw` validates the complete action-list shape before starting. The first
+action is `run`; later actions may `continue` an exhausted state that has no
+observation, or `resume` an observation. A zero-budget resume leaves that observation available.
+An inapplicable action produces a rejection index without executing it. Blocking
+or ineligible delivery stops the session before subsequent actions.
+
+The session keeps one current state and immutable input. Each report row records
+its action, successful-step count, cumulative count, event offset, read cursor
+and delivery status. Rows refer to prefixes of one final ordered trace; they do
+not store copies of prior states.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootSessionCore](ANL/BootSessionCore.lean), [BootSessionPolicy](ANL/BootSessionPolicy.lean), [BootSessionMeaning](ANL/BootSessionMeaning.lean), `sessionRaw_ran_iff` in [BootSessionEntry](ANL/BootSessionEntry.lean) | Executable action selection agrees with independent applicability and actual `RunTo`/`ResumeTo` endpoints under well-formed program and valid input premises. |
+| [BootSessionBounds](ANL/BootSessionBounds.lean), `SessionTo.summary`, `safe`, `rejection_index` | Exact cumulative successful transitions, budget bound, safety, executed action prefix and failed action index. |
+| [BootSessionOffsets](ANL/BootSessionOffsets.lean), [BootSessionSlices](ANL/BootSessionSlices.lean), `entry_row_events`, `checked_offsets`, `EventSlices.growth` | Rows identify actual intermediate states and exact final-trace prefixes; adjacent event growth is bounded by the action's successful steps. |
+| [BootSessionRunnerCalls](ANL/BootSessionRunnerCalls.lean), [BootSessionCalls](ANL/BootSessionCalls.lean), [BootSessionCostProofs](ANL/BootSessionCostProofs.lean), `GatewayCalls.poststart_counts` | Exact logical classifier/tick counts following the source branches, including applicability, row construction and final reporting. |
+| [BootSessionExecutedBounds](ANL/BootSessionExecutedBounds.lean), `entry_executed_budget`, `entry_row_order` | Tick attempts fit the budgets of executed rows; row indices and cumulative counts follow their actual order. |
+
+For a started session with `k` rows, `U` successful steps, `r` ordinary
+run/continue rows and rejection indicator `delta`, the classifier count is
+`U + r + 2*k + delta`. It is at most the sum of requested budgets plus three
+times the number of requested actions. Tick attempts equal `U` plus at most one
+final blocking attempt. Malformed action lists and failed starts perform no
+classifier or tick calls and are outside the nonempty-row formula.
+
+These counts describe source call sites, not elapsed time, allocation or native
+instructions. The pure input domain remains `Nat`; delivery ordinals are not
+restricted by action budgets. Parser limits, wire encoding, host stack/resource
+qualification, a session CLI and native correspondence remain separate work.

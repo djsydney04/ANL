@@ -226,4 +226,15 @@ ANL.BootRuntimeObservationLaws
 ANL.BootRuntimeTailRun
 ANL.BootRuntimeHistoryCounts
 ANL.BootRuntimeTailLaws
+ANL.BootSessionCore
+ANL.BootSessionPolicy
+ANL.BootSessionMeaning
+ANL.BootSessionRunnerCalls
+ANL.BootSessionCalls
+ANL.BootSessionBounds
+ANL.BootSessionCostProofs
+ANL.BootSessionOffsets
+ANL.BootSessionSlices
+ANL.BootSessionEntry
+ANL.BootSessionExecutedBounds
 BootRawProbe
