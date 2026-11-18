@@ -378,6 +378,7 @@ fn bind(
             .evaluation(Stage::SetupBind)
             .map_err(|e| located(e, Site::of(machine.instructions()[word])))?;
         let instruction = machine.instructions()[word];
+        let decoded = ordinary(instruction, Stage::SetupBind)?;
         let Some((index, row)) = joins
             .iter()
             .enumerate()
@@ -412,14 +413,14 @@ fn bind(
             let expected = [(10, 0x142), (11, 0x141), (12, 0x143)].get(offset).copied();
             require(
                 expected.is_some_and(|(rd, csr)| {
-                    instruction.decoded.operation == Op::Csrrs
-                        && instruction.decoded.operands
+                    decoded.operation == Op::Csrrs
+                        && decoded.operands
                             == Operands::Csr {
                                 rd,
                                 csr,
                                 source: CsrSource::Register(0),
                             }
-                        && instruction.decoded.effect
+                        && decoded.effect
                             == Effect::Csr {
                                 reads: true,
                                 writes: false,
@@ -545,11 +546,12 @@ pub(super) struct LeafRule {
     hardware_entry: u64,
 }
 fn csr_matches(instruction: Instruction, operation: SetupOperation) -> Option<Option<u8>> {
+    let decoded = instruction.ordinary()?;
     match (
         operation,
-        instruction.decoded.operation,
-        instruction.decoded.operands,
-        instruction.decoded.effect,
+        decoded.operation,
+        decoded.operands,
+        decoded.effect,
     ) {
         (
             SetupOperation::ClearSstatusSie,
@@ -611,7 +613,8 @@ fn leaf_rule(
             .evaluation(Stage::SetupLeaf)
             .map_err(|e| located(e, Site::of(machine.instructions()[word])))?;
         let instruction = machine.instructions()[word];
-        if matches!(instruction.decoded.effect, Effect::Csr { .. }) {
+        let decoded = ordinary(instruction, Stage::SetupLeaf)?;
+        if matches!(decoded.effect, Effect::Csr { .. }) {
             let register = csr_matches(instruction, operation).ok_or_else(|| {
                 fail(
                     ErrorClass::Infrastructure,
@@ -646,6 +649,7 @@ fn leaf_rule(
             .evaluation(Stage::SetupLeaf)
             .map_err(|e| located(e, Site::of(machine.instructions()[word])))?;
         let instruction = machine.instructions()[word];
+        let decoded = ordinary(instruction, Stage::SetupLeaf)?;
         let links = graph.links[word];
         if links.transfer.is_some() {
             return Err(unsupported(
@@ -667,7 +671,7 @@ fn leaf_rule(
         } else if links.returns
             || links.local != [Some(word + 1), None]
             || matches!(
-                instruction.decoded.operands,
+                decoded.operands,
                 Operands::Branch { .. } | Operands::Jump { .. } | Operands::Indirect { .. }
             )
         {
@@ -841,11 +845,13 @@ fn address_pair(
     let words = machine.instructions();
     let h = words[high];
     let l = words[low];
+    let hd = ordinary(h, Stage::SetupRoot)?;
+    let ld = ordinary(l, Stage::SetupRoot)?;
     let c = &machine.text().contributions()[contribution];
-    let valid_shape = matches!(h.decoded.operands, Operands::Upper { rd: r, .. } if r == rd)
-        && h.decoded.operation == Op::Auipc
-        && matches!(l.decoded.operands, Operands::Immediate { rd: r, rs1, .. } if r == rd && rs1 == rd)
-        && l.decoded.operation == Op::Addi;
+    let valid_shape = matches!(hd.operands, Operands::Upper { rd: r, .. } if r == rd)
+        && hd.operation == Op::Auipc
+        && matches!(ld.operands, Operands::Immediate { rd: r, rs1, .. } if r == rd && rs1 == rd)
+        && ld.operation == Op::Addi;
     require(
         valid_shape,
         Stage::SetupRoot,
@@ -881,10 +887,10 @@ fn address_pair(
         machine,
         high,
     )?;
-    let Operands::Upper { immediate: hi, .. } = h.decoded.operands else {
+    let Operands::Upper { immediate: hi, .. } = hd.operands else {
         return Err(invariant(Stage::SetupRoot, "root upper operand changed"));
     };
-    let Operands::Immediate { immediate: lo, .. } = l.decoded.operands else {
+    let Operands::Immediate { immediate: lo, .. } = ld.operands else {
         return Err(invariant(Stage::SetupRoot, "root lower operand changed"));
     };
     require(
@@ -932,14 +938,14 @@ fn root_entry(
         {
             let i = words[range.start + offset];
             require(
-                i.decoded.operation == Op::Csrrs
-                    && i.decoded.operands
+                ordinary(i, stage)?.operation == Op::Csrrs
+                    && ordinary(i, stage)?.operands
                         == Operands::Csr {
                             rd,
                             csr,
                             source: CsrSource::Register(0),
                         }
-                    && i.decoded.effect
+                    && ordinary(i, stage)?.effect
                         == Effect::Csr {
                             reads: true,
                             writes: false,
@@ -953,8 +959,8 @@ fn root_entry(
     } else if role == SetupRole::Language {
         let i = words[range.start];
         require(
-            i.decoded.operation == Op::Andi
-                && i.decoded.operands
+            ordinary(i, stage)?.operation == Op::Andi
+                && ordinary(i, stage)?.operands
                     == Operands::Immediate {
                         rd: 10,
                         rs1: 10,
@@ -967,7 +973,7 @@ fn root_entry(
         )?;
     }
     for word in range.clone() {
-        if matches!(words[word].decoded.effect, Effect::Csr { .. }) {
+        if matches!(ordinary(words[word], stage)?.effect, Effect::Csr { .. }) {
             require(
                 role == SetupRole::Hardware && word < range.start + prefix,
                 stage,
@@ -981,8 +987,8 @@ fn root_entry(
     address_pair(machine, contribution, high, high + 1, 2, stack.end)?;
     let align = words[high + 2];
     require(
-        align.decoded.operation == Op::Andi
-            && align.decoded.operands
+        ordinary(align, stage)?.operation == Op::Andi
+            && ordinary(align, stage)?.operands
                 == Operands::Immediate {
                     rd: 2,
                     rs1: 2,
@@ -1027,7 +1033,7 @@ fn root_entry(
         machine,
         tail,
     )?;
-    let scratch = match words[tail - 1].decoded.operands {
+    let scratch = match ordinary(words[tail - 1], stage)?.operands {
         Operands::Upper { rd, .. } => rd,
         _ => {
             return Err(fail(
@@ -1072,7 +1078,7 @@ fn root_entry(
         }
         require(
             !matches!(
-                words[word].decoded.effect,
+                ordinary(words[word], stage)?.effect,
                 Effect::Load { .. } | Effect::Store { .. } | Effect::Fence
             ),
             stage,
@@ -1104,6 +1110,7 @@ pub fn inspect_setup_stacks<'b, 'a>(
     bundle: &'b Bundle,
     machine: MachineInspection<'a>,
 ) -> Result<SetupStackInspection<'b, 'a>> {
+    require_ordinary(&machine, Stage::SetupBind)?;
     let emission = bundle.setup_identity().map_err(|_| {
         error(
             ErrorClass::Unsupported,

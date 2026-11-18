@@ -1,3 +1,4 @@
+mod exception;
 mod setup;
 use super::{BlockChild, CheckedPair, CoreEdge, Operation, Origin, Profile, templates};
 use crate::{
@@ -5,6 +6,10 @@ use crate::{
     codegen,
     diagnostic::Span,
     types::Type,
+};
+pub use exception::{
+    ExceptionSetupEmissionView, ExceptionSetupUnsupported, IllegalSlotEmissionView,
+    IllegalSlotUnsupported,
 };
 use serde_json::{Value, json};
 pub use setup::{
@@ -27,6 +32,7 @@ const MAX_MANIFEST: usize = 1_048_576;
 pub struct Bundle {
     pub(super) files: [(&'static str, String); 6],
     setup: Result<setup::SetupIdentity, SetupProfileUnsupported>,
+    exception: exception::Identity,
 }
 impl Bundle {
     /// Read-only setup identity from the same checked emission; never native admission.
@@ -35,6 +41,16 @@ impl Bundle {
             Ok(identity) => Ok(setup::view(&self.files, identity)),
             Err(reason) => Err(*reason),
         }
+    }
+    pub fn illegal_slot_identity(
+        &self,
+    ) -> Result<Option<IllegalSlotEmissionView<'_>>, IllegalSlotUnsupported> {
+        self.exception.illegal(&self.files)
+    }
+    pub fn exception_setup_identity(
+        &self,
+    ) -> Result<ExceptionSetupEmissionView<'_>, ExceptionSetupUnsupported> {
+        self.exception.setup(&self.files)
     }
     pub fn files(&self) -> impl Iterator<Item = (&'static str, &str)> {
         self.files
@@ -290,6 +306,16 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
         &c,
         &assembly,
     )?;
+    let exception = exception::build(
+        pair,
+        helper_count,
+        &function_ranges,
+        &primitive_ranges,
+        &abi_ranges,
+        &c,
+        &assembly,
+        illegal_range.as_ref(),
+    )?;
     let functions: Vec<_> = pair.program.functions.iter().enumerate().map(|(id,f)| Ok(json!({
         "id":id,"name":f.name,"symbol":format!("anl_boot_f{id}"),"source_span":source_span(pair,f.span)?,"c_range":byte_range(function_ranges[id].clone(),&c)?,
     }))).collect::<Result<_,OutputError>>()?;
@@ -360,6 +386,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     result.map_err(|e| OutputError::Infrastructure(e.to_string()))?;
     Ok(Bundle {
         setup,
+        exception,
         files: [
             ("core.json", core),
             ("mir.json", mir),

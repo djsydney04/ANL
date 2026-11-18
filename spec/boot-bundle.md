@@ -20,7 +20,7 @@ is insufficient. `export_pair_core` and `export_mir` export the paired documents
 `emit(&pair)` returns an immutable `Bundle` with `files()` and `publish(path)`.
 There is no hosted-program conversion or standalone boot MIR permit.
 
-`Bundle::setup_identity()` returns a borrowed, read-only view for a narrow setup
+`Bundle::setup_identity()` returns a borrowed, read-only view for a narrow v1 setup
 profile: exactly the three declared roles, the three mandatory machine setup
 primitives and no generated scalar helpers. It retains the actual declaration
 IDs, signatures, effects, generated symbols and byte ranges alongside the six
@@ -33,6 +33,21 @@ unsupported; ordinary bundle emission still succeeds. The projection adds no
 serialized fields and changes no generated payloads. Its native return labels
 describe the emitted interfaces; they are not proofs of return behavior, stack
 adequacy, primitive authority or native correctness.
+
+For v2, `Bundle::illegal_slot_identity()` returns a separate borrowed
+`IllegalSlotEmissionView` when the checked program declares the illegal-instruction
+primitive. A v2 bundle without it returns `None`; v1 returns a typed revision
+error. The view retains the actual primitive ID, signature, effect, generated
+symbol, six payloads and textual assembly range. It cannot be publicly constructed
+or mutated. The textual range does not denote a linked PC or instruction length.
+
+`Bundle::exception_setup_identity()` provides a separate v2 view only for the
+three declared roles, three mandatory setup primitives and one illegal primitive,
+with no additional functions or generated scalar helpers. Ineligible projections
+return typed errors without preventing ordinary bundle emission. The old
+`setup_identity()` remains v1-only, including for v2 bundles without the illegal
+primitive. These views add no serialized fields and change none of the six
+payloads.
 
 MIR has schema `anl-boot-mir-v1`, semantic revision `anl-boot-rv64-virt-v1` and
 ordinary revision `anl-words-v1`. Its root fields are exactly:
@@ -182,9 +197,30 @@ control entries that bypass the first instruction of a relocated call pair.
 Return-shaped jumps, possible call continuations and eligible memory/CSR/fence
 sites retain explicit obligations for later analysis. This inspection does not
 establish returns, frames, hardware authority, exact selected-loop identity or
-native correctness, and remains unconnected to the build command. Its current
-assembly uses separately linked Rust inspection libraries; integration into the
-compiler's ordinary modules remains a separate boundary.
+native correctness, and remains unconnected to the build command. The instruction
+inspector is a separately linked Rust library, outside the compiler's ordinary
+module tree. It links the `anl` library for the opaque emitted identity; Cargo's
+ordinary compiler targets do not compile this standalone assembly.
+
+`inspect_machine_with_illegal(TextInspection, IllegalSlotEmissionView)` uses the
+same instruction/edge engine with a checked v2 context. It binds the generated
+symbol to one globally named, four-byte-aligned, four-byte zero contribution in
+the assembly object and linked image, without a relocation patch. Duplicate
+canonical names, contradictory bytes and known interior targets are rejected;
+unimplemented legal alias or localization forms remain unsupported. Existing
+text reconstruction, resource bounds and all other instruction checks still apply.
+
+The bound row has `InstructionKind::IntentionalIllegalSlot`, and `ordinary()`
+returns `None`. It has no ordinary return, outgoing edge, call-pair membership or
+memory/CSR/fence effect. Incoming calls retain their possible continuation
+metadata; that metadata does not establish return from the slot. Context-free
+`inspect_machine` and raw decoding still reject zero. The four-byte owned slot
+is distinct from instruction length: its first zero halfword is already illegal.
+
+This contextual inventory does not establish source-to-native correspondence,
+exception delivery or firmware forwarding. Both `inspect_local_frames` and
+`inspect_setup_stacks` return a located `Unsupported` error when given this
+contextual machine. They do not produce v2 frame or stack bounds.
 
 A third standalone library's `inspect_local_frames` entry point computes
 conditional local-frame facts from the same instruction inventory. It tracks entry-relative stack offsets, register values
@@ -203,7 +239,7 @@ termination or selected-park identity. This local entry point does not establish
 call-stack bounds, emitted role/helper identity, reset roots or native correctness.
 
 The separate `inspect_setup_stacks(&Bundle, MachineInspection)` entry point accepts
-only the emitted setup profile: three role bodies and the mandatory setup
+only the emitted v1 setup profile: three role bodies and the mandatory setup
 primitives, without additional functions or scalar helpers. It consumes the
 opaque `Bundle` identity, checks complete typed privileged sites and stack-reset
 entries, and constructs private summaries for returning setup leaves. The same

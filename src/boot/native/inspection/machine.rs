@@ -2,7 +2,10 @@
 use crate::decode::{Decoded, Effect, Op, Operands, decode};
 use crate::text::elf::{self, ArtifactKind, ErrorClass, StructuralError};
 use crate::text::{MAX_TEXT_BYTES, MAX_WITNESS_ROWS, TextInspection};
+use anl::boot::IllegalSlotEmissionView;
 use std::collections::BTreeMap;
+mod illegal;
+pub use illegal::IllegalSite;
 
 pub const MAX_WORDS: usize = (MAX_TEXT_BYTES / 4) as usize;
 pub const MAX_EDGES: usize = MAX_WORDS * 2;
@@ -13,6 +16,7 @@ pub type PairId = usize;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Stage {
     Structure,
+    IllegalSlot,
     Inventory,
     Decode,
     Edges,
@@ -66,12 +70,25 @@ fn add(address: u64, displacement: i64, stage: Stage) -> Result<u64> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InstructionKind {
+    Ordinary(Decoded),
+    IntentionalIllegalSlot,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Instruction {
     pub id: WordId,
     pub contribution: ContributionId,
     pub pc: u64,
     pub raw: u32,
-    pub decoded: Decoded,
+    pub kind: InstructionKind,
+}
+impl Instruction {
+    pub fn ordinary(&self) -> Option<Decoded> {
+        match self.kind {
+            InstructionKind::Ordinary(decoded) => Some(decoded),
+            InstructionKind::IntentionalIllegalSlot => None,
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EdgeKind {
@@ -114,8 +131,12 @@ pub struct Pair {
 pub struct MachineInspection<'a> {
     text: TextInspection<'a>,
     inventory: Inventory,
+    illegal: Option<IllegalSite<'a>>,
 }
 impl<'a> MachineInspection<'a> {
+    pub fn illegal_site(&self) -> Option<&IllegalSite<'a>> {
+        self.illegal.as_ref()
+    }
     pub fn text(&self) -> &TextInspection<'a> {
         &self.text
     }
@@ -276,12 +297,27 @@ fn transfer(
 
 /// Consumes actual M1 evidence; no caller-supplied records or file reopening.
 pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection<'a>> {
+    inspect(text, None)
+}
+pub fn inspect_machine_with_illegal<'a>(
+    text: TextInspection<'a>,
+    view: IllegalSlotEmissionView<'a>,
+) -> Result<MachineInspection<'a>> {
+    inspect(text, Some(view))
+}
+fn inspect<'a>(
+    text: TextInspection<'a>,
+    view: Option<IllegalSlotEmissionView<'a>>,
+) -> Result<MachineInspection<'a>> {
     let image = elf::read_structure(text.inputs()[2], ArtifactKind::Image)
         .map_err(|e| imported(e, Stage::Structure))?;
     let mut inventory = Inventory {
         rows: text.witness_rows(),
         ..Inventory::default()
     };
+    let illegal = view
+        .map(|view| illegal::bind(&text, &image, view, &mut inventory))
+        .transpose()?;
     let mut order: Vec<_> = (0..text.contributions().len()).collect();
     order.sort_unstable_by_key(|&id| text.contributions()[id].image.value);
     let mut index = BTreeMap::new();
@@ -369,19 +405,31 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
                     )
                 })?;
             let raw = u32::from_le_bytes(*bytes);
-            let decoded = decode(raw).map_err(|e| MachineError {
-                class: e.class,
-                reason: e.reason,
-                stage: Stage::Decode,
-                contribution: Some(id),
-                pc: Some(pc),
-            })?;
+            let kind = if illegal
+                .as_ref()
+                .is_some_and(|slot| slot.contribution == id && slot.pc == pc)
+            {
+                require(
+                    raw == 0,
+                    Stage::IllegalSlot,
+                    "bound illegal slot is nonzero",
+                )?;
+                InstructionKind::IntentionalIllegalSlot
+            } else {
+                InstructionKind::Ordinary(decode(raw).map_err(|e| MachineError {
+                    class: e.class,
+                    reason: e.reason,
+                    stage: Stage::Decode,
+                    contribution: Some(id),
+                    pc: Some(pc),
+                })?)
+            };
             let instruction = Instruction {
                 id: inventory.instructions.len(),
                 contribution: id,
                 pc,
                 raw,
-                decoded,
+                kind,
             };
             require(
                 index.insert(pc, instruction.id).is_none(),
@@ -414,8 +462,8 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
                 Stage::Pairs,
                 "pair escapes its contribution",
             )?;
-            let (high_reg, high) = match (a.decoded.operation, a.decoded.operands) {
-                (Op::Auipc, Operands::Upper { rd, immediate }) if rd != 0 => (rd, immediate),
+            let (high_reg, high) = match a.ordinary().map(|d| (d.operation, d.operands)) {
+                Some((Op::Auipc, Operands::Upper { rd, immediate })) if rd != 0 => (rd, immediate),
                 _ => {
                     return Err(located(
                         error(
@@ -427,8 +475,8 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
                     ));
                 }
             };
-            let (base, low) = match (b.decoded.operation, b.decoded.operands) {
-                (Op::Jalr, Operands::Indirect { base, offset, .. }) => (base, offset),
+            let (base, low) = match b.ordinary().map(|d| (d.operation, d.operands)) {
+                Some((Op::Jalr, Operands::Indirect { base, offset, .. })) => (base, offset),
                 _ => {
                     return Err(located(
                         error(
@@ -492,8 +540,11 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
 
     for word in 0..inventory.instructions.len() {
         let i = inventory.instructions[word];
+        let Some(decoded) = i.ordinary() else {
+            continue;
+        };
         let result = (|| {
-            match i.decoded.effect {
+            match decoded.effect {
                 Effect::None => {}
                 Effect::Load { .. } | Effect::Store { .. } => {
                     inventory.row(Stage::Edges)?;
@@ -511,7 +562,7 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
             // A CALL pair can end in the exact generic return encoding.
             if let Some(&pair_id) = second_words.get(&word) {
                 let pair = inventory.pairs[pair_id];
-                let rd = match i.decoded.operands {
+                let rd = match decoded.operands {
                     Operands::Indirect { rd, .. } => rd,
                     _ => {
                         return Err(error(
@@ -532,7 +583,7 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
                     Some(pair_id),
                 );
             }
-            match i.decoded.operands {
+            match decoded.operands {
                 Operands::Branch { displacement, .. } => {
                     let target =
                         owned(add(i.pc, displacement, Stage::Edges)?, &index, Stage::Edges)?;
@@ -620,5 +671,12 @@ pub fn inspect_machine<'a>(text: TextInspection<'a>) -> Result<MachineInspection
             "call continuation bypasses pair first word",
         )?;
     }
-    Ok(MachineInspection { text, inventory })
+    let illegal = illegal
+        .map(|slot| slot.finish(&index, &inventory))
+        .transpose()?;
+    Ok(MachineInspection {
+        text,
+        inventory,
+        illegal,
+    })
 }

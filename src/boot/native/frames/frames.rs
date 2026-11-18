@@ -1,6 +1,6 @@
 //! Entry-relative facts stop at unresolved effects and interfunction transfers.
 use crate::machine::MachineInspection;
-use crate::machine::decode::{Effect, Op, Operands};
+use crate::machine::decode::{Decoded, Effect, Op, Operands};
 use crate::machine::machine::{ContributionId, Instruction, WordId};
 use crate::machine::text::MAX_WITNESS_ROWS;
 use crate::machine::text::elf::ErrorClass;
@@ -492,10 +492,11 @@ fn add_immediate(value: Fact, immediate: i64) -> Fact {
 }
 fn value(instruction: Instruction, state: &State) -> Option<(u8, Fact)> {
     use Op::*;
+    let decoded = instruction.ordinary()?;
     let registers = &state.registers;
-    let result = match instruction.decoded.operands {
+    let result = match decoded.operands {
         Operands::Upper { rd, immediate } => {
-            let result = match instruction.decoded.operation {
+            let result = match decoded.operation {
                 Lui => Fact::Const(immediate as u64),
                 Auipc => Fact::Const(instruction.pc.wrapping_add(immediate as u64)),
                 _ => Fact::Unknown,
@@ -504,7 +505,7 @@ fn value(instruction: Instruction, state: &State) -> Option<(u8, Fact)> {
         }
         Operands::Immediate { rd, rs1, immediate } => {
             let source = registers[usize::from(rs1)];
-            let result = match (instruction.decoded.operation, source) {
+            let result = match (decoded.operation, source) {
                 (Addi, x) => add_immediate(x, immediate),
                 (Andi, Fact::Const(x)) => Fact::Const(x & immediate as u64),
                 _ => Fact::Unknown,
@@ -514,7 +515,7 @@ fn value(instruction: Instruction, state: &State) -> Option<(u8, Fact)> {
         Operands::Registers { rd, rs1, rs2 } => {
             let a = registers[usize::from(rs1)];
             let b = registers[usize::from(rs2)];
-            let result = match (instruction.decoded.operation, a, b) {
+            let result = match (decoded.operation, a, b) {
                 (Or, x, Fact::Const(0)) | (Or, Fact::Const(0), x) => x,
                 (Add, Fact::Const(x), Fact::Const(y)) => Fact::Const(x.wrapping_add(y)),
                 (Sub, Fact::Const(x), Fact::Const(y)) => Fact::Const(x.wrapping_sub(y)),
@@ -646,6 +647,7 @@ fn step(
     policy: Policy<'_>,
 ) -> Result<Step> {
     budget.evaluation(stage)?;
+    let decoded = ordinary(instruction, stage)?;
     let links = graph.links[instruction.id];
     if let Some(id) = links.transfer {
         if let Policy::Role(leaves) = policy
@@ -684,7 +686,7 @@ fn step(
         }
         return Ok(Step::Return(evidence));
     }
-    match instruction.decoded.effect {
+    match decoded.effect {
         Effect::Csr { .. } => {
             if let Policy::Leaf(rule) = policy {
                 setup::authorize_csr(instruction, state, rule)?;
@@ -703,12 +705,12 @@ fn step(
     let mut memory = None;
     let mut memory_change = None;
     let mut destination = value(instruction, state);
-    match instruction.decoded.effect {
+    match decoded.effect {
         Effect::Load { bytes, .. } | Effect::Store { bytes } => {
             if !matches!(bytes, 1 | 2 | 4 | 8) {
                 return Err(invariant(stage, "machine memory width changed"));
             }
-            let (access, base, offset, register) = match instruction.decoded.operands {
+            let (access, base, offset, register) = match decoded.operands {
                 Operands::Load { rd, base, offset } => (Access::Load, base, offset, rd),
                 Operands::Store {
                     source,
@@ -735,7 +737,7 @@ fn step(
             };
             let observed = match access {
                 Access::Load => {
-                    let signed = match instruction.decoded.effect {
+                    let signed = match decoded.effect {
                         Effect::Load { sign_extend, .. } => sign_extend,
                         _ => return Err(invariant(stage, "machine load effect changed")),
                     };
@@ -1096,9 +1098,36 @@ fn budget(machine: &MachineInspection<'_>) -> Budget {
     }
 }
 
+fn ordinary(instruction: Instruction, stage: Stage) -> Result<Decoded> {
+    instruction.ordinary().ok_or_else(|| {
+        located(
+            error(
+                ErrorClass::Unsupported,
+                stage,
+                "architectural exception frames are not implemented by this entrypoint",
+            ),
+            Site::of(instruction),
+        )
+    })
+}
+fn require_ordinary(machine: &MachineInspection<'_>, stage: Stage) -> Result<()> {
+    if let Some(site) = machine.illegal_site() {
+        return Err(located(
+            error(
+                ErrorClass::Unsupported,
+                stage,
+                "architectural exception frames are not implemented by this entrypoint",
+            ),
+            Site::of(machine.instructions()[site.word()]),
+        ));
+    }
+    Ok(())
+}
+
 pub fn inspect_local_frames<'a>(
     machine: MachineInspection<'a>,
 ) -> Result<LocalFrameInspection<'a>> {
+    require_ordinary(&machine, Stage::Index)?;
     let mut engine = Engine::new(&machine, budget(&machine))?;
     // Preserve the accepted local scheduling and counter order exactly.
     for contribution in 0..engine.graph.entries.len() {

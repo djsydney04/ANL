@@ -5,7 +5,10 @@ pub use anl_native_text as text;
 pub mod decode;
 pub mod machine;
 
-pub use machine::{MachineError, MachineInspection, Stage, inspect_machine};
+pub use machine::{
+    IllegalSite, InstructionKind, MachineError, MachineInspection, Stage, inspect_machine,
+    inspect_machine_with_illegal,
+};
 
 pub const UNCHECKED: &[&str] = &[
     "emitted_identity",

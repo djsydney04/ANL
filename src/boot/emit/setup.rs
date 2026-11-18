@@ -150,6 +150,17 @@ pub(super) struct SetupIdentity {
     primitives: Vec<SetupPrimitive>,
     abi: [SetupAbi; 3],
 }
+impl SetupIdentity {
+    pub(super) fn functions(&self) -> &[SetupFunction; 3] {
+        &self.functions
+    }
+    pub(super) fn primitives(&self) -> &[SetupPrimitive] {
+        &self.primitives
+    }
+    pub(super) fn abi(&self) -> &[SetupAbi; 3] {
+        &self.abi
+    }
+}
 /// Borrowed exact emission facts, never a native code or stack-bound permit.
 pub struct SetupEmissionView<'a> {
     files: &'a [(&'static str, String); 6],
@@ -242,6 +253,50 @@ pub(super) fn build(
             profile: pair.program.profile,
         }));
     }
+    build_rows(
+        pair,
+        helper_count,
+        function_ranges,
+        primitive_ranges,
+        abi_ranges,
+        c,
+        assembly,
+    )
+}
+pub(super) fn build_exception(
+    pair: &CheckedPair,
+    helper_count: usize,
+    function_ranges: &[Range<usize>],
+    primitive_ranges: &[Range<usize>],
+    abi_ranges: &[Range<usize>],
+    c: &str,
+    assembly: &str,
+) -> Result<Result<SetupIdentity, SetupProfileUnsupported>, OutputError> {
+    if pair.program.profile != Profile::V2 {
+        return Ok(Err(SetupProfileUnsupported::Revision {
+            profile: pair.program.profile,
+        }));
+    }
+    build_rows(
+        pair,
+        helper_count,
+        function_ranges,
+        primitive_ranges,
+        abi_ranges,
+        c,
+        assembly,
+    )
+}
+fn build_rows(
+    pair: &CheckedPair,
+    helper_count: usize,
+    function_ranges: &[Range<usize>],
+    primitive_ranges: &[Range<usize>],
+    abi_ranges: &[Range<usize>],
+    c: &str,
+    assembly: &str,
+) -> Result<Result<SetupIdentity, SetupProfileUnsupported>, OutputError> {
+    let exception = pair.program.profile == Profile::V2;
     for id in 0..pair.program.functions.len() {
         if !pair.program.entries.contains(&id) {
             return Ok(Err(SetupProfileUnsupported::AdditionalDefinition {
@@ -255,6 +310,9 @@ pub(super) fn build(
         }));
     }
     for p in &pair.program.primitives {
+        if exception && matches!(p.operation, Operation::IllegalInstruction { authority: 0 }) {
+            continue;
+        }
         if operation(&p.operation, pair.program.entries[1]).is_none() {
             return Ok(Err(SetupProfileUnsupported::NonSetupPrimitive {
                 primitive: p.id,
@@ -263,7 +321,9 @@ pub(super) fn build(
     }
     // These bounds follow from the checked distinct roles and unique mandatory primitive keys.
     // Recheck before the small fixed-profile allocations rather than widening the profile.
-    if pair.program.functions.len() != 3 || pair.program.primitives.len() != 3 {
+    if pair.program.functions.len() != 3
+        || pair.program.primitives.len() != 3 + usize::from(exception)
+    {
         return Err(invariant("checked setup declaration inventory changed"));
     }
     let roles = [SetupRole::Boot, SetupRole::Hardware, SetupRole::Language];
@@ -305,6 +365,9 @@ pub(super) fn build(
     }
     let mut primitives = Vec::with_capacity(3);
     for (index, p) in pair.program.primitives.iter().enumerate() {
+        if exception && matches!(p.operation, Operation::IllegalInstruction { authority: 0 }) {
+            continue;
+        }
         primitives.push(SetupPrimitive {
             id: p.id,
             operation: operation(&p.operation, pair.program.entries[1])
