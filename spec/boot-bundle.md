@@ -152,10 +152,21 @@ text checker reconstructs complete executable contributions from the two objects
 using `CALL_PLT`, `PCREL_HI20` and ADDI `PCREL_LO12_I`, then compares every byte
 with the linked image, including unrelocated bytes. Unsupported symbol-placement,
 binding, padding and relocation forms fail closed. Neither checker is connected
-to the build command or admits an executable. Instruction semantics, typed
+to the build command or admits an executable. Native semantic correspondence, typed
 helper/primitive authority, ISA/ABI conformance, stack adequacy and exact
 DWARF/source-loop correspondence remain open. Text reconstruction does not
 establish native correctness.
+
+A standalone instruction-inspection library consumes the text reconstruction and
+decodes the closed RV64IM+Zicsr profile into instruction descriptors and known
+control-flow edges. It rejects forbidden encodings and register uses, and known
+control entries that bypass the first instruction of a relocated call pair.
+Return-shaped jumps, possible call continuations and eligible memory/CSR/fence
+sites retain explicit obligations for later analysis. This inspection does not
+establish returns, frames, hardware authority, exact selected-loop identity or
+native correctness, and remains unconnected to the build command. Its current
+assembly uses separately linked Rust inspection libraries; integration into the
+compiler's ordinary modules remains a separate boundary.
 
 ## Publication
 
