@@ -147,11 +147,15 @@ image range and reject known writable-data, BSS, TLS, dynamic-linking and
 initialization sections.
 
 The internal bounded ELF reader checks raw structural ranges, symbol extents,
-relocation descriptors and selected image-layout predicates. It is not connected
-to the build command and does not admit an executable. Instruction and relocation
-semantics, helper ownership, stack adequacy, source-location correspondence,
-ISA/ABI conformance and linked-loop preservation remain open. Generated source
-and structural inspection alone do not establish native correctness.
+relocation descriptors and selected image-layout predicates. A separate internal
+text checker reconstructs complete executable contributions from the two objects
+using `CALL_PLT`, `PCREL_HI20` and ADDI `PCREL_LO12_I`, then compares every byte
+with the linked image, including unrelocated bytes. Unsupported symbol-placement,
+binding, padding and relocation forms fail closed. Neither checker is connected
+to the build command or admits an executable. Instruction semantics, typed
+helper/primitive authority, ISA/ABI conformance, stack adequacy and exact
+DWARF/source-loop correspondence remain open. Text reconstruction does not
+establish native correctness.
 
 ## Publication
 
