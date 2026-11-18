@@ -1788,10 +1788,46 @@ there is no conversion to a V2-well-formed program. Flat tuples remain part of
 the ordinary Words type system. A selected terminal occurrence is structural
 and does not prove that preceding computation reaches it.
 
-These are static model theorems. They establish no V3 runtime transition or
-local-coherence invariant, typed hardware entry, device completion, firmware
-forwarding, nonreturning native execution or source-to-native refinement. The
-V2 runtime theorems above retain their V2 premises. The Rust checker/readers,
-JSON parser and IO, canonical MIR lowering and generated C/assembly remain
-separate implementation boundaries. Existing native identity APIs explicitly
-refuse V3 and receive no broader coverage from these results.
+These static results supply the V3 admission premises for the separate runtime
+results below. The V2 theorems above retain their V2 premises. Neither static
+policy nor the selected terminal occurrence establishes device completion,
+firmware forwarding or source-to-native refinement.
+
+## Boot v3 entry, local coherence and conditional capture
+
+These modules reuse the raw V2 program, state, transitions and local coherence
+predicate with independent V3 well-formedness premises. They do not relabel a V3
+program as V2-well-formed or execute the ordinary carrier's synthetic entry and
+dummy primitive bodies.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootV3Carrier](ANL/BootV3Carrier.lean), `carrier_wellFormed` | V3 well-formedness implies well-formedness of the ordinary Words carrier, including defined-body typing, declaration names and IDs, and its synthetic entry. This is a typing bridge, not an execution theorem for the carrier. |
+| [BootV3RuntimeEntry](ANL/BootV3RuntimeEntry.lean), `enter_typed`, `start_checked`, `hardware_reset_typed`, `language_reset_typed`, `forward_reset_typed`, `forwarding_checked` | Actual role entry and resets preserve typing, source alignment and active memory freedom under the stated V3, argument, input and initial-world premises. Forwarding existence additionally assumes a valid pending request and a supplied forwarding response. |
+| [BootOriginCarrierPreservation](ANL/BootOriginCarrierPreservation.lean), `V2.Origin.preserve_carrier` | An actual admitted ordinary step preserves source alignment under carrier well-formedness, caller typing and initial alignment. It does not establish that a step exists. |
+| [BootV3RuntimeCoherence](ANL/BootV3RuntimeCoherence.lean), `ordinary_local_coherent`, `start_coherent`, `hardware_reset_coherent`, `language_reset_coherent`, `legacy_return_coherent`, `forward_reset_coherent` | Local preservation for ordinary steps, start, legacy completion and reset, including typing/alignment of the actual stored snapshot. Hardware-to-language reset replaces the snapshot with the current interrupted caller. |
+| [BootV3RuntimeLocalPreservation](ANL/BootV3RuntimeLocalPreservation.lean), `boot_step_coherent`, `ready_execute_coherent`, `boot_outcome_coherent`, `tick_preserves_coherence`, `reachable_coherent` | All actual ready/executed commands preserve local coherence. Stopped outcomes retain the state exactly; total validated ticks preserve coherence, and finite reachability from a valid start inherits it. No progress or command-eligibility premise is derived from coherence. |
+| [BootV3Authority](ANL/BootV3Authority.lean), `WellFormedProgram.machine_call_only_boot`, `WellFormedProgram.illegal_call_only_boot` | Machine-effect primitive calls, including the illegal operation, can occur syntactically only in the boot role of a V3-well-formed program. All bodies and branches participate, including unused helpers and dead code. |
+| [BootV3RuntimeCapture](ANL/BootV3RuntimeCapture.lean), `located_call_result`, `located_illegal_only_boot`, `captureLegacy_complete`, `captureFault_complete`, `primitive_capture_complete` | Typed, source-aligned primitive invocations with positive ordinals admit the corresponding captured request. Fault capture additionally assumes valid input, the boot episode and unused forwarding; source authority locates the illegal call in the boot role. |
+
+The capture results construct `CapturedLegacy` or `CapturedFault` witnesses.
+They do not assert that a command is ready, that a tick advances, that a read is
+available or that a device operation completes. The combined capture theorem
+retains the boot-episode and unused-forwarding premises even for its legacy
+branch. Capture does not provide an installation proof or forwarding response.
+
+The local coherence predicate is independent of history and reachability. It
+covers active typing, source alignment, memory, hardware state, roles, phase,
+cursor and ordinal bounds, and only fields present in a passive snapshot.
+Blocked reads, absent forwarding, ineligible delivery and invalid outcomes are
+preserved as stopped states. An uninstalled fault can still reach a commit that
+reports `invalidState`; preservation alone does not rule that out.
+
+These results prove no global handler-history restriction, eventual delivery,
+read availability, handler progress or completion, or arrival at a selected park.
+They do not establish compiler equivalence, Core/MIR origin refinement, native
+instruction or Rust analysis correctness, firmware forwarding or device behavior.
+The existing native identity interfaces continue to refuse V3. No runtime runner
+or command-line route is added. The complete declaration audit and exact unsafe
+wrapper inventory remain in force with `propext`, `Classical.choice` and
+`Quot.sound` as the only allowed logical axioms.

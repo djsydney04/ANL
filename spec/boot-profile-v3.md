@@ -96,11 +96,18 @@ implement the compiler's translation and hardware instruction templates; they
 do not supply a handwritten OS subsystem. Additional hardware requirements must
 be expressed by extending ANL and documenting their semantics.
 
-## Static model
+## Formal model
 
 The [Lean model](../formal/PROOFS.md#boot-v3-static-handler-policy-and-reader)
 proves agreement between the V3 checker and its independent well-formedness
 predicate, plus acceptance of its checked Core reader. It shares the raw V2
 record representation while requiring the V3 metadata and handler policy.
-These static results do not extend V2 runtime/local-coherence theorems to V3 or
-establish Rust, native, firmware or device correctness.
+
+The [local runtime results](../formal/PROOFS.md#boot-v3-entry-local-coherence-and-conditional-capture)
+use the existing raw transitions with V3 well-formedness premises. They establish
+typed entry and reset, local coherence under steps and total ticks, and source
+authority restricting machine-effect calls to the boot role. Conditional capture
+theorems construct requests at typed, source-aligned primitive invocations; fault
+capture additionally requires valid input, the boot episode and unused forwarding.
+They do not establish command eligibility, read availability, handler progress or
+completion, Rust or native correspondence, or firmware/device correctness.

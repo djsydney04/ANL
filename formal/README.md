@@ -712,7 +712,7 @@ two independent terminal roots by their maximum. They assume the concrete-step
 and root contracts; they do not prove Rust analysis, instruction decoding,
 exception delivery or source-to-native correspondence.
 
-## Boot v3 static handler model
+## Boot v3 handler model
 
 The [v3 profile](../spec/boot-profile-v3.md) admits a hardware-handler prefix with
 empty effects or UART authority and a designated terminal loop. The language
@@ -726,11 +726,15 @@ model umbrella. In a Lean module, import the checked reader and its theorems:
 
 ```lean
 import ANL.BootV3Wire
+import ANL.BootV3RuntimeLocalPreservation
+import ANL.BootV3RuntimeCapture
 
 #check ANL.Boot.V3.checkProgram
 #check ANL.Boot.V3.checkProgram_iff
 #check ANL.Boot.V3.Wire.checkCoreDocument
 #check ANL.Boot.V3.Wire.checkCoreDocument_iff
+#check ANL.Boot.V3.Runtime.tick_preserves_coherence
+#check ANL.Boot.V3.Runtime.primitive_capture_complete
 ```
 
 `ANL.Boot.V3.Program` reuses the V2 raw record type. The V3 checker and independent
@@ -747,8 +751,19 @@ certified by the Lean reader theorem. All three existing native identity APIs
 reject V3 with their typed revision-unsupported result, including programs with
 no illegal operation.
 
-The [proof inventory](PROOFS.md#boot-v3-static-handler-policy-and-reader) states
-the exact static scope. These three modules add no V3 runtime transition,
-local-coherence, completion or native-execution theorem. JSON parsing, IO,
-source translation, canonical Core/MIR agreement and native/device behavior
-remain separate boundaries.
+The [runtime results](PROOFS.md#boot-v3-entry-local-coherence-and-conditional-capture)
+use the unchanged raw V2 transitions under V3 well-formedness. Typed start/reset,
+ordinary source alignment and local coherence cover the active state and the
+fields actually saved in an interrupted snapshot. Total ticks preserve coherence,
+including unchanged blocked, ineligible and invalid outcomes. Hardware-to-language
+reset replaces the saved snapshot with the actual current caller. These facts
+do not imply command eligibility or progress.
+
+Static authority confines machine-effect calls to the boot role, including
+unused bodies and dead branches. Conditional capture constructs requests at a
+typed, aligned primitive invocation with a positive ordinal; fault capture also
+requires valid input, the boot episode and unused forwarding. It does not supply
+read bytes, an installed handler or a forwarding response. The proofs establish
+neither handler completion nor eventual arrival at its selected park. JSON
+parsing, IO, source translation, canonical Core/MIR agreement and Rust, native,
+firmware and device correspondence remain separate boundaries.

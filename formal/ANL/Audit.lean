@@ -316,7 +316,14 @@ run_elab do
     `ANL.BootNativeFrameCut,
     `ANL.BootV3Check,
     `ANL.BootV3CheckProofs,
-    `ANL.BootV3Wire]
+    `ANL.BootV3Wire,
+    `ANL.BootV3Carrier,
+    `ANL.BootV3RuntimeEntry,
+    `ANL.BootOriginCarrierPreservation,
+    `ANL.BootV3RuntimeCoherence,
+    `ANL.BootV3RuntimeLocalPreservation,
+    `ANL.BootV3Authority,
+    `ANL.BootV3RuntimeCapture]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
