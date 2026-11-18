@@ -1,0 +1,2172 @@
+{
+  "allocation_profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "boundaries": [
+    {
+      "base": "core/legacy-only-v4.json",
+      "bytes": 1048576,
+      "formal_exit": 0,
+      "generator": "padding",
+      "id": "core-bytes-1048576",
+      "kind": "core",
+      "rust_exit": 0,
+      "sha256": "b0822a9546a6ec4f7ff02812d98f3be2861f7bc9f849dedd5654271d36c58dea",
+      "target_bytes": 1048576
+    },
+    {
+      "base": "core/legacy-only-v4.json",
+      "bytes": 1048577,
+      "formal_exit": 3,
+      "generator": "padding",
+      "id": "core-bytes-1048577",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "a6615e033b51c7f1cf4897f51d056d0842846d34966c69f49a868f020b8bb3d6",
+      "target_bytes": 1048577
+    },
+    {
+      "base": "mir/legacy-only-v4.json",
+      "bytes": 8388608,
+      "formal_exit": 0,
+      "generator": "padding",
+      "id": "mir-bytes-8388608",
+      "kind": "mir",
+      "rust_exit": 0,
+      "sha256": "5576b250a6ae49ccff1c6f0b0b8ce29d3f364533f6cc5f62e22f6bc178a48893",
+      "target_bytes": 8388608
+    },
+    {
+      "base": "mir/legacy-only-v4.json",
+      "bytes": 8388609,
+      "formal_exit": 3,
+      "generator": "padding",
+      "id": "mir-bytes-8388609",
+      "kind": "mir",
+      "rust_exit": 3,
+      "sha256": "88ac077e963c9c3082d14652ee6893801cbf00a993540aa98225b6ee2910e466",
+      "target_bytes": 8388609
+    },
+    {
+      "bytes": 9052,
+      "count": 123,
+      "formal_exit": 0,
+      "generator": "casts",
+      "id": "core-casts-123",
+      "kind": "core",
+      "rust_exit": 0,
+      "sha256": "d39c4471ce4c0a33e212c7e7cd3fb8267c16880cc24b9b2eb8f30b3b43c6a2ab"
+    },
+    {
+      "bytes": 9123,
+      "count": 124,
+      "formal_exit": 0,
+      "generator": "casts",
+      "id": "core-casts-124",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "4730df66ab7b65a0f175fbd23b1908964dfb30a057805fc9b0783d1aba673963"
+    },
+    {
+      "bytes": 9336,
+      "count": 127,
+      "formal_exit": 0,
+      "generator": "casts",
+      "id": "core-casts-127",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "b0d2373299a8a2ce49e923922fba683bfff0b54fceb28139746e0c28a38f20b5"
+    },
+    {
+      "bytes": 9407,
+      "count": 128,
+      "formal_exit": 3,
+      "generator": "casts",
+      "id": "core-casts-128",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "c8e73d26764a5b622f9a61be950c6237a5557524ab0dea17996af34b23c4c12f"
+    },
+    {
+      "bytes": 2049,
+      "depth": 1024,
+      "formal_exit": 1,
+      "generator": "json-depth",
+      "id": "json-depth-1024",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "a56b95698e829e714bce0daa40e7b90e6d23ade152fd139dca00eff3e22d40bb"
+    },
+    {
+      "bytes": 2051,
+      "depth": 1025,
+      "formal_exit": 3,
+      "generator": "json-depth",
+      "id": "json-depth-1025",
+      "kind": "core",
+      "rust_exit": 3,
+      "sha256": "fd9e95d139d2db728e2aa21081d00c102d514e2dacc444e775d0a895650a91ee"
+    },
+    {
+      "bytes": 27111,
+      "count": 127,
+      "formal_exit": 0,
+      "generator": "mir-branches",
+      "id": "mir-branches-127",
+      "kind": "mir",
+      "rust_exit": 3,
+      "sha256": "3156c22795294b4f7c7693673069be4a44183f34284beb6a70a984c6b3e11467"
+    },
+    {
+      "bytes": 27322,
+      "count": 128,
+      "formal_exit": 3,
+      "generator": "mir-branches",
+      "id": "mir-branches-128",
+      "kind": "mir",
+      "rust_exit": 3,
+      "sha256": "542a771caee737acfa632f5741e632c91e9ee289c72ad93353ce426a52a86d24"
+    },
+    {
+      "bytes": 655435,
+      "count": 65536,
+      "generator": "responses",
+      "id": "plan-responses-65536",
+      "kind": "plan",
+      "reference_exit": 5,
+      "reference_status": "transition_limit",
+      "sha256": "dfa927a6cd86cf97e84b17dbbb56f91f9fd3904accad839b33423f871abe636b"
+    },
+    {
+      "bytes": 655445,
+      "count": 65537,
+      "generator": "responses",
+      "id": "plan-responses-65537",
+      "kind": "plan",
+      "reference_exit": 4,
+      "reference_status": "error",
+      "sha256": "c3fb8b4ff9acdde8ac2579390e0bb05a12ccc39d8cf89b3544362123b971138d"
+    },
+    {
+      "bytes": 655435,
+      "count": 65536,
+      "generator": "responses",
+      "id": "plan-invalid-last",
+      "invalid_last": true,
+      "kind": "plan",
+      "reference_exit": 1,
+      "reference_status": "rejected",
+      "sha256": "3e9a34e10c05cedf7e6cdaa2ce1ae209443e4ecfb4d677d5c93a55dd8a0b4dc1"
+    },
+    {
+      "bytes": 91,
+      "generator": "duplicate-plan",
+      "id": "plan-duplicate",
+      "kind": "plan",
+      "reference_exit": 1,
+      "reference_status": "rejected",
+      "sha256": "fe2f69fa146735842324bcbfa07e6072b74c02794ee6a77766a68e401c18d1ef"
+    },
+    {
+      "base": "plan/empty.json",
+      "bytes": 1048576,
+      "generator": "padding",
+      "id": "plan-bytes-1048576",
+      "kind": "plan",
+      "reference_exit": 5,
+      "reference_status": "transition_limit",
+      "sha256": "ec4008b8d6ad7f55dfbacaa4fc3260dc98bd85ab6914ea490b283a664112127d",
+      "target_bytes": 1048576
+    },
+    {
+      "base": "trace/view-success.json",
+      "bytes": 8388608,
+      "evidence_exit": 3,
+      "generator": "padding",
+      "id": "trace-bytes-8388608",
+      "kind": "trace",
+      "sha256": "58d021c71a6f25bdef9b70eeb1866930296ab1306a1ac5cb41a984c87f9ffc26",
+      "target_bytes": 8388608
+    },
+    {
+      "bytes": 4532793,
+      "count": 65536,
+      "evidence_exit": 3,
+      "generator": "events",
+      "id": "trace-events-65536",
+      "kind": "trace",
+      "sha256": "cae9cdc9bc31c9e399d1002238e3a9a5b3a54e455808bf3bdcc6590e76237913"
+    },
+    {
+      "base": "plan/empty.json",
+      "bytes": 1048577,
+      "generator": "padding",
+      "id": "plan-bytes-1048577",
+      "kind": "plan",
+      "reference_exit": 4,
+      "reference_status": "error",
+      "sha256": "ce01feb527aedbe4dd575b2254c0602091a017b9fbeb8376a9b2cc089c9bee9a",
+      "target_bytes": 1048577
+    },
+    {
+      "base": "trace/view-success.json",
+      "bytes": 8388609,
+      "evidence_exit": 4,
+      "generator": "padding",
+      "id": "trace-bytes-8388609",
+      "kind": "trace",
+      "sha256": "76933a0afd365db2f918487de12b31aa2cfcbaf25c15d9039cb1222287cee7b0",
+      "target_bytes": 8388609
+    },
+    {
+      "bytes": 4532855,
+      "count": 65537,
+      "evidence_exit": 4,
+      "generator": "events",
+      "id": "trace-events-65537",
+      "kind": "trace",
+      "sha256": "75b8261932f24c6e54a980886dcf9026c68b3e2decd7ac9e19987abed283d6d3"
+    },
+    {
+      "bytes": 1,
+      "generator": "invalid-utf8",
+      "id": "mir-invalid-utf8",
+      "kind": "mir-transport",
+      "report": "invalid_ir",
+      "rust_exit": 1,
+      "sha256": "a8100ae6aa1940d0b663bb31cd466142ebbdbd5187131b92d93818987832eb89",
+      "target_bytes": 1
+    },
+    {
+      "bytes": 8388609,
+      "generator": "invalid-utf8",
+      "id": "mir-oversized-invalid-utf8",
+      "kind": "mir-transport",
+      "report": "resource_limit",
+      "rust_exit": 3,
+      "sha256": "fd5bbbb0e26a12ac0419c7a3dc0ac7e85cd55a5dcb350eb857ddebf579932faf",
+      "target_bytes": 8388609
+    }
+  ],
+  "command_timeout_seconds": 60,
+  "depth_resource": "resources/recursive-depth.anl",
+  "effects": [
+    {
+      "expected": {
+        "kind": "value",
+        "type": "i64",
+        "value": "1"
+      },
+      "id": "effect-bitwise-rhs",
+      "memory": true,
+      "plan": "plan/effect-bitwise-rhs.json",
+      "source": "effects/bitwise-rhs.anl",
+      "trace": "trace/effect-bitwise-rhs.json"
+    },
+    {
+      "expected": {
+        "kind": "value",
+        "type": "i64",
+        "value": "42"
+      },
+      "id": "effect-boolean-skip",
+      "memory": true,
+      "plan": "plan/effect-boolean-skip.json",
+      "source": "effects/boolean-skip.anl",
+      "trace": "trace/effect-boolean-skip.json"
+    },
+    {
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "effect-lhs-overflow",
+      "memory": true,
+      "plan": "plan/effect-lhs-overflow.json",
+      "source": "effects/lhs-overflow.anl",
+      "trace": "trace/effect-lhs-overflow.json"
+    },
+    {
+      "expected": {
+        "kind": "trap",
+        "trap": "division_by_zero"
+      },
+      "id": "effect-lhs-zero",
+      "memory": true,
+      "plan": "plan/effect-lhs-zero.json",
+      "source": "effects/lhs-zero.anl",
+      "trace": "trace/effect-lhs-zero.json"
+    },
+    {
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_length"
+      },
+      "id": "effect-invalid-length",
+      "memory": true,
+      "plan": "plan/effect-invalid-length.json",
+      "source": "effects/invalid-length.anl",
+      "trace": "trace/effect-invalid-length.json"
+    }
+  ],
+  "empty_plan": "plan/empty.json",
+  "exclusions": [
+    "Finite fixed conformance inputs do not prove the production Rust frontend, emitter, C compiler, or host ABI.",
+    "Native resource policy, tuple-field threshold, source byte/token/module/path limits, generated output byte/event limits, and every possible malformed wire shape are outside this gate.",
+    "Host boundary profile is 64-bit size_t/ptrdiff_t with 8-byte i64 alignment; other ABI profiles are not qualified.",
+    "Formal JSON depth 1024 and Rust serde depth 127 are intentionally different admission boundaries.",
+    "Historical private captures are referenced as prior evidence only and are never relabeled portable execution.",
+    "No performance results are collected."
+  ],
+  "legacy": [
+    {
+      "accepted": true,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-baseline",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-identity",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v0-shl",
+      "kind": "core",
+      "path": "legacy/apl-expr-v0-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-baseline",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-identity",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-expr-v1-shl",
+      "kind": "core",
+      "path": "legacy/apl-expr-v1-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_products",
+      "id": "apl-expr-v2-baseline",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-expr-v2-identity",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-expr-v2-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-expr-v2-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-expr-v2-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-expr-v2-shl",
+      "kind": "core",
+      "path": "legacy/apl-expr-v2-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-baseline",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-identity",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v0-shl",
+      "kind": "core",
+      "path": "legacy/apl-core-v0-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-baseline",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-identity",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "apl-core-v1-shl",
+      "kind": "core",
+      "path": "legacy/apl-core-v1-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_products",
+      "id": "apl-core-v2-baseline",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-core-v2-identity",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-core-v2-bit-not",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-core-v2-wrap_add",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-core-v2-bit_and",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "apl-core-v2-shl",
+      "kind": "core",
+      "path": "legacy/apl-core-v2-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_raw",
+      "id": "anl-core-v3-baseline",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "anl-core-v3-identity",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "anl-core-v3-bit-not",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "anl-core-v3-wrap_add",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "anl-core-v3-bit_and",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "anl-core-v3-shl",
+      "kind": "core",
+      "path": "legacy/anl-core-v3-shl.json"
+    },
+    {
+      "accepted": true,
+      "formal": "old_raw",
+      "id": "old-mir-baseline",
+      "kind": "mir",
+      "path": "legacy/mir-baseline.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-mir-identity",
+      "kind": "mir",
+      "path": "legacy/mir-identity.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-mir-bit-not",
+      "kind": "mir",
+      "path": "legacy/mir-bit-not.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-mir-wrap_add",
+      "kind": "mir",
+      "path": "legacy/mir-wrap_add.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-mir-bit_and",
+      "kind": "mir",
+      "path": "legacy/mir-bit_and.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-mir-shl",
+      "kind": "mir",
+      "path": "legacy/mir-shl.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "old-reader-legacy-v0-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v0-word-parameter.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_scalar",
+      "id": "old-reader-legacy-v1-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v1-word-parameter.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "old-reader-legacy-v2-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v2-word-parameter.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_products",
+      "id": "old-reader-legacy-v2-word-tuple-field",
+      "kind": "core",
+      "path": "core/legacy-v2-word-tuple-field.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-reader-legacy-v3-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v3-word-parameter.json"
+    },
+    {
+      "accepted": false,
+      "formal": "old_raw",
+      "id": "old-reader-legacy-v3-word-tuple-field",
+      "kind": "core",
+      "path": "core/legacy-v3-word-tuple-field.json"
+    }
+  ],
+  "legacy_names": "controls/legacy-names.anl",
+  "native_timeout_seconds": 90,
+  "old_memory": "controls/old-memory.anl",
+  "old_unknown_trap": "controls/old-invalid-shift.json",
+  "pairs": [
+    {
+      "accepted": true,
+      "core": "core/pure-word.json",
+      "mir": "mir/pure-word.json"
+    },
+    {
+      "accepted": true,
+      "core": "core/legacy-only-v4.json",
+      "mir": "mir/legacy-only-v4.json"
+    },
+    {
+      "accepted": false,
+      "core": "core/pure-word.json",
+      "mir": "mir/typed-noncanonical-extra-value.json"
+    }
+  ],
+  "raw": [
+    {
+      "accepted": true,
+      "bytes": 396,
+      "id": "pure-word",
+      "kind": "core",
+      "path": "core/pure-word.json",
+      "reason": "Raw word and dedicated conversion form; no memory forms.",
+      "sha256": "ab1256a37a7c768da10045cdd50938fb3e4db047aee8dc495f63f87b76265199"
+    },
+    {
+      "accepted": true,
+      "bytes": 576,
+      "id": "pure-word",
+      "kind": "mir",
+      "path": "mir/pure-word.json",
+      "reason": "Exact predicted canonical lowering for two expression nodes.",
+      "sha256": "8d795d45f099a3eebbeb493b11994086cd2cdfce568a9070e5a496e0df97a1e3"
+    },
+    {
+      "accepted": true,
+      "bytes": 319,
+      "id": "legacy-only-v4",
+      "kind": "core",
+      "path": "core/legacy-only-v4.json",
+      "reason": "Explicit imported revision remains v4 even without new nodes.",
+      "sha256": "e1aca12ca324ed8899805020872f7f57ada029ad7ee7f2b4df8eb83a6c7b6fe2"
+    },
+    {
+      "accepted": true,
+      "bytes": 443,
+      "id": "legacy-only-v4",
+      "kind": "mir",
+      "path": "mir/legacy-only-v4.json",
+      "reason": "Declared words MIR remains v4 despite old operations only.",
+      "sha256": "71dee3368deec3bbae42b147cb910c34c9fd822b9f2ed597acf2c7951a3a2eaf"
+    },
+    {
+      "accepted": true,
+      "bytes": 390,
+      "id": "identity-conversion",
+      "kind": "core",
+      "path": "core/identity-conversion.json",
+      "reason": "Retain explicit i64 identity conversion and its meter.",
+      "sha256": "1bd2c82a7775ad92a0c2bacb9eb37e40feea7b2cc0c8f1b63e8c1d4e0581389d"
+    },
+    {
+      "accepted": true,
+      "bytes": 512,
+      "id": "u64-full-range",
+      "kind": "core",
+      "path": "core/u64-full-range.json",
+      "reason": "Full u64 payload is valid before a guarded shift to i64-representable result.",
+      "sha256": "50af947d3fcdff90c927fa8c0587597ab22e3bb6ca960979009cd05f003068c3"
+    },
+    {
+      "accepted": false,
+      "bytes": 397,
+      "id": "word-leading-zero",
+      "kind": "core",
+      "path": "core/word-leading-zero.json",
+      "reason": "Unsigned payload string is canonical decimal.",
+      "sha256": "285bff532c9baf390e5cdd1d1b062f04f0ef3a47dc7dc8be9aaaa046cd399403"
+    },
+    {
+      "accepted": false,
+      "bytes": 397,
+      "id": "word-plus-sign",
+      "kind": "core",
+      "path": "core/word-plus-sign.json",
+      "reason": "A plus sign is not canonical unsigned decimal.",
+      "sha256": "57f697b5bb742696588cd140f28556aa092f3b0212b22d87d4cc3b8f2793ca7d"
+    },
+    {
+      "accepted": false,
+      "bytes": 396,
+      "id": "word-negative-zero",
+      "kind": "core",
+      "path": "core/word-negative-zero.json",
+      "reason": "Negative zero is invalid unsigned spelling.",
+      "sha256": "25f9373e62da95e0f1bb624bae284f8760f424243197c91130574d03fe6aa88b"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "word-suffix",
+      "kind": "core",
+      "path": "core/word-suffix.json",
+      "reason": "Raw payload has no source suffix.",
+      "sha256": "74d7e068d439117d06af9d07f07bd058e8abd3fc8c1268da82ba230efda66ce1"
+    },
+    {
+      "accepted": false,
+      "bytes": 394,
+      "id": "word-numeric-payload",
+      "kind": "core",
+      "path": "core/word-numeric-payload.json",
+      "reason": "Payload must be a string.",
+      "sha256": "7888e6c844da9fe7fc7b920d4f2fd2f2daf4f70676dff462c5cd4e10de3d488a"
+    },
+    {
+      "accepted": false,
+      "bytes": 397,
+      "id": "word-oversized",
+      "kind": "core",
+      "path": "core/word-oversized.json",
+      "reason": "Payload must fit the independently decoded width.",
+      "sha256": "18131cfe945e9106c108ad568f7c06d22d8e40625d4df378bb0bae7cd1ae0f20"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "word-unknown-width",
+      "kind": "core",
+      "path": "core/word-unknown-width.json",
+      "reason": "Only four widths exist.",
+      "sha256": "5a7b47d70fadf42137cbce55deb37c3ada72cb1da859701e34cbf0a0524fa13c"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "word-string-width",
+      "kind": "core",
+      "path": "core/word-string-width.json",
+      "reason": "Width is a JSON integer, not string.",
+      "sha256": "d67a8968c844bf825132034bfcc39555c6656f9c0b524a08bd79edf977031a6a"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "word-float-width",
+      "kind": "core",
+      "path": "core/word-float-width.json",
+      "reason": "Noninteger JSON number representation is rejected.",
+      "sha256": "7badc745b5af27598126cf28f175719e91d03fa96ecd5154c6291c851473b1f3"
+    },
+    {
+      "accepted": false,
+      "bytes": 399,
+      "id": "word-bool-width",
+      "kind": "core",
+      "path": "core/word-bool-width.json",
+      "reason": "JSON Boolean cannot serve as width.",
+      "sha256": "695e9581cc56272f72a2735ab3359f915189dad02f77b8c7f11c8b58da01ac56"
+    },
+    {
+      "accepted": false,
+      "bytes": 397,
+      "id": "word-wrong-annotation",
+      "kind": "core",
+      "path": "core/word-wrong-annotation.json",
+      "reason": "Width and annotation are independently compared.",
+      "sha256": "68df96e6a69b31c8902ae7a19ea99d2de4ff2bab7bdde225affbb3bf808ecd0d"
+    },
+    {
+      "accepted": false,
+      "bytes": 406,
+      "id": "word-extra-field",
+      "kind": "core",
+      "path": "core/word-extra-field.json",
+      "reason": "Exact constructor field set.",
+      "sha256": "5fe7e4fbb8ebdb53879606d687292c2bd371a58cc34dfcf77c5fa9d7faba14b4"
+    },
+    {
+      "accepted": false,
+      "bytes": 395,
+      "id": "convert-wrong-result",
+      "kind": "core",
+      "path": "core/convert-wrong-result.json",
+      "reason": "Result type must equal independent conversion inference.",
+      "sha256": "d9b630ab21550b61b3b798c4e64a712a3d1007e6f1e796214b9c591fbe790330"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "convert-bad-mode",
+      "kind": "core",
+      "path": "core/convert-bad-mode.json",
+      "reason": "Only checked and truncate modes exist.",
+      "sha256": "bc8cfa058e47c9372948b02c95d8d3da0c6349b45d026ea3a6e2f03c3ec465f0"
+    },
+    {
+      "accepted": false,
+      "bytes": 397,
+      "id": "convert-truncate-i64",
+      "kind": "core",
+      "path": "core/convert-truncate-i64.json",
+      "reason": "Truncation requires word destination.",
+      "sha256": "8790b905461bbd041109a9e185e459faff1d804acf66551c0c90438b60623d34"
+    },
+    {
+      "accepted": false,
+      "bytes": 398,
+      "id": "convert-bool-destination",
+      "kind": "core",
+      "path": "core/convert-bool-destination.json",
+      "reason": "Target must be an integer scalar.",
+      "sha256": "96d55a3d6794b4e082eadfb3d4bbc16d1a71f435f493e0714b90fc76768a8407"
+    },
+    {
+      "accepted": false,
+      "bytes": 391,
+      "id": "convert-bool-operand",
+      "kind": "core",
+      "path": "core/convert-bool-operand.json",
+      "reason": "Operand must be integer scalar.",
+      "sha256": "0339f87dd22692debd6e3eaba717fe5de8724d18ccadac956a9bedc1de7cff84"
+    },
+    {
+      "accepted": false,
+      "bytes": 272,
+      "id": "missing-profile",
+      "kind": "core",
+      "path": "core/missing-profile.json",
+      "reason": "V4 requires profile even without memory.",
+      "sha256": "58011e40dabe38acb674b679fc6d1cdffd2cb42442f7f93fe0ff6a93d98a6086"
+    },
+    {
+      "accepted": false,
+      "bytes": 404,
+      "id": "wrong-revision",
+      "kind": "core",
+      "path": "core/wrong-revision.json",
+      "reason": "Schema and semantic revision must match.",
+      "sha256": "4c1072eb0298e875c8399ae53e1bf8556b6faa79f0a1300ae25b1f509dc5287f"
+    },
+    {
+      "accepted": false,
+      "bytes": 288,
+      "id": "legacy-v0-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v0-word-parameter.json",
+      "reason": "Shared type parser expansion must not admit a word in an unused legacy signature.",
+      "sha256": "24df8d2b6af4658d44e147db212275b1d2829c18300216493dca4954415b8ac4"
+    },
+    {
+      "accepted": false,
+      "bytes": 297,
+      "id": "legacy-v1-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v1-word-parameter.json",
+      "reason": "Shared type parser expansion must not admit a word in an unused legacy signature.",
+      "sha256": "01a6cf7cd7c79c3b92fe332c425b4d670269ff868ed510e7586ffa9b19601263"
+    },
+    {
+      "accepted": false,
+      "bytes": 299,
+      "id": "legacy-v2-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v2-word-parameter.json",
+      "reason": "Shared type parser expansion must not admit a word in an unused legacy signature.",
+      "sha256": "ddc4a4f3fd6b1379aa480511ac47cfe33f2216fa6fa3728bda4c67a695f3d14b"
+    },
+    {
+      "accepted": false,
+      "bytes": 317,
+      "id": "legacy-v2-word-tuple-field",
+      "kind": "core",
+      "path": "core/legacy-v2-word-tuple-field.json",
+      "reason": "Recursive legacy type allowlists include tuple fields.",
+      "sha256": "c35149015f6ec0ec0e64802e03f87cbd3049d22e415cc7131be167d9d57edf94"
+    },
+    {
+      "accepted": false,
+      "bytes": 443,
+      "id": "legacy-v3-word-parameter",
+      "kind": "core",
+      "path": "core/legacy-v3-word-parameter.json",
+      "reason": "Shared type parser expansion must not admit a word in an unused legacy signature.",
+      "sha256": "6f4808cd3acd8eafdc6015d21f21e25f0d56361ae2dba408023c39f9d9e8322a"
+    },
+    {
+      "accepted": false,
+      "bytes": 461,
+      "id": "legacy-v3-word-tuple-field",
+      "kind": "core",
+      "path": "core/legacy-v3-word-tuple-field.json",
+      "reason": "Recursive legacy type allowlists include tuple fields.",
+      "sha256": "51028453f32410df26269e7060c466c93909e93b3ba05e80e8949a97320fb31f"
+    },
+    {
+      "accepted": false,
+      "bytes": 578,
+      "id": "word-destination-type",
+      "kind": "mir",
+      "path": "mir/word-destination-type.json",
+      "reason": "Destination type must agree with word width.",
+      "sha256": "b71b81d030ace1ff3d7401d9818a169e21b146169e1a8216592738f0df282783"
+    },
+    {
+      "accepted": false,
+      "bytes": 577,
+      "id": "convert-operand-type",
+      "kind": "mir",
+      "path": "mir/convert-operand-type.json",
+      "reason": "Use annotation must match defined Temp.",
+      "sha256": "58a159751740c6f356291f8aa449b11a3ef817684db4ea52058b05a8740c4418"
+    },
+    {
+      "accepted": false,
+      "bytes": 587,
+      "id": "convert-extra-operation-ty",
+      "kind": "mir",
+      "path": "mir/convert-extra-operation-ty.json",
+      "reason": "MIR result type belongs only to destination.",
+      "sha256": "b8082e227304a6a0f1ceedea9adec23bea7eb8371af4322c86f55853419d594c"
+    },
+    {
+      "accepted": false,
+      "bytes": 576,
+      "id": "unknown-word-temp",
+      "kind": "mir",
+      "path": "mir/unknown-word-temp.json",
+      "reason": "Undefined Temp cannot be converted.",
+      "sha256": "d97173b31e302d605ccc6fd9bd75e19b9cf62db03118ebcc744b3ac93c3259d4"
+    },
+    {
+      "accepted": true,
+      "bytes": 654,
+      "id": "typed-noncanonical-extra-value",
+      "kind": "mir",
+      "path": "mir/typed-noncanonical-extra-value.json",
+      "reason": "Raw typing permits an unused valid instruction; canonical pair equality must reject it.",
+      "sha256": "e0d308c8a48891ae9fb647ebe09d8f341a977b0a07a4863c31f46b85e184b5e2"
+    }
+  ],
+  "resource_diagnostics": {
+    "depth": "evaluation nesting limit exceeded",
+    "expression_fuel": "fuel exhausted",
+    "fill_fuel": "buffer attempted-fill fuel exhausted",
+    "live_cells": "live buffer cell limit exceeded",
+    "slots": "active environment and argument slot limit exceeded"
+  },
+  "resources": [
+    {
+      "core": "resources/source-slots-pending-view-core.json",
+      "default": false,
+      "fuel": 1000000,
+      "id": "source-slots-pending-view",
+      "native": false,
+      "plan": "resources/source-slots-pending-view-plan.json",
+      "reason": "slots",
+      "replay": "resources/source-slots-pending-view-replay.json",
+      "trace": "resources/source-slots-pending-view-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/source-live-cells-over-core.json",
+      "default": false,
+      "fuel": 3000000,
+      "id": "source-live-cells-over",
+      "native": false,
+      "plan": "resources/source-live-cells-over-plan.json",
+      "reason": "live_cells",
+      "replay": "resources/source-live-cells-over-replay.json",
+      "trace": "resources/source-live-cells-over-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/source-live-cells-nested-over-core.json",
+      "default": false,
+      "fuel": 3000000,
+      "id": "source-live-cells-nested-over",
+      "native": false,
+      "plan": "resources/source-live-cells-nested-over-plan.json",
+      "reason": "live_cells",
+      "replay": "resources/source-live-cells-nested-over-replay.json",
+      "trace": "resources/source-live-cells-nested-over-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/core-fill-fuel-5-core.json",
+      "default": false,
+      "fuel": 5,
+      "id": "core-fill-fuel-5",
+      "native": false,
+      "plan": "resources/core-fill-fuel-5-plan.json",
+      "reason": "fill_fuel",
+      "replay": "resources/core-fill-fuel-5-replay.json",
+      "trace": "resources/core-fill-fuel-5-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/core-fill-fuel-6-core.json",
+      "default": false,
+      "fuel": 6,
+      "id": "core-fill-fuel-6",
+      "native": false,
+      "plan": "resources/core-fill-fuel-6-plan.json",
+      "reason": "expression_fuel",
+      "replay": "resources/core-fill-fuel-6-replay.json",
+      "trace": "resources/core-fill-fuel-6-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/core-zero-no-fill-3-core.json",
+      "default": true,
+      "fuel": 3,
+      "id": "core-zero-no-fill-3",
+      "native": false,
+      "plan": "resources/core-zero-no-fill-3-plan.json",
+      "reason": "expression_fuel",
+      "replay": "resources/core-zero-no-fill-3-replay.json",
+      "trace": "resources/core-zero-no-fill-3-trace.json",
+      "transitions": 262144
+    },
+    {
+      "core": "resources/core-target-no-fill-3-core.json",
+      "default": true,
+      "fuel": 3,
+      "id": "core-target-no-fill-3",
+      "native": false,
+      "plan": "resources/core-target-no-fill-3-plan.json",
+      "reason": "expression_fuel",
+      "replay": "resources/core-target-no-fill-3-replay.json",
+      "trace": "resources/core-target-no-fill-3-trace.json",
+      "transitions": 262144
+    }
+  ],
+  "semantic_revision": "anl-words-v1",
+  "source": [
+    {
+      "bytes": 44,
+      "expected": {
+        "kind": "value",
+        "value": "0"
+      },
+      "id": "wrap-add-u8",
+      "memory": false,
+      "reason": "Modular add uses exactly the declared width.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "9b9d26b01eb191f59595c18e2c79229c920b2e2d5b26005713802b39b650f737",
+      "source": "source/wrap-add-u8.anl"
+    },
+    {
+      "bytes": 63,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "wrap-sub-u8",
+      "memory": false,
+      "reason": "Wrapping subtraction must use integer residue, not truncated natural subtraction.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "8d97588b33badf1986281cbed032de9ad4ca7aaa932bb8c07a95afead6880c5a",
+      "source": "source/wrap-sub-u8.anl"
+    },
+    {
+      "bytes": 43,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "checked-add-u8",
+      "memory": false,
+      "reason": "Overflow is checked at word width before outer conversion.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "b0d21513106fe01f08256b670463e81f8aed28a3651c7320c0bb8a2a8b1b6f7a",
+      "source": "source/checked-add-u8.anl"
+    },
+    {
+      "bytes": 40,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "shift-bound-u8",
+      "memory": false,
+      "reason": "A count equal to width must trap rather than mask or evaluate a C shift.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "b52f7ece90e28c41cc665d9d0d78216e32fc73b74aebdae0709e96833429d34b",
+      "source": "source/shift-bound-u8.anl"
+    },
+    {
+      "bytes": 48,
+      "expected": {
+        "kind": "value",
+        "value": "0"
+      },
+      "id": "wrap-add-u16",
+      "memory": false,
+      "reason": "Modular add uses exactly the declared width.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "db612efd58bcf98a239b5f9e5efd8eec00a8d8dcb8419b44b6544d6ed4004379",
+      "source": "source/wrap-add-u16.anl"
+    },
+    {
+      "bytes": 68,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "wrap-sub-u16",
+      "memory": false,
+      "reason": "Wrapping subtraction must use integer residue, not truncated natural subtraction.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "ce8f3bfa901494305bebcc1da24592858c0a4452c1a4aaafb294e6d9d263d192",
+      "source": "source/wrap-sub-u16.anl"
+    },
+    {
+      "bytes": 47,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "checked-add-u16",
+      "memory": false,
+      "reason": "Overflow is checked at word width before outer conversion.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "bc5e9e655ef784263e53a8d06fcd2654d19fa045721a50e4d798cdbd89575c91",
+      "source": "source/checked-add-u16.anl"
+    },
+    {
+      "bytes": 42,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "shift-bound-u16",
+      "memory": false,
+      "reason": "A count equal to width must trap rather than mask or evaluate a C shift.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "fc56f4f01432ef23a93f89517a1d2ccbc3b9d657dca07300ecde0e702cd36dd7",
+      "source": "source/shift-bound-u16.anl"
+    },
+    {
+      "bytes": 53,
+      "expected": {
+        "kind": "value",
+        "value": "0"
+      },
+      "id": "wrap-add-u32",
+      "memory": false,
+      "reason": "Modular add uses exactly the declared width.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "dd7dc3bc50b7ceaaec224a64bb2031c6b889332c562768472d79104382dedc79",
+      "source": "source/wrap-add-u32.anl"
+    },
+    {
+      "bytes": 73,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "wrap-sub-u32",
+      "memory": false,
+      "reason": "Wrapping subtraction must use integer residue, not truncated natural subtraction.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "914a410b03a7a6a3760ca55b41c3661498c4dcf8ec5a0a50c29488c6eb4879f7",
+      "source": "source/wrap-sub-u32.anl"
+    },
+    {
+      "bytes": 52,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "checked-add-u32",
+      "memory": false,
+      "reason": "Overflow is checked at word width before outer conversion.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "5866a8c9fe3b4203f160cba556a46678709e40bf8f4f162dcb28e7a156852d42",
+      "source": "source/checked-add-u32.anl"
+    },
+    {
+      "bytes": 42,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "shift-bound-u32",
+      "memory": false,
+      "reason": "A count equal to width must trap rather than mask or evaluate a C shift.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "3c2239c3e8cb28c97abaabcce14dc206b71fe04bd33f71ad5b51ae6f86942913",
+      "source": "source/shift-bound-u32.anl"
+    },
+    {
+      "bytes": 63,
+      "expected": {
+        "kind": "value",
+        "value": "0"
+      },
+      "id": "wrap-add-u64",
+      "memory": false,
+      "reason": "Modular add uses exactly the declared width.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "a56c9e7cac1c45ffc066ec48a7cffb4ae1e8bac63861df7a2537a4058d05dd30",
+      "source": "source/wrap-add-u64.anl"
+    },
+    {
+      "bytes": 83,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "wrap-sub-u64",
+      "memory": false,
+      "reason": "Wrapping subtraction must use integer residue, not truncated natural subtraction.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "f95d057ec3b61d9f9154d6fec9dd8ca39ac6e80e7741b06b22999bb036db221d",
+      "source": "source/wrap-sub-u64.anl"
+    },
+    {
+      "bytes": 62,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "checked-add-u64",
+      "memory": false,
+      "reason": "Overflow is checked at word width before outer conversion.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "0cb461187b08fbe81d5dc86754426e6bf2e0666f7fb59ee72dab1d6a334bb5bb",
+      "source": "source/checked-add-u64.anl"
+    },
+    {
+      "bytes": 42,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "shift-bound-u64",
+      "memory": false,
+      "reason": "A count equal to width must trap rather than mask or evaluate a C shift.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "5eec34120c28d0b6e6904ccaccfea87c0ddcde724f82019ef5580992674e9a01",
+      "source": "source/shift-bound-u64.anl"
+    },
+    {
+      "bytes": 52,
+      "expected": {
+        "kind": "value",
+        "value": "1"
+      },
+      "id": "u16-product-promotion",
+      "memory": false,
+      "reason": "C integer promotion must not overflow signed int.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "f384f6e5ee787b7c61987ba39804c34129c1a879912230e2b2bd737fbea28f4f",
+      "source": "source/u16-product-promotion.anl"
+    },
+    {
+      "bytes": 51,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "u16-product-checked",
+      "memory": false,
+      "reason": "Checked narrow multiplication must guard before product.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "345faa7236087ea55737de70b7b5149df8c479d9db6b830616a4b1bcfb1b5aac",
+      "source": "source/u16-product-checked.anl"
+    },
+    {
+      "bytes": 82,
+      "expected": {
+        "kind": "value",
+        "value": "1"
+      },
+      "id": "u64-product-wrap",
+      "memory": false,
+      "reason": "No wider host integer is required by the modulo-2^64 semantics.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "a31ed13ad0fc73859e5771b81549937732d8a8c2f941285aa8da6a920e1def64",
+      "source": "source/u64-product-wrap.anl"
+    },
+    {
+      "bytes": 61,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "u64-product-checked",
+      "memory": false,
+      "reason": "Product above u64 range cannot wrap before guard.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "e83b152baa34b53d23d25d21dd0900c7930786270ad8d51aa19bbed062d5acb8",
+      "source": "source/u64-product-checked.anl"
+    },
+    {
+      "bytes": 64,
+      "expected": {
+        "kind": "value",
+        "value": "72057594037927935"
+      },
+      "id": "u64-natural-division",
+      "memory": false,
+      "reason": "Full unsigned division cannot reinterpret its numerator as signed.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "b159109ffcdd0c907ba280bbcc398d618fed2a9d968ed19608262d30ef0ce9ec",
+      "source": "source/u64-natural-division.anl"
+    },
+    {
+      "bytes": 64,
+      "expected": {
+        "kind": "value",
+        "value": "255"
+      },
+      "id": "u64-natural-remainder",
+      "memory": false,
+      "reason": "Full unsigned remainder is a natural-number remainder.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "be2021b8e6759afb15ad5f6a1abffc8cd984ff04688750efa8125a99f12f1fd5",
+      "source": "source/u64-natural-remainder.anl"
+    },
+    {
+      "bytes": 91,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "u64-ordering",
+      "memory": false,
+      "reason": "Unsigned ordering across the high bit differs from signed reinterpretation.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "1705c9cbfd3576694b0a9634edd0527d8e7739bd91ace5b2883e552920458a69",
+      "source": "source/u64-ordering.anl"
+    },
+    {
+      "bytes": 43,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "u64-subtract-checked",
+      "memory": false,
+      "reason": "Checked subtraction is distinct from wrapping subtraction.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "6df291d39fc474b8e145fcd48e1d67a812cfb10107917047326268ce8ea830cf",
+      "source": "source/u64-subtract-checked.anl"
+    },
+    {
+      "bytes": 104,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "full-unsigned-cast",
+      "memory": false,
+      "reason": "Word-to-word identity covers values above signed maximum.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "03c5a1092c4e896a46d10a85c73f95d23926e192a8e7f217565b299971814600",
+      "source": "source/full-unsigned-cast.anl"
+    },
+    {
+      "bytes": 54,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "unsigned-to-i64",
+      "memory": false,
+      "reason": "Unsigned-to-signed conversion checks representability.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "616b3696a206a2326149cd53edd48a7a3a0f08a297ebfae7ad5e03d29523c362",
+      "source": "source/unsigned-to-i64.anl"
+    },
+    {
+      "bytes": 47,
+      "expected": {
+        "kind": "value",
+        "value": "255"
+      },
+      "id": "negative-low-bits",
+      "memory": false,
+      "reason": "Signed low bits use Euclidean modulo.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "80c2dab0393f35ad1657074392dbba29b17b6b7f5a13af1deb872545a62eadfa",
+      "source": "source/negative-low-bits.anl"
+    },
+    {
+      "bytes": 104,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "minimum-low-bits",
+      "memory": false,
+      "reason": "Negative minimum must not be negated in signed C.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "bff5bec38468b2ddf20f2d98ebbf856fad298abb9f195ca2c046e690a9de443f",
+      "source": "source/minimum-low-bits.anl"
+    },
+    {
+      "bytes": 43,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "negative-checked-cast",
+      "memory": false,
+      "reason": "Checked conversion is distinct from truncation.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "621db47fa728a253d6213a475648a534a6f76930beedfb244345bec669534e02",
+      "source": "source/negative-checked-cast.anl"
+    },
+    {
+      "bytes": 69,
+      "expected": {
+        "kind": "value",
+        "value": "4294967295"
+      },
+      "id": "narrow-high-unsigned",
+      "memory": false,
+      "reason": "Narrowing truncation must not route through i64.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "78bbaa925e80492d038a59ae1547857349d7af23ce6573211b281c53a86641bc",
+      "source": "source/narrow-high-unsigned.anl"
+    },
+    {
+      "bytes": 65,
+      "expected": {
+        "kind": "trap",
+        "trap": "arithmetic_overflow"
+      },
+      "id": "narrow-high-checked",
+      "memory": false,
+      "reason": "Checked narrowing rejects high bits.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "da074f7b2c57f82c01fc8f227901858935f731d0da4850f2556985a7fbe0e552",
+      "source": "source/narrow-high-checked.anl"
+    },
+    {
+      "bytes": 61,
+      "expected": {
+        "kind": "value",
+        "value": "1"
+      },
+      "id": "logical-right-top",
+      "memory": false,
+      "reason": "Right shift is logical, independent of signed representation.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "4b0798e82c77d13b677e473d870db158c498855292b54d990e1738dec603a9e1",
+      "source": "source/logical-right-top.anl"
+    },
+    {
+      "bytes": 80,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "modular-left-top",
+      "memory": false,
+      "reason": "Left shift discards high bits even in checked arithmetic language.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "347b975fc2bd15694b7d71810bb4add09f560e1c026f980e48d5d40d251a67c9",
+      "source": "source/modular-left-top.anl"
+    },
+    {
+      "bytes": 41,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "negative-shift",
+      "memory": false,
+      "reason": "Negative counts are defined traps.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "f0550e6414df254ea33f5e5979b885635ce08b83ae729f93ce91c0151db6a281",
+      "source": "source/negative-shift.anl"
+    },
+    {
+      "bytes": 72,
+      "expected": {
+        "kind": "value",
+        "value": "42"
+      },
+      "id": "bitwise-precedence",
+      "memory": false,
+      "reason": "And binds above xor above or above equality.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "a6d0d40840aa55858a36a0f043c2534d6522f6ff09a0a47772211bba1b4726d5",
+      "source": "source/bitwise-precedence.anl"
+    },
+    {
+      "bytes": 44,
+      "expected": {
+        "kind": "value",
+        "value": "4"
+      },
+      "id": "shift-sum-precedence",
+      "memory": false,
+      "reason": "Sum binds above shift.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "6c8b305389d49488bff17f2a8fdca8729cd546053ce152184ae050a47ccc6fac",
+      "source": "source/shift-sum-precedence.anl"
+    },
+    {
+      "bytes": 37,
+      "expected": {
+        "kind": "value",
+        "value": "65535"
+      },
+      "id": "bit-complement",
+      "memory": false,
+      "reason": "Complement is limited to the declared width.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "7ba5b0513f1376e4e3533e23a0f6eaac4164b7b65c99a5852b2cd492ca8580ef",
+      "source": "source/bit-complement.anl"
+    },
+    {
+      "bytes": 43,
+      "expected": {
+        "kind": "trap",
+        "trap": "division_by_zero"
+      },
+      "id": "remainder-zero",
+      "memory": false,
+      "reason": "Remainder zero shares existing defined trap.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "81a1c5320fab9b75aa420e53073d402c55f6611a4c09069b3164f937fd67206d",
+      "source": "source/remainder-zero.anl"
+    },
+    {
+      "bytes": 51,
+      "expected": {
+        "kind": "trap",
+        "trap": "division_by_zero"
+      },
+      "id": "right-trap-before-outer",
+      "memory": false,
+      "reason": "Evaluate both operands before outer arithmetic check.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "61cc5e3357c4a4182e879cb310d80b5f827b076255ce1a8a843a9e1b01154395",
+      "source": "source/right-trap-before-outer.anl"
+    },
+    {
+      "bytes": 33,
+      "expected": {
+        "kind": "value",
+        "value": "1"
+      },
+      "id": "identity-cast-revision",
+      "memory": false,
+      "reason": "Identity conversion remains a revision-selecting metered node.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "ad62073674e3f50014b3bbafc43f2b12fcd7391cc9bb422091d6c0932406562c",
+      "source": "source/identity-cast-revision.anl"
+    },
+    {
+      "bytes": 40,
+      "expected": {
+        "kind": "value",
+        "value": "255"
+      },
+      "id": "literal-leading-zero",
+      "memory": false,
+      "reason": "Source permits leading zeros while raw serialization canonicalizes.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "475bd7ed1f5632f668bf797b5f85e83d8988a550e9eefe66b3e22303746cf52b",
+      "source": "source/literal-leading-zero.anl"
+    },
+    {
+      "bytes": 218,
+      "expected": {
+        "kind": "value",
+        "value": "8"
+      },
+      "id": "contextual-legacy-names",
+      "memory": false,
+      "reason": "Old ordinary identifiers coexist with contextual type/conversion forms.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "15b4f180f026920672d5be1239a906b283cfb20e54137cb8f567962d73d4cd07",
+      "source": "source/contextual-legacy-names.anl"
+    },
+    {
+      "bytes": 160,
+      "expected": {
+        "kind": "value",
+        "value": "6569"
+      },
+      "id": "tuple-call-loop",
+      "memory": false,
+      "reason": "Mixed tuples survive parameters, results, mutable slots and repeated loops.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "97ecd7165ec4c770d3e666f21c61466cf922adad429587cd97879f5ad7689411",
+      "source": "source/tuple-call-loop.anl"
+    },
+    {
+      "bytes": 264,
+      "expected": {
+        "kind": "value",
+        "value": "65535"
+      },
+      "id": "view-with-word-arguments",
+      "memory": true,
+      "reason": "Word values compose with live edit/read views and mixed result tuples.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "cf11ebabfcd61827d6e7a01039a8c533e4d48315ca123810426a1f26be295b89",
+      "source": "source/view-with-word-arguments.anl"
+    },
+    {
+      "bytes": 84,
+      "expected": {
+        "kind": "trap",
+        "trap": "index_out_of_bounds"
+      },
+      "id": "bounds-before-shift",
+      "memory": true,
+      "reason": "Store bounds must precede the invalid shift in its value.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "419e67f0e7cc67a4cdff460b998ebd70a917bfed27078a6183e9b461fe4d2fba",
+      "source": "source/bounds-before-shift.anl"
+    },
+    {
+      "bytes": 217,
+      "expected": {
+        "kind": "trap",
+        "trap": "invalid_shift"
+      },
+      "id": "effect-before-shift",
+      "memory": true,
+      "reason": "With both allocations admitted, inner request/release precede shift trap; outer owner remains live. Store/read determine the count.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "0dfe1642d3d9993abf147f02643ddce3e36ecd393f39d1ab596a9dd0f3f6e9cd",
+      "source": "source/effect-before-shift.anl"
+    },
+    {
+      "bytes": 72,
+      "expected": {
+        "kind": "value",
+        "value": "0"
+      },
+      "id": "ordinary-clause-unused-word",
+      "memory": false,
+      "reason": "Ordinary-only clauses typecheck; unused word signature still selects v4 and unsupported verify.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "c3303420e5dd30ea5cc9a662c5e46d900f6d89c9c727c0e7108c9b85bcb1b8f1",
+      "source": "source/ordinary-clause-unused-word.anl"
+    },
+    {
+      "bytes": 118,
+      "expected": {
+        "kind": "value",
+        "value": "5"
+      },
+      "id": "word-local-ordinary-invariant",
+      "memory": false,
+      "reason": "Unreferenced word local does not remove or shift ordinary invariant slots.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "65f9a0bcfceb2406634b101f46fce32a2dffd7f664735fce69d2e6814c3ad1aa",
+      "source": "source/word-local-ordinary-invariant.anl"
+    },
+    {
+      "bytes": 37,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "implicit-literal",
+      "memory": false,
+      "reason": "Unsuffixed literals stay i64.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "6d96e1cf86877739328351de8e562355888730131980107b71a4502cc4677f92",
+      "source": "source/implicit-literal.anl"
+    },
+    {
+      "bytes": 42,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "mixed-width",
+      "memory": false,
+      "reason": "No implicit width promotions.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "b5d7c3daa7600642397fed8447358d0f69b80556c97b8ab134ded061085d5f3d",
+      "source": "source/mixed-width.anl"
+    },
+    {
+      "bytes": 42,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "word-count",
+      "memory": false,
+      "reason": "Shift count is exactly i64.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "bee33de0f80c40ce144e6a0d0b3bc4eb59e10b4d669b9b15826cf8934735ac02",
+      "source": "source/word-count.anl"
+    },
+    {
+      "bytes": 36,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "word-minus-zero",
+      "memory": false,
+      "reason": "Signed literal folding must not absorb word negation.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "7f99097561ddd516cef4cfbdb2dbbe59caf02fe5ee88fb87bf25bb626d9a3bb2",
+      "source": "source/word-minus-zero.anl"
+    },
+    {
+      "bytes": 28,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "signed-wrapping",
+      "memory": false,
+      "reason": "Wrapping operators are unsigned-only.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "6032a8b862b63bf00b0b4470a6622fa71b6db18676bd6ec4e58f8b4b47ae7d14",
+      "source": "source/signed-wrapping.anl"
+    },
+    {
+      "bytes": 27,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "signed-bitwise",
+      "memory": false,
+      "reason": "No signed bitwise operations in this revision.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "872d6864500a4b598305f9e934825d7372fa51c4a92606b765ad19ccb1a147e6",
+      "source": "source/signed-bitwise.anl"
+    },
+    {
+      "bytes": 37,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "signed-truncate",
+      "memory": false,
+      "reason": "Truncation destination must be unsigned.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "7d2318e1280658f7dde1f3fad8054e62e3f8e0a975492ed3d618e6aa648c0204",
+      "source": "source/signed-truncate.anl"
+    },
+    {
+      "bytes": 35,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "boolean-cast",
+      "memory": false,
+      "reason": "Conversions accept integers only.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "d93f8dab42cf01888db7e67794c942fb5fb5e49126bb077fac2ec2afe5e5002e",
+      "source": "source/boolean-cast.anl"
+    },
+    {
+      "bytes": 37,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "literal-over-width",
+      "memory": false,
+      "reason": "Literal overflow is a static error.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "a1a6817884f775f432438fb21e469cfeee9977a33b5a5988e9abb2bd719f1f6b",
+      "source": "source/literal-over-width.anl"
+    },
+    {
+      "bytes": 55,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "literal-over-u64",
+      "memory": false,
+      "reason": "Full unsigned token overflow is rejected.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "1e511d26cd189135c3ee7145f3b07caa38e08039bc1857a5a6226eabc8e1248b",
+      "source": "source/literal-over-u64.anl"
+    },
+    {
+      "bytes": 36,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "bad-suffix-tail",
+      "memory": false,
+      "reason": "Numeric suffix consumes complete token.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "47d2931682cf7baf107486eb0442c1c623cc3a75f95b31a186bc7ceea95a16ea",
+      "source": "source/bad-suffix-tail.anl"
+    },
+    {
+      "bytes": 37,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "bad-suffix-width",
+      "memory": false,
+      "reason": "Unknown width does not tokenize into valid fragments.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "fe3ac22ee9950dfc9c16cef562528ce4b1d0336d9b1bf26a70fea8f09f7199b1",
+      "source": "source/bad-suffix-width.anl"
+    },
+    {
+      "bytes": 36,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "split-literal",
+      "memory": false,
+      "reason": "Whitespace cannot join numeric suffix.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "815517c9d60d42a4cf236aade808440aa26cb043a5370fec8f37487072a08586",
+      "source": "source/split-literal.anl"
+    },
+    {
+      "bytes": 30,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "suffixed-projection",
+      "memory": false,
+      "reason": "Tuple projection remains an unsuffixed digit.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "3bd71cb73ce46ca30fd5208a5e895632a6a75b33052ddd04bf2877faab16eb45",
+      "source": "source/suffixed-projection.anl"
+    },
+    {
+      "bytes": 57,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "relation-chain",
+      "memory": false,
+      "reason": "Relation chain remains nonassociative.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "1c984d0d95ceebcb7aa4f58006f26c8aac7bb476cf5a4da3a857faa320c6f12e",
+      "source": "source/relation-chain.anl"
+    },
+    {
+      "bytes": 61,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "equality-chain",
+      "memory": false,
+      "reason": "Equality chain remains nonassociative.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "30c3d68b119a1cdf999d148ba3cfd6b3c556c29ee8d25a4bed5aadaa26d723e5",
+      "source": "source/equality-chain.anl"
+    },
+    {
+      "bytes": 60,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "word-spec-reference",
+      "memory": false,
+      "reason": "Referenced word parameter is outside specification subset.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "9573cee5537087a6bbfea538bea673bdfdf538153798cb031f4f53e8b6f04bea",
+      "source": "source/word-spec-reference.anl"
+    },
+    {
+      "bytes": 70,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "mixed-tuple-spec-reference",
+      "memory": false,
+      "reason": "Mixed tuple base is rejected structurally even for old-type projection.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "f105a3ea1246a14dd7f80ccfd0cfc6d997618188e5d789c7fae6b40440ffbe72",
+      "source": "source/mixed-tuple-spec-reference.anl"
+    },
+    {
+      "bytes": 70,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "dead-word-spec-syntax",
+      "memory": false,
+      "reason": "Dead Boolean clause still contains unsupported word syntax.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "3399f92d03ae3e23ce9f1c29e620c779d96951befe62da36a14194382238563d",
+      "source": "source/dead-word-spec-syntax.anl"
+    },
+    {
+      "bytes": 66,
+      "expected": {
+        "kind": "source_rejection"
+      },
+      "id": "identity-cast-spec",
+      "memory": false,
+      "reason": "Every conversion node is outside the old specification subset.",
+      "semantic_revision": "anl-words-v1",
+      "sha256": "ba44bf547a8540aa51f7b7de05433503e5fe4365d49a922bae922f70be9eba3b",
+      "source": "source/identity-cast-spec.anl"
+    }
+  ],
+  "source_error": "controls/source-error.anl",
+  "stderr_limit": 65536,
+  "stdout_limit": 8388608,
+  "traces": [
+    {
+      "files": {
+        "plan": {
+          "bytes": 85,
+          "path": "plan/view-success.json",
+          "sha256": "2ecc9d43efe717f990d0204d15e51fbe3b7bde5cce007093c4b0dada8c4bcdd6"
+        },
+        "trace": {
+          "bytes": 423,
+          "path": "trace/view-success.json",
+          "sha256": "afce158c699658ac82eee643fedf1bc59d3dc36746f36e3626032501943f3109"
+        }
+      },
+      "id": "view-success",
+      "source": "source/view-with-word-arguments.anl"
+    },
+    {
+      "files": {
+        "plan": {
+          "bytes": 85,
+          "path": "plan/view-refusal.json",
+          "sha256": "636f0c03c0c7a1cddcb3efdf921ad2b3421ac520b4e7d0172ed8a626e5ba1ea2"
+        },
+        "trace": {
+          "bytes": 356,
+          "path": "trace/view-refusal.json",
+          "sha256": "6d86a89867b90588203461c7b854d104a41b1a9b81bb7c57f791e2d9e610c294"
+        }
+      },
+      "id": "view-refusal",
+      "source": "source/view-with-word-arguments.anl"
+    },
+    {
+      "files": {
+        "plan": {
+          "bytes": 76,
+          "path": "plan/bounds-before-shift.json",
+          "sha256": "6c4358fe612ebee496d786d7d002274b4078752392812c8aa0584d7d5f50cab6"
+        },
+        "trace": {
+          "bytes": 325,
+          "path": "trace/bounds-before-shift.json",
+          "sha256": "4d15075d3ebefd3fe19f8209c77995f577644df6fd448a5deccdc33a9f1fe733"
+        }
+      },
+      "id": "bounds-before-shift",
+      "source": "source/bounds-before-shift.anl"
+    },
+    {
+      "files": {
+        "plan": {
+          "bytes": 95,
+          "path": "plan/effect-before-shift.json",
+          "sha256": "77e1237e81c17f0531960d46303f91ee95bf95fedb186ed5ec2710e85a39d2be"
+        },
+        "trace": {
+          "bytes": 514,
+          "path": "trace/effect-before-shift.json",
+          "sha256": "dd9d5be7e83254915090fb8bd25965a849fb3dea126c73b329206253bf02d110"
+        }
+      },
+      "id": "effect-before-shift",
+      "source": "source/effect-before-shift.anl"
+    },
+    {
+      "files": {
+        "plan": {
+          "bytes": 95,
+          "path": "plan/effect-inner-refusal.json",
+          "sha256": "04689d728c983d6dacc20aa6a50dce787cc1cda28df6c9720ae8adb6b12d5af4"
+        },
+        "trace": {
+          "bytes": 517,
+          "path": "trace/effect-inner-refusal.json",
+          "sha256": "8588888c0105a73daf318dbbae7a9700b34a49fb5ad5d857c8f26e4640471a26"
+        }
+      },
+      "id": "effect-inner-refusal",
+      "source": "source/effect-before-shift.anl"
+    },
+    {
+      "files": {
+        "plan": {
+          "bytes": 85,
+          "path": "plan/effect-outer-refusal.json",
+          "sha256": "636f0c03c0c7a1cddcb3efdf921ad2b3421ac520b4e7d0172ed8a626e5ba1ea2"
+        },
+        "trace": {
+          "bytes": 356,
+          "path": "trace/effect-outer-refusal.json",
+          "sha256": "cbf253d3e5e8751d08c21d037d0daddc1303b5f1ba35142b3b50125116059327"
+        }
+      },
+      "id": "effect-outer-refusal",
+      "source": "source/effect-before-shift.anl"
+    }
+  ],
+  "verify": [
+    {
+      "files": [
+        "controls/unused-word/main.anl",
+        "controls/unused-word/dep.anl"
+      ],
+      "functions": 2,
+      "id": "unused-word",
+      "source": "controls/unused-word/main.anl",
+      "sources": 2
+    },
+    {
+      "files": [
+        "controls/unused-identity/main.anl",
+        "controls/unused-identity/dep.anl"
+      ],
+      "functions": 2,
+      "id": "unused-identity",
+      "source": "controls/unused-identity/main.anl",
+      "sources": 2
+    },
+    {
+      "files": [
+        "controls/dead-identity.anl"
+      ],
+      "functions": 1,
+      "id": "dead-identity",
+      "source": "controls/dead-identity.anl",
+      "sources": 1
+    },
+    {
+      "files": [
+        "source/ordinary-clause-unused-word.anl"
+      ],
+      "functions": 2,
+      "id": "ordinary-clause-unused-word",
+      "source": "source/ordinary-clause-unused-word.anl",
+      "sources": 1
+    },
+    {
+      "files": [
+        "source/word-local-ordinary-invariant.anl"
+      ],
+      "functions": 1,
+      "id": "word-local-ordinary-invariant",
+      "source": "source/word-local-ordinary-invariant.anl",
+      "sources": 1
+    },
+    {
+      "files": [
+        "source/identity-cast-revision.anl"
+      ],
+      "functions": 1,
+      "id": "identity-cast-revision",
+      "source": "source/identity-cast-revision.anl",
+      "sources": 1
+    }
+  ]
+}

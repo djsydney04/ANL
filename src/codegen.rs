@@ -2,7 +2,8 @@
 use crate::{
     bounded::{Buffer, OutputError},
     mir::{self, Block, MemoryOperation, Operation},
-    types::{BinaryOp, Program, TupleShape, Type, UnaryOp},
+    types::{BinaryOp, IrRevision, Program, TupleShape, Type, UnaryOp},
+    word::{ConvertMode, WordWidth},
 };
 use std::{
     borrow::Cow,
@@ -23,7 +24,9 @@ pub fn emit_c(program: &Program, entry: usize) -> Result<String, OutputError> {
     emit_c_with_limit(program, entry, MAX_PRODUCT_C_BYTES)
 }
 fn emit_c_with_limit(source: &Program, entry: usize, limit: usize) -> Result<String, OutputError> {
-    let products = source.has_flat_products() || source.allocation_profile.is_some();
+    let products = source.has_flat_products()
+        || source.has_memory()
+        || source.effective_revision() == IrRevision::WordsV4;
     let program = mir::lower(source, entry).map_err(|error| error.to_string())?;
     emit_lowered(&program, products.then_some(limit))
 }
@@ -41,16 +44,24 @@ pub(crate) fn emit_lowered(
     text.finish()
 }
 fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Result {
-    if program.allocation_profile.is_some() {
+    let memory = program.has_memory();
+    if memory {
         text.write_str("#include \"runtime.h\"\n")?;
     }
-    if program.allocation_profile.is_some() {
+    if memory {
         text.write_str(&RUNTIME.replace(
             "static _Noreturn void apl_trap(const char *tag) {\n",
             "static _Noreturn void apl_trap(const char *tag) {\n    anl_memory_trap(tag);\n",
         ))?;
     } else {
         text.write_str(RUNTIME)?;
+    }
+    if program.revision == IrRevision::WordsV4 {
+        emit_word_profile(
+            program.allocation_profile.expect("checked word profile"),
+            text,
+        )?;
+        text.write_str(WORD_RUNTIME)?;
     }
     let mut shapes = BTreeSet::new();
     fn add(ty: Type, shapes: &mut BTreeSet<TupleShape>) {
@@ -120,12 +131,12 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
         emit_block(&function.body, text, 1, id, program.allocation_profile)?;
         writeln!(text, "    return t{};\n}}", function.body.yield_value.id)?;
     }
-    let begin = if program.allocation_profile.is_some() {
+    let begin = if memory {
         "    anl_memory_begin();\n"
     } else {
         ""
     };
-    let finish = if program.allocation_profile.is_some() {
+    let finish = if memory {
         "    anl_memory_value(result);\n"
     } else {
         ""
@@ -151,6 +162,7 @@ int main(void) {{
 fn c_type(ty: Type) -> Cow<'static, str> {
     match ty {
         Type::I64 => "int64_t".into(),
+        Type::Word(width) => format!("uint{}_t", width.bits()).into(),
         Type::Bool => "bool".into(),
         Type::Unit => "unsigned char".into(),
         Type::Tuple(shape) => {
@@ -160,6 +172,10 @@ fn c_type(ty: Type) -> Cow<'static, str> {
                     crate::types::ScalarType::I64 => 'i',
                     crate::types::ScalarType::Bool => 'b',
                     crate::types::ScalarType::Unit => 'u',
+                    crate::types::ScalarType::Word(WordWidth::U8) => 'c',
+                    crate::types::ScalarType::Word(WordWidth::U16) => 's',
+                    crate::types::ScalarType::Word(WordWidth::U32) => 'w',
+                    crate::types::ScalarType::Word(WordWidth::U64) => 'q',
                 });
             }
             name.into()
@@ -286,10 +302,29 @@ fn emit_block(
             Operation::Integer(n) if *n == i64::MIN => text.write_str("INT64_MIN")?,
             Operation::Integer(n) if *n < 0 => write!(text, "(-INT64_C({}))", -n)?,
             Operation::Integer(n) => write!(text, "INT64_C({n})")?,
+            Operation::Word(value) => write!(text, "UINT64_C({})", value.value())?,
+            Operation::Convert {
+                mode,
+                target,
+                operand,
+            } => {
+                emit_conversion(*mode, *target, *operand, text)?;
+            }
             Operation::Boolean(b) => write!(text, "{b}")?,
             Operation::Unit => text.write_str("0")?,
             Operation::Unary(UnaryOp::Neg, input) => write!(text, "apl_neg(t{})", input.id)?,
             Operation::Unary(UnaryOp::Not, input) => write!(text, "!t{}", input.id)?,
+            Operation::Unary(UnaryOp::BitNot, input) => {
+                let Type::Word(width) = input.ty else {
+                    unreachable!("checked word complement")
+                };
+                write!(
+                    text,
+                    "apl_word_not((uint64_t)t{}, UINT64_C({}))",
+                    input.id,
+                    width.max()
+                )?;
+            }
             Operation::Binary(op, left, right) => {
                 if let Type::Tuple(shape) = left.ty {
                     if *op == BinaryOp::Ne {
@@ -315,6 +350,27 @@ fn emit_block(
                     };
                     if let Some(symbol) = symbol {
                         write!(text, "t{} {symbol} t{}", left.id, right.id)?;
+                    } else if let Type::Word(width) = left.ty {
+                        if matches!(op, BinaryOp::Shl | BinaryOp::Shr) {
+                            write!(
+                                text,
+                                "apl_word_{}((uint64_t)t{}, t{}, {}, UINT64_C({}))",
+                                op.as_str(),
+                                left.id,
+                                right.id,
+                                width.bits(),
+                                width.max()
+                            )?;
+                        } else {
+                            write!(
+                                text,
+                                "apl_word_{}((uint64_t)t{}, (uint64_t)t{}, UINT64_C({}))",
+                                op.as_str(),
+                                left.id,
+                                right.id,
+                                width.max()
+                            )?;
+                        }
                     } else {
                         write!(text, "apl_{}(t{}, t{})", op.as_str(), left.id, right.id)?;
                     }
@@ -339,6 +395,59 @@ fn emit_block(
         text.write_str(";\n")?;
     }
     Ok(())
+}
+
+fn emit_conversion(
+    mode: ConvertMode,
+    target: Type,
+    operand: mir::Temp,
+    text: &mut Buffer,
+) -> fmt::Result {
+    match (mode, target, operand.ty) {
+        (ConvertMode::Checked, Type::I64, Type::I64) => write!(text, "t{}", operand.id),
+        (ConvertMode::Checked, Type::I64, Type::Word(_)) => {
+            write!(text, "apl_word_to_i64((uint64_t)t{})", operand.id)
+        }
+        (mode, Type::Word(width), source @ (Type::I64 | Type::Word(_))) => {
+            let operation = match mode {
+                ConvertMode::Checked => "cast",
+                ConvertMode::Truncate => "truncate",
+            };
+            let (source_kind, carrier) = if source == Type::I64 {
+                ("i64", "")
+            } else {
+                ("word", "(uint64_t)")
+            };
+            write!(
+                text,
+                "apl_word_{operation}_{source_kind}({carrier}t{}, UINT64_C({}))",
+                operand.id,
+                width.max()
+            )
+        }
+        _ => unreachable!("checked integer conversion"),
+    }
+}
+
+fn emit_word_profile(profile: crate::memory::AllocationProfile, text: &mut Buffer) -> fmt::Result {
+    let size_max = ((1u128 << profile.size_bits) - 1) as u64;
+    let ptrdiff_max = ((1u128 << (profile.ptrdiff_bits - 1)) - 1) as u64;
+    write!(
+        text,
+        r#"
+#include <stddef.h>
+#include <limits.h>
+_Static_assert(CHAR_BIT == 8 && sizeof(int64_t) == 8, "ANL byte profile mismatch");
+_Static_assert(_Alignof(int64_t) == {align}, "ANL i64 alignment mismatch");
+_Static_assert(SIZE_MAX == UINT64_C({size_max}), "ANL size profile mismatch");
+_Static_assert(PTRDIFF_MAX == INT64_C({ptrdiff_max}), "ANL ptrdiff profile mismatch");
+_Static_assert(sizeof(uint8_t) == 1 && UINT8_MAX == UINT64_C(255), "ANL u8 width mismatch");
+_Static_assert(sizeof(uint16_t) == 2 && UINT16_MAX == UINT64_C(65535), "ANL u16 width mismatch");
+_Static_assert(sizeof(uint32_t) == 4 && UINT32_MAX == UINT64_C(4294967295), "ANL u32 width mismatch");
+_Static_assert(sizeof(uint64_t) == 8 && UINT64_MAX == UINT64_C(18446744073709551615), "ANL u64 width mismatch");
+"#,
+        align = profile.i64_align
+    )
 }
 
 fn emit_memory(
@@ -542,7 +651,8 @@ fn build_with_options(
     let binary = staging.0.join("program");
     fs::write(&c_path, c).map_err(|error| format!("cannot write generated C: {error}"))?;
     let cc = env::var_os("CC").unwrap_or_else(|| OsString::from("cc"));
-    let result = if let Some(profile) = program.allocation_profile {
+    let result = if program.has_memory() {
+        let profile = program.allocation_profile.expect("checked memory profile");
         let (header, runtime) = crate::memory::runtime_sources(profile);
         #[cfg(feature = "memory-evidence")]
         if let Some(e) = options.evidence {
@@ -766,6 +876,83 @@ static int64_t apl_rem(int64_t a, int64_t b) {
     if (b == 0) apl_trap("division_by_zero");
     if (a == INT64_MIN && b == -1) apl_trap("arithmetic_overflow");
     return a % b;
+}
+"#;
+
+const WORD_RUNTIME: &str = r#"
+static uint64_t apl_word_add(uint64_t a, uint64_t b, uint64_t maximum) {
+    if (a > maximum - b) apl_trap("arithmetic_overflow");
+    return a + b;
+}
+static uint64_t apl_word_sub(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    if (a < b) apl_trap("arithmetic_overflow");
+    return a - b;
+}
+static uint64_t apl_word_mul(uint64_t a, uint64_t b, uint64_t maximum) {
+    if (b != 0 && a > maximum / b) apl_trap("arithmetic_overflow");
+    return a * b;
+}
+static uint64_t apl_word_div(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    if (b == 0) apl_trap("division_by_zero");
+    return a / b;
+}
+static uint64_t apl_word_rem(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    if (b == 0) apl_trap("division_by_zero");
+    return a % b;
+}
+static uint64_t apl_word_wrap_add(uint64_t a, uint64_t b, uint64_t maximum) {
+    return ((uintmax_t)a + (uintmax_t)b) & maximum;
+}
+static uint64_t apl_word_wrap_sub(uint64_t a, uint64_t b, uint64_t maximum) {
+    return ((uintmax_t)a - (uintmax_t)b) & maximum;
+}
+static uint64_t apl_word_wrap_mul(uint64_t a, uint64_t b, uint64_t maximum) {
+    return ((uintmax_t)a * (uintmax_t)b) & maximum;
+}
+static uint64_t apl_word_bit_and(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    return a & b;
+}
+static uint64_t apl_word_bit_xor(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    return a ^ b;
+}
+static uint64_t apl_word_bit_or(uint64_t a, uint64_t b, uint64_t maximum) {
+    (void)maximum;
+    return a | b;
+}
+static uint64_t apl_word_not(uint64_t a, uint64_t maximum) {
+    return (~(uintmax_t)a) & maximum;
+}
+static uint64_t apl_word_shl(uint64_t a, int64_t count, unsigned width, uint64_t maximum) {
+    if (count < 0 || (uint64_t)count >= width) apl_trap("invalid_shift");
+    return ((uintmax_t)a << (unsigned)count) & maximum;
+}
+static uint64_t apl_word_shr(uint64_t a, int64_t count, unsigned width, uint64_t maximum) {
+    (void)maximum;
+    if (count < 0 || (uint64_t)count >= width) apl_trap("invalid_shift");
+    return a >> (unsigned)count;
+}
+static uint64_t apl_word_cast_i64(int64_t a, uint64_t maximum) {
+    if (a < 0 || (uint64_t)a > maximum) apl_trap("arithmetic_overflow");
+    return (uint64_t)a;
+}
+static uint64_t apl_word_cast_word(uint64_t a, uint64_t maximum) {
+    if (a > maximum) apl_trap("arithmetic_overflow");
+    return a;
+}
+static uint64_t apl_word_truncate_i64(int64_t a, uint64_t maximum) {
+    return (uint64_t)a & maximum;
+}
+static uint64_t apl_word_truncate_word(uint64_t a, uint64_t maximum) {
+    return a & maximum;
+}
+static int64_t apl_word_to_i64(uint64_t a) {
+    if (a > (uint64_t)INT64_MAX) apl_trap("arithmetic_overflow");
+    return (int64_t)a;
 }
 "#;
 

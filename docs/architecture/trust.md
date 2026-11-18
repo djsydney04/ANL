@@ -2,7 +2,7 @@
 
 Status: evidence ledger for immutable scalar revision `m1-2026-11-16` and the
 separate local-state, flat-tuple and `anl-owned-buffers-v1` extensions, with the wider language still planned. Rust source checking, interpretation, modules,
-native compilation, local scalar state and loops, scalar and flat-tuple contract
+native compilation, local scalar state and loops, word-free scalar and flat-tuple contract
 verification with invariants and acyclic calls, and strict v0/v1 interchange have executable
 conformance coverage. Lean's expression and recursive-function models have kernel-checked
 theorems, including finite evaluator correspondence with sufficient depth and
@@ -69,6 +69,30 @@ exhaustion, infrastructure failures and missing/malformed reports are incomplete
 No proof equates Core/MIR transition budgets, resource cutoffs or exhausted states.
 No new native performance claim follows from this evidence. Heap contract
 verification remains explicitly unsupported with exit 7.
+
+## Unsigned-word evidence boundary
+
+The [word revision](../../spec/words.md) has accepted primitive arithmetic,
+independent raw checker equivalence, cumulative Core/resource safety, static
+MIR/lowering, executable MIR correspondence and finite canonical Core/MIR
+simulation. Legacy embeddings preserve old values, traps, world/trace and the
+corresponding old machine/tool budgets. New strict reader/reference and CLI
+interfaces use the new constructors and trap mapping; old reader acceptance
+does not automatically cover new constructors or `invalid_shift`.
+
+Completed Core/MIR correspondence preserves exact world and current/suspended
+capabilities under the same responses. It does not equate transition budgets,
+cutoffs or resource-limit states. Finite compiler/native conformance is evidence,
+not a theorem for all programs. Pure-word native runs have no observed heap
+trace; their formal model trace is empty. Mixed runs use word trace/replay IDs.
+Profile metadata alone activates neither allocator linkage nor instrumentation.
+
+The formal reader's JSON depth 1024 and logical depth 128 differ from Rust's
+pinned serde_json boundary of 127 admitted nested containers. The 128th container
+is rejected before semantic checking. Do not infer identical reader admission
+or universal export/import round trips. Word-dependent contracts are unsupported;
+ordinary word-free clauses can type-check beside words but v4 `verify` still
+returns unsupported before tools. No OS subsystem or hardware facility is added.
 
 ## What a claim covers
 

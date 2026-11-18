@@ -561,3 +561,32 @@ returns unsupported, rather than treating model memory safety as a heap contract
 The memory replay inventory has 75 entries: 72 ANL modules and three CLI roots.
 The import-only umbrella is checked structurally and built; it is not passed as
 a `leanchecker` namespace prefix, which would expand into concurrent replays.
+
+## Unsigned words and cumulative execution
+
+The [word specification](../spec/words.md) describes source arithmetic, conversions,
+Core v4 and word MIR. The new `ANL.Word` primitive layer and `ANL.Words` cumulative
+model keep all historical `APL.*` and `ANL.Memory` definitions unchanged. Words
+compose with flat tuples, mutable state, calls/loops and scoped `i64` buffers.
+
+Accepted proofs cover primitive result ranges and exact trap conditions,
+independent raw checker equivalence, finite Core/MIR machine safety/correspondence,
+resource preflight/prefix accounting and exact legacy execution embeddings.
+Canonical lowering has finite completed correspondence in both directions under
+the same response stream, with exact world and current/suspended capabilities.
+Corresponding Core/MIR transition budgets are independently existential. No
+termination, equal-budget exhaustion or production compiler/native theorem follows.
+See the [word theorem inventory](PROOFS.md#unsigned-word-model).
+
+The new strict reader/reference executable targets are `anl_words_raw_probe`, `anl_words_pair_checker`
+and `anl_words_reference_runner`, built with Lake from `formal/`. The
+[word protocol](../spec/words-evidence.md) records exact invocations, new schemas,
+separate expression/fill and administrative budgets, and retained incomplete
+prefixes. These tools use the new model; changing printed revision IDs alone
+would not establish correspondence. Their byte/JSON/IO and compiled execution
+boundaries remain explicit.
+
+Word `verify` remains unsupported with exit 7 before external tools. Word-dependent
+specifications are rejected; ordinary word-free clauses may still type-check
+beside words and are erased on ordinary execution. Runtime safety is not a proof
+of those clauses or of an ANL-authored OS.

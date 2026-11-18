@@ -1,6 +1,6 @@
 # Native compilation
 
-ANL can build scalar values, flat tuples and scoped `i64` buffers into a host machine-code executable
+ANL can build scalar values including unsigned words, flat tuples and scoped `i64` buffers into a host machine-code executable
 through a C11 compiler. Initialized mutable locals, whole-value assignment, and
 structured `while` statements are supported. Programs may use the
 [file module system](modules.md). The checked graph lowers to a C11 program;
@@ -53,7 +53,7 @@ divergence. Process termination or a machine crash can leave temporary files.
 The native wrapper prints the complete signed `i64` result and a newline, then
 exits 0. Arithmetic overflow and division by zero print `arithmetic_overflow` or
 `division_by_zero` to stderr and exit 2. Buffers add `invalid_length` and
-`index_out_of_bounds`, also exit 2. Output stream failures exit 4. The
+`index_out_of_bounds`, also exit 2. Words add `invalid_shift`, also exit 2. Output stream failures exit 4. The
 wrapper's printing convention does not add a source-level I/O facility.
 
 `emit-c FILE` writes the program C11 translation unit to stdout. Scalar and
@@ -65,6 +65,29 @@ same checked lowering and output bound as `build`; it does not invoke a compiler
 and publishes no stdout prefix on output-limit failure. It permits
 inspection and compilation at other optimization levels or with sanitizers.
 `check`, `eval`, `dump-core`, and `eval-core` retain their existing contracts.
+
+## Unsigned words in generated C
+
+[Words](../spec/words.md) use exact unsigned widths and explicit operand capture.
+The backend guards checked overflow, zero division, numeric narrowing and shift
+counts before the C operation. Helpers use unsigned carriers and width-limited
+results; they do not rely on narrow signed promotions, signed overflow, a masked
+shift count or `1 << 64`. These are implementation rules backed by finite
+conformance evidence, not a native correctness proof.
+
+Pure v4 programs carry an allocation profile and target-width assertions but
+link no separate buffer runtime. Actual memory forms or view signatures control
+that linkage. A pure-word export has `has_memory:false`, `runtime:none` and
+`core.json`, `mir.json`, `program.c`; a mixed word/buffer export additionally has
+`runtime.c`, `runtime.h`, `has_memory:true`, `runtime:default`. `none` still
+permits scalar helpers and hosted libc. See the [word evidence protocol](../spec/words-evidence.md).
+
+The `memory-evidence` feature activates trace/replay only for memory-bearing
+graphs. Pure words ignore `ANL_MEMORY_TRACE` and `ANL_MEMORY_REPLAY`, including
+malformed values, and produce no native trace. Mixed programs use the new word
+trace schema and its `invalid_shift` tag. A missing pure-word trace is not an
+observed empty trace. Source `verify` for all v4 graphs returns unsupported before
+native or solver tools.
 
 ## Buffer runtime and allocation profile
 
@@ -140,8 +163,9 @@ actual C loops with the condition computation inside the loop. Loads and stores
 are separate sequenced statements. Branch bodies remain conditional. Discarded
 expressions still produce instructions and execute their traps. Internal symbols use numeric
 IDs; source identifiers and source text are never inserted into C identifiers or
-shell commands. The internal scalar ABI uses `int64_t`, `bool`, and an
-`unsigned char` zero value for unit. It is not a stable foreign-function ABI.
+shell commands. The internal scalar ABI uses `int64_t`, `bool`, exact-width
+unsigned integer types for words, and an `unsigned char` zero value for unit.
+It is not a stable foreign-function ABI.
 
 Flat tuples lower to one ordinary C struct typedef per used shape, emitted in
 deterministic order before function prototypes. Construction evaluates all fields

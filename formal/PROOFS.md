@@ -1191,3 +1191,107 @@ heap contract verification, freestanding execution or an ANL OS. FM-06 remains a
 production correspondence obligation; FM-07 does not gain heap SMT support; FM-08
 now includes this finite canonical model lowering result but remains incomplete
 for production transforms and native code.
+
+## Unsigned-word model
+
+`anl-words-v1` is cumulative over scalar, state, tuple and scoped-buffer semantics.
+The namespaces `ANL.Word` and `ANL.Words` preserve the earlier definitions rather
+than relabeling their theorems. Raw word width/payload/annotation combinations
+remain independently checkable; the bounded runtime value wrapper is constructed
+only after range validation. Heap cells and indices remain the old `i64` domain.
+
+### Accepted primitive, static and machine scope
+
+- `WordCore`, `WordArithmetic`, `WordBits`, `WordConversions` define exact closed
+  widths, invalid raw inputs, checked/wrapping arithmetic, logical shifts and
+  checked/low-bit conversions. Theorems characterize success and overflow/zero/
+  invalid-count results, prove returned ranges, and cover full unsigned conversion
+  paths and Euclidean negative truncation. Primitive `invalidInput` is a raw
+  boundary, not a source-program trap.
+- `WordsValues`, `WordsValueTyping`, `WordsCore`, `WordsTyping` establish the shared
+  scalar/flat-product domain, operation typing, independent `HasType`,
+  `ArgsTyped`, `WellFormedProgram`, full term/program checker equivalence, and
+  invalid-operation exclusion under exact signatures.
+- `WordsMachine` through `WordsExecute` cover concrete raw control/frames,
+  independent steps, executable-step equivalence, determinism, retained completed/
+  exhausted execution, continuation/layout safety, progress/preservation, finite
+  no-invalid, loan preservation, canonical site origin and normal entry cleanup.
+  Shared five-trap values retain the world and suspended state; traps do not close
+  owners. Explicit conversions add a real continuation and metered entry.
+- `WordsResources` through `WordsResourceEntry` define actual preflight and
+  incremental meter updates, exact semantic prefixes, account/depth invariants,
+  limits and normal releases. Depth uses independent nesting metadata rather than
+  continuation length. Positive storage construction occurs only after atomic
+  cell/slot/fill preflight. Structural zero administrative budget does not call
+  the allocator. Host metadata unwind preserves the semantic machine and is not
+  a normal-close event or a resumable accounting-state claim.
+- `WordsLegacyCore`/`WordsLegacy` embed static syntax, values and typing.
+  `embed_step` and `embed_execute` in `WordsLegacyMachine`, and
+  `Tool.embed_run` in `WordsLegacyResources`, preserve the actual old operations,
+  corresponding same-budget runner outcomes, exact world/trace and resource meter.
+  These declarations are in `ANL.Words` and `ANL.Words.Tool`; they do not
+  equate Core and MIR budgets.
+- `WordsMir`, `WordsMirTyping`, `WordsLowering`, their lowering proofs, and
+  `WordsMirMachine`/`WordsMirRun` with proof companions establish independent raw
+  MIR checking, canonical static lowering, concrete MIR steps and executable
+  finite-run correspondence. Raw invalid outcomes remain distinct from terminals.
+
+The primitive, static, Core/resource/legacy and MIR execution packages have passed
+independent source/API review, all-declaration axiom audits and separate-process
+kernel replay under Lean 4.36.0. Allowed logical axioms remain `propext`,
+`Classical.choice`, `Quot.sound`; generated constructor-index wrappers are checked
+by exact type/body, not by a broad namespace exemption. These procedures do not
+prove that the chosen mathematical definition captures every intended behavior.
+
+### Accepted finite canonical Core/MIR simulation
+
+`WordsSimulation*` and `WordsLoweringSoundness`, namespace
+`ANL.Words.Simulation`, relate actual Core and MIR states through concrete
+continuations, temporary/slot/resource bindings, scope frontiers and exact world
+identity. `step_match` covers each typed related Core step by a finite MIR path;
+zero-target-step cases decrease a concrete rank. The relation does not assume the
+execution equivalence it is used to prove.
+
+`core_entry_to_mir` and `mir_entry_to_core` establish both finite terminal
+directions under canonical lowering and the same allocation response function.
+The reverse direction accepts a raw stopped target endpoint and rules out invalid.
+`core_completed_run_to_mir` and `mir_completed_run_to_core` give corresponding
+completed runs at independently chosen budgets. `FinalRelated.world` and
+`FinalRelated.runtime` preserve exact cells, owner/empty identities, counters,
+ordered trace, values or the exact trap, and current/suspended capabilities.
+`mir_entry_not_invalid`/`mir_run_not_invalid` cover finite prefixes and retained
+runner states; `mir_normal_entry_cleanup` establishes normal i64 return with no
+live owners or remaining accessible resources.
+
+`WordsPairSemantics` supplies these entry, completed-run, invalid-exclusion and
+cleanup corollaries from the actual `ANL.Words.Pair.check p q = true` premise.
+Pair acceptance checks both complete programs and exact canonical lowering.
+It is not alpha-equivalence, arbitrary optimization validation or source parsing.
+The complete 33-module simulation package has independently passed fresh builds,
+all-declaration audit, exact API comparison and separate-process kernel replay.
+
+No theorem equates Core/MIR numeric budgets, exhausted states or tool resource
+cutoffs. No general termination, source lowering, Rust implementation, generated C,
+host allocator or native binary correctness follows. Heap views remain call-scoped;
+this does not establish general movable ownership or concurrency.
+
+### Reader, reference and trust boundaries
+
+The new `WordsWire*`, `WordsPairWire*`, `WordsReference*` and three executable
+entrypoints expose the cumulative model. The [word protocols](../spec/words-evidence.md)
+specify their raw/pair/reference interfaces and retained incomplete prefixes.
+Reader acceptance concerns actual decoded new constructors, operation tags, trap
+mapping and resource runner. Old reader theorems and source compilation alone
+do not establish a new v4 byte-to-execution claim.
+
+Formal logical depth 128 and JSON-container depth 1024 are separate. Rust retains
+its smaller pinned JSON parser envelope (127 admitted containers, rejection at
+128). Parser/UTF-8/IO and output serialization, Lean compilation/runtime, Rust,
+C and host behavior remain explicit trust boundaries. No CLI produces a per-input
+kernel certificate. Finite examples and native comparisons supplement these
+proofs and do not prove universal implementation equivalence.
+
+Words add no SMT word theory or VCG rule. Every successfully checked v4 source
+returns unsupported verification, even with ordinary-only clauses; rejected
+word-dependent clauses are source errors. The full-language release requirements,
+hardware operations, freestanding entry and the entire ANL-authored OS remain open.

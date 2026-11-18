@@ -1,0 +1,2 @@
+fn f()->i64 requires cast i64(1) == 1; { 0 }
+fn main()->i64 { 0 }

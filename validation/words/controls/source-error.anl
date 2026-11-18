@@ -1,0 +1,1 @@
+fn unused(x:u8)->i64 { missing } fn main()->i64 { 42 }

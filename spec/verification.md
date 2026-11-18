@@ -15,6 +15,13 @@ clauses select schema `anl-verify-v3` and revision `anl-flat-products-verify-v1`
 The [tuple verification contract](flat-products.md#verification-boundary) defines
 that route. A specification-only tuple does not change the executable revision.
 
+The [unsigned-word revision](words.md#specifications-and-verification) adds no
+specification forms or SMT rules. New word syntax and references to complete
+word-containing binding types are rejected in clauses. Ordinary-only clauses
+may still type-check beside words. Every successfully checked word graph makes
+`verify` return unsupported `anl-verify-v5` with exit 7 before tools; the historical
+word-free verifier contracts below remain unchanged.
+
 ## Source contracts
 
 Function declarations can contain preconditions and postconditions between the

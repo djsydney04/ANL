@@ -1,0 +1,8 @@
+fn cast(x:i64)->i64 { x }
+fn truncate(x:i64)->i64 { x }
+fn u8(x:i64)->i64 { x }
+fn main()->i64 {
+  let initial = cast(truncate(u8(1)));
+  let u8 = 7;
+  if 1 < 2 == true { initial + cast i64(cast u8(u8)) } else { 0 }
+}

@@ -1,8 +1,8 @@
 # Compiler architecture and integration contracts
 
 Status: the Rust frontend, typed interpreter, file modules, strict core JSON
-adapters, flat tuples, initialized local state and loops, validated structured MIR, C11 native
-backend, scoped `i64` buffer owners/read-edit call views, and scalar/flat-tuple
+adapters, unsigned words, flat tuples, initialized local state and loops, validated structured MIR, C11 native
+backend, scoped `i64` buffer owners/read-edit call views, and word-free scalar/flat-tuple
 contract verification with loop invariants and acyclic calls are implemented.
 General movable ownership, effects and language-server integration remain
 planned. [Getting started](../getting-started.md) documents the working commands;
@@ -37,7 +37,7 @@ The compiler is a Rust library called by the CLI, with language-server integrati
 
 ## M1 caller contract
 
-The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [source grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `bool`, unit, and flat tuples of 1–8 scalar fields, explicitly typed function parameters/results, immutable and initialized mutable lets with optional annotations, assignment, while statements, named recursive calls, conditionals, and scalar operators. The [local-state specification](../../spec/control-flow.md) defines permissions and state flow. The [flat-tuple specification](../../spec/flat-products.md) defines tuple behavior
+The initial program shape is `fn main() -> i64 { let x = 6 * 7; x }`. The parser accepts the [source grammar](../../spec/grammar.ebnf), [module declarations and paths](../../spec/modules.md), and typed [function contracts](../../spec/verification.md). The checker accepts `i64`, `u8`, `u16`, `u32`, `u64`, `bool`, unit, and flat tuples of 1–8 scalar fields, explicitly typed function parameters/results, immutable and initialized mutable lets with optional annotations, assignment, while statements, named recursive calls, conditionals, and scalar operators. The [local-state specification](../../spec/control-flow.md) defines permissions and state flow. The [flat-tuple specification](../../spec/flat-products.md) defines tuple behavior
 and its contract-verification rules. Formal coverage follows the inventory
 and does not automatically extend to a newly implemented form.
 
@@ -77,7 +77,8 @@ The frontend adds contextual `heap`, `read` and `edit` syntax while preserving
 ordinary value types. Checked memory nodes carry raw resource indices separately
 from local indices. The program records `anl-owned-buffers-v1` and an explicit
 allocation profile. Any memory form or view signature anywhere in the loaded graph
-selects [Core v3](../../spec/owned-buffers.md#core-v3-interchange), ahead of the
+selects [Core v3](../../spec/owned-buffers.md#core-v3-interchange) unless the word
+revision takes precedence, ahead of the
 v0/v1/v2 routing rules. Import checks all functions, declarations, sites and entry.
 
 The [memory MIR protocol](../../spec/memory-mir.md) exposes heap branches, index
@@ -94,6 +95,28 @@ or C-tool discovery. Evidence tracing/replay is behind `memory-evidence`, with
 bounded outputs and path protection; ordinary builds ignore those controls.
 See the [evidence interface](../../spec/memory-evidence.md) for actual export,
 pair-check and formal reference-runner commands.
+
+## Cumulative word revision
+
+The [word contract](../../spec/words.md) extends the existing Core/MIR pipeline.
+Raw word literals carry a width and canonical unsigned payload; checking rejects
+invalid combinations rather than silently reducing them. A dedicated conversion
+node records checked/truncating mode, target and operand. Its input and output
+may differ, and identity casts remain explicit through lowering and metering.
+
+Revision, memory presence, profile metadata and active evidence are separate
+properties. A whole loaded graph walk selects v4 for new types/nodes, including
+unused/dead code; explicit v4 imports retain it. Every v4 graph has a profile,
+but only memory-bearing graphs link the buffer runtime or activate evidence
+controls. V4 selects the cumulative resource policy even with no memory forms.
+Revision-specific decoder allowlists keep old schemas unchanged.
+
+Specification conversion is fallible and rejects a referenced word-containing
+runtime type before solver translation. Complete local/parameter arrays keep
+original indices; word slots are not filtered out to construct a partial context.
+After source checking, v4 routes to unsupported verification before all older
+VCG paths and external tools. Rust source checking, generated C and native
+execution remain separate from the [model proof scope](../../formal/PROOFS.md#unsigned-word-model).
 
 ## Rust host API compatibility
 

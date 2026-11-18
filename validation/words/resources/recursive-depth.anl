@@ -1,0 +1,1 @@
+fn recurse()->i64 { recurse() } fn main()->i64 { cast i64(recurse()) }

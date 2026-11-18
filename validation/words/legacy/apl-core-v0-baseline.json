@@ -1,0 +1,18 @@
+{
+  "entry": 0,
+  "functions": [
+    {
+      "body": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "id": 0,
+      "name": "main",
+      "params": [],
+      "result": "i64"
+    }
+  ],
+  "schema": "apl-core-v0",
+  "semantic_revision": "m1-2026-11-16"
+}

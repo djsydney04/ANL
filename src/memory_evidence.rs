@@ -1,5 +1,8 @@
 //! Opt-in artifact export for local compiler validation.
-use crate::{bounded::OutputError, types::Program};
+use crate::{
+    bounded::OutputError,
+    types::{IrRevision, Program},
+};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
 fn digest(bytes: &[u8]) -> String {
@@ -8,22 +11,64 @@ fn digest(bytes: &[u8]) -> String {
 
 /// Export the actual checked core and the same MIR used to emit the retained C.
 pub fn export_bundle(source: &Path, destination: &Path) -> Result<(), OutputError> {
-    use std::io::Write as _;
     let program =
         crate::compile_file(source).map_err(|e| e.render(&source.to_string_lossy(), ""))?;
     let entry = program
         .entry()
         .map_err(|e| e.render(&source.to_string_lossy(), ""))?;
-    if !program.has_memory() {
-        return Err("memory evidence requires a buffer-bearing program".into());
+    export_checked_bundle(&program, entry, destination)
+}
+
+/// Export one checked raw input. The retained Core is canonical output, not an input-byte copy.
+pub fn export_core_bundle(source: &Path, destination: &Path) -> Result<(), OutputError> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(nix::fcntl::OFlag::O_NONBLOCK.bits());
     }
-    let core = format!("{}\n", crate::core::export(&program, entry)?);
-    let mir = crate::mir::lower(&program, entry).map_err(|e| e.to_string())?;
+    let file = options.open(source).map_err(message)?;
+    if !file.metadata().map_err(message)?.is_file() {
+        return Err("Core input is not a regular file".into());
+    }
+    let mut bytes = Vec::new();
+    file.take(crate::MAX_SOURCE_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(message)?;
+    if bytes.len() > crate::MAX_SOURCE_BYTES {
+        return Err(OutputError::ResourceLimit(
+            "Core input exceeds 1048576 bytes",
+        ));
+    }
+    let text = std::str::from_utf8(&bytes).map_err(message)?;
+    let artifact = crate::core::import(text).map_err(|error| match error {
+        crate::core::ImportError::ResourceLimit(_) => {
+            OutputError::ResourceLimit("Core input resource limit")
+        }
+        crate::core::ImportError::Invalid(reason) => {
+            OutputError::Infrastructure(format!("invalid Core input: {reason}"))
+        }
+    })?;
+    export_checked_bundle(&artifact.program, artifact.entry, destination)
+}
+
+fn export_checked_bundle(
+    program: &Program,
+    entry: usize,
+    destination: &Path,
+) -> Result<(), OutputError> {
+    use std::io::Write as _;
+    let memory = program.has_memory();
+    let words = program.effective_revision() == IrRevision::WordsV4;
+    if !memory && !words {
+        return Err("artifact evidence requires a buffer-bearing or word-revision program".into());
+    }
+    let core = format!("{}\n", crate::core::export(program, entry)?);
+    let mir = crate::mir::lower(program, entry).map_err(|e| e.to_string())?;
     let mir_json = crate::mir::wire::export(&mir)?;
     crate::mir::wire::import(&mir_json).map_err(|e| e.to_string())?;
     let c = crate::codegen::emit_lowered(&mir, Some(crate::codegen::MAX_PRODUCT_C_BYTES))?;
-    let (header, runtime) =
-        crate::memory::runtime_sources(program.allocation_profile.expect("memory profile"));
     let parent = destination
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
@@ -38,13 +83,17 @@ pub fn export_bundle(source: &Path, destination: &Path) -> Result<(), OutputErro
         return Err("bundle destination already exists".into());
     }
     let stage = crate::codegen::TempDir::new(&parent)?;
-    let files = [
+    let mut files = vec![
         ("core.json", core),
         ("mir.json", format!("{mir_json}\n")),
         ("program.c", c),
-        ("runtime.h", header),
-        ("runtime.c", runtime),
     ];
+    if memory {
+        let (header, runtime) =
+            crate::memory::runtime_sources(program.allocation_profile.expect("memory profile"));
+        files.push(("runtime.h", header));
+        files.push(("runtime.c", runtime));
+    }
     let mut hashes = serde_json::Map::new();
     for (name, bytes) in &files {
         let mut file = fs::OpenOptions::new()
@@ -61,7 +110,10 @@ pub fn export_bundle(source: &Path, destination: &Path) -> Result<(), OutputErro
     }
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
     let compiler = fs::read(&executable).map_err(|e| e.to_string())?;
-    let manifest = serde_json::json!({"schema":"anl-memory-evidence-bundle-v1","semantic_revision":crate::memory::SEMANTIC_REVISION,"runtime":"default","allocation_profile":program.allocation_profile.unwrap().json(),"compiler":{"version":env!("CARGO_PKG_VERSION"),"sha256":digest(&compiler),"memory_evidence":true},"files":hashes,"sources":program.sources.iter().map(|s|serde_json::json!({"path_bytes_hex":s.path.as_os_str().as_encoded_bytes().iter().map(|b|format!("{b:02x}")).collect::<String>(),"sha256":digest(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>()});
+    let mut manifest = serde_json::json!({"schema":if words {"anl-words-evidence-bundle-v1"} else {"anl-memory-evidence-bundle-v1"},"semantic_revision":program.semantic_revision(),"runtime":if memory {"default"} else {"none"},"allocation_profile":program.allocation_profile.expect("checked artifact profile").json(),"compiler":{"version":env!("CARGO_PKG_VERSION"),"sha256":digest(&compiler),"memory_evidence":true},"files":hashes,"sources":program.sources.iter().map(|s|serde_json::json!({"path_bytes_hex":s.path.as_os_str().as_encoded_bytes().iter().map(|b|format!("{b:02x}")).collect::<String>(),"sha256":digest(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>()});
+    if words {
+        manifest["has_memory"] = serde_json::Value::Bool(memory);
+    }
     fs::write(stage.0.join("manifest.json"), format!("{manifest}\n")).map_err(|e| e.to_string())?;
     fs::create_dir(&destination)
         .map_err(|e| format!("cannot reserve fresh bundle directory: {e}"))?;
@@ -95,6 +147,13 @@ use crate::{
 use std::{collections::BTreeSet, fs::File, io::Read, path::PathBuf};
 pub(crate) const MAX_TRACE_BYTES: usize = 8_388_608;
 pub(crate) const MAX_EVENTS: usize = 65_536;
+fn trace_schema(revision: IrRevision) -> &'static str {
+    if revision == IrRevision::WordsV4 {
+        "anl-words-trace-v1"
+    } else {
+        "anl-memory-trace-v1"
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Site {
     pub function: usize,
@@ -174,6 +233,7 @@ fn sites(program: &Program) -> BTreeSet<(usize, usize)> {
             }
             ExprKind::Project { value, .. }
             | ExprKind::Assign { value, .. }
+            | ExprKind::Convert { operand: value, .. }
             | ExprKind::Unary { operand: value, .. } => scan(value, f, out),
             ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
                 scan(value, f, out);
@@ -210,7 +270,7 @@ fn sites(program: &Program) -> BTreeSet<(usize, usize)> {
     }
     out
 }
-fn completion(v: &serde_json::Value) -> Result<(), String> {
+fn completion(v: &serde_json::Value, words: bool) -> Result<(), String> {
     let kind = v
         .get("kind")
         .and_then(serde_json::Value::as_str)
@@ -237,7 +297,8 @@ fn completion(v: &serde_json::Value) -> Result<(), String> {
                         | "invalid_length"
                         | "index_out_of_bounds"
                 )
-            ) {
+            ) && !(words && o["trap"] == "invalid_shift")
+            {
                 return Err("unknown replay trap".into());
             }
         }
@@ -263,13 +324,16 @@ fn parse_replay(text: &str, program: &Program) -> Result<Replay, String> {
         ],
     )
     .map_err(message)?;
-    if o["schema"] != "anl-memory-trace-v1"
-        || o["semantic_revision"] != crate::memory::SEMANTIC_REVISION
+    if o["schema"] != trace_schema(program.effective_revision())
+        || o["semantic_revision"] != program.semantic_revision()
         || core::profile(&o["allocation_profile"]).map_err(message)? != profile(program)?
     {
         return Err("replay revision/profile mismatch".into());
     }
-    completion(&o["completion"])?;
+    completion(
+        &o["completion"],
+        program.effective_revision() == IrRevision::WordsV4,
+    )?;
     let input = core::array(&o["events"]).map_err(message)?;
     if input.len() > MAX_EVENTS {
         return Err("replay event bound exceeded".into());
@@ -426,10 +490,16 @@ pub struct EvidenceOptions {
     replay_identity: Option<(u64, u64)>,
     replay: Option<Replay>,
     profile: crate::memory::AllocationProfile,
+    revision: IrRevision,
+    semantic_revision: &'static str,
 }
 impl EvidenceOptions {
     pub(crate) fn check_program(&self, program: &Program) -> Result<(), String> {
-        if !program.has_memory() || program.allocation_profile != Some(self.profile) {
+        if !program.has_memory()
+            || program.allocation_profile != Some(self.profile)
+            || program.effective_revision() != self.revision
+            || program.semantic_revision() != self.semantic_revision
+        {
             return Err("evidence plan does not match checked memory profile".into());
         }
         Ok(())
@@ -508,6 +578,8 @@ impl EvidenceOptions {
             replay_identity,
             replay: snapshot,
             profile: profile(program)?,
+            revision: program.effective_revision(),
+            semantic_revision: program.semantic_revision(),
         }))
     }
     pub(crate) fn protect_destination(&self, path: &Path) -> Result<(), String> {
@@ -539,6 +611,8 @@ impl EvidenceOptions {
         Ok(Session {
             file,
             profile: self.profile,
+            revision: self.revision,
+            semantic_revision: self.semantic_revision,
             replay: self.replay.clone(),
             events: Vec::new(),
             next_request: 0,
@@ -550,6 +624,8 @@ impl EvidenceOptions {
 pub(crate) struct Session {
     file: File,
     profile: crate::memory::AllocationProfile,
+    revision: IrRevision,
+    semantic_revision: &'static str,
     replay: Option<Replay>,
     events: Vec<Event>,
     next_request: u64,
@@ -663,7 +739,7 @@ impl Session {
             result = Err(Self::fail("invalid replay completion"));
             end = completion(&result);
         }
-        let trace = serde_json::json!({"schema":"anl-memory-trace-v1","semantic_revision":crate::memory::SEMANTIC_REVISION,"allocation_profile":self.profile.json(),"events":self.events.iter().map(|e|e.json()).collect::<Vec<_>>(),"completion":end});
+        let trace = serde_json::json!({"schema":trace_schema(self.revision),"semantic_revision":self.semantic_revision,"allocation_profile":self.profile.json(),"events":self.events.iter().map(|e|e.json()).collect::<Vec<_>>(),"completion":end});
         let mut b = crate::bounded::Buffer::new(Some(MAX_TRACE_BYTES), "trace byte bound exceeded");
         if let Err(e) = serde_json::to_writer(&mut b, &trace) {
             return Err(Self::fail(&format!("cannot encode trace: {e}")));
@@ -691,14 +767,18 @@ impl EvidenceOptions {
             "native evidence configuration exceeds 8388608 bytes",
         );
         let mut emit = || -> std::fmt::Result {
+            if self.revision == IrRevision::WordsV4 {
+                b.write_str("#define ANL_WORDS_EVIDENCE 1\n")?;
+            }
             b.write_str("static const unsigned char anl_destination[] = {")?;
             for byte in self.destination.as_os_str().as_encoded_bytes() {
                 write!(b, "{byte},")?;
             }
             b.write_str("0};\n")?;
             let prefix = format!(
-                "{{\"schema\":\"anl-memory-trace-v1\",\"semantic_revision\":\"{}\",\"allocation_profile\":{},\"events\":[",
-                crate::memory::SEMANTIC_REVISION,
+                "{{\"schema\":\"{}\",\"semantic_revision\":\"{}\",\"allocation_profile\":{},\"events\":[",
+                trace_schema(self.revision),
+                self.semantic_revision,
                 self.profile.json()
             );
             b.write_str("static const char anl_prefix[] = {")?;
@@ -760,6 +840,7 @@ impl EvidenceOptions {
                             "division_by_zero" => 2,
                             "invalid_length" => 3,
                             "index_out_of_bounds" => 4,
+                            "invalid_shift" if self.revision == IrRevision::WordsV4 => 5,
                             _ => unreachable!(),
                         },
                     )

@@ -1,0 +1,9 @@
+{
+  "expression": {
+    "tag": "integer",
+    "ty": "i64",
+    "value": "42"
+  },
+  "schema": "apl-expr-v0",
+  "semantic_revision": "m1-2026-11-16"
+}

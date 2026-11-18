@@ -218,6 +218,25 @@ pub fn verify_file(
         return Err(error);
     }
     let program = crate::compile_file(path)?;
+    if program.effective_revision() == crate::types::IrRevision::WordsV4 {
+        let contracts = program
+            .contracts
+            .as_ref()
+            .expect("checked source contracts");
+        return Ok(VerificationReport {
+            data: json!({
+                "schema":"anl-verify-v5", "semantic_revision":"anl-words-v1",
+                "verification_revision":"anl-words-unsupported-v1", "status":"unsupported", "trust":"not_established",
+                "scope":{"functions":"all_loaded","arithmetic_safety":false,"partial_correctness":false,"termination_proved":false,"native_correctness":false,"model_proof":null,"fragment":"words_unsupported"},
+                "type_checked":true,"tested":false,"dynamic_checks":false,"contracts_erased":true,
+                "compiler":null,"solver":null,"limits":{},"obligations":[],
+                "sources":program.sources.iter().enumerate().map(|(id,s)|json!({"id":id,"path":s.path.to_string_lossy(),"path_bytes_hex":path_hex(&s.path),"sha256":sha(s.text.as_bytes()),"bytes":s.text.len()})).collect::<Vec<_>>(),
+                "functions":program.functions.iter().enumerate().map(|(i,f)|json!({"id":i,"name":contracts[i].source_name,"lowered_name":f.name,"parameters":contracts[i].param_names,"parameter_types":f.params,"view":f.view.map(|v|json!({"mode":v.as_str(),"name":contracts[i].view_name})),"result":f.result,"location":location(&program,f.span),"requires":contracts[i].requires.len(),"ensures":contracts[i].ensures.len()})).collect::<Vec<_>>(),
+                "message":"contract verification does not support the word revision; type checking is not a contract proof"
+            }),
+            exit: 7,
+        });
+    }
     if program.has_memory() {
         let contracts = program
             .contracts

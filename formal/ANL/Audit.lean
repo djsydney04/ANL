@@ -79,7 +79,90 @@ run_elab do
     `ANL.MemoryWireIO,
     `ANL.MemoryReferenceOutput,
     `ANL.MemoryReferenceIO,
-    `ANL.MemoryReferenceSafety]
+    `ANL.MemoryReferenceSafety,
+    `ANL.WordCore,
+    `ANL.WordArithmetic,
+    `ANL.WordBits,
+    `ANL.WordConversions,
+    `ANL.WordsValues,
+    `ANL.WordsCore,
+    `ANL.WordsValueTyping,
+    `ANL.WordsTyping,
+    `ANL.WordsLegacyCore,
+    `ANL.WordsMachine,
+    `ANL.WordsMir,
+    `ANL.WordsLegacy,
+    `ANL.WordsInvariant,
+    `ANL.WordsOrigin,
+    `ANL.WordsRun,
+    `ANL.WordsMirTyping,
+    `ANL.WordsLayout,
+    `ANL.WordsRunProofs,
+    `ANL.WordsLowering,
+    `ANL.WordsMirMachine,
+    `ANL.WordsWire,
+    `ANL.WordsSafety,
+    `ANL.WordsLoweringInventory,
+    `ANL.WordsLoweringSupport,
+    `ANL.WordsMirRun,
+    `ANL.WordsWireSafety,
+    `ANL.WordsExecute,
+    `ANL.WordsLoans,
+    `ANL.WordsLoweringTyping,
+    `ANL.WordsMirRunProofs,
+    `ANL.WordsWireIOCommon,
+    `ANL.WordsLegacyMachine,
+    `ANL.WordsResources,
+    `ANL.WordsLoweringProofs,
+    `ANL.WordsSimulationFinite,
+    `ANL.WordsResourcePolicy,
+    `ANL.WordsResourceRun,
+    `ANL.WordsPair,
+    `ANL.WordsSimulationData,
+    `ANL.WordsResourceAccounting,
+    `ANL.WordsSimulationAdmin,
+    `ANL.WordsSimulationValues,
+    `ANL.WordsPairWire,
+    `ANL.WordsResourceDepth,
+    `ANL.WordsSimulationRank,
+    `ANL.WordsPairWireSafety,
+    `ANL.WordsResourceEntry,
+    `ANL.WordsSimulationContinuation,
+    `ANL.WordsPairWireIO,
+    `ANL.WordsLegacyResources,
+    `ANL.WordsSimulationKontInvariant,
+    `ANL.WordsReference,
+    `ANL.WordsSimulationBounds,
+    `ANL.WordsSimulationRelation,
+    `ANL.WordsSimulationSites,
+    `ANL.WordsReferenceBounds,
+    `ANL.WordsReferenceOutput,
+    `ANL.WordsSimulationInitial,
+    `ANL.WordsSimulationStore,
+    `ANL.WordsReferenceIO,
+    `ANL.WordsReferenceSafety,
+    `ANL.WordsSimulationCallBindings,
+    `ANL.WordsSimulationTemps,
+    `ANL.WordsSimulationReturn,
+    `ANL.WordsSimulationLimits,
+    `ANL.WordsSimulationPlacement,
+    `ANL.WordsSimulationMatch,
+    `ANL.WordsSimulationCallPhases,
+    `ANL.WordsSimulationContext,
+    `ANL.WordsSimulationRetTyping,
+    `ANL.WordsSimulationReturnControl,
+    `ANL.WordsSimulationReturnScalar,
+    `ANL.WordsSimulationEval,
+    `ANL.WordsSimulationResources,
+    `ANL.WordsSimulationReturnArguments,
+    `ANL.WordsSimulationReturnBindings,
+    `ANL.WordsSimulationMemoryPhases,
+    `ANL.WordsSimulationReturnMemory,
+    `ANL.WordsSimulationClose,
+    `ANL.WordsSimulationReturnStep,
+    `ANL.WordsLoweringSoundness,
+    `ANL.WordsPairSemantics,
+    `ANL.WordsWireSemantics]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -114,7 +197,43 @@ run_elab do
     `ANL.Memory.Reference.RunError.ctorIdx._impl,
     `ANL.Memory.Reference.Status.ctorIdx._impl,
     `ANL.Memory.Reference.Completion.ctorIdx._impl,
-    `ANL.Memory.Reference.ExportError.ctorIdx._impl]
+    `ANL.Memory.Reference.ExportError.ctorIdx._impl,
+    `ANL.Word.Outcome.ctorIdx._impl,
+    `ANL.Word.Width.ctorIdx._impl,
+    `ANL.Word.Trap.ctorIdx._impl,
+    `ANL.Word.BinaryOp.ctorIdx._impl,
+    `ANL.Word.ShiftOp.ctorIdx._impl,
+    `ANL.Words.ScalarTy.ctorIdx._impl,
+    `ANL.Words.ScalarVal.ctorIdx._impl,
+    `ANL.Words.Ty.ctorIdx._impl,
+    `ANL.Words.Val.ctorIdx._impl,
+    `ANL.Words.Trap.ctorIdx._impl,
+    `ANL.Words.Result.ctorIdx._impl,
+    `ANL.Words.UOp.ctorIdx._impl,
+    `ANL.Words.BOp.ctorIdx._impl,
+    `ANL.Words.ConvertMode.ctorIdx._impl,
+    `ANL.Words.Term.ctorIdx._impl,
+    `ANL.Words.Frame.ctorIdx._impl,
+    `ANL.Words.Control.ctorIdx._impl,
+    `ANL.Words.RunResult.ctorIdx._impl,
+    `ANL.Words.Tool.Limit.ctorIdx._impl,
+    `ANL.Words.Tool.Preflight.ctorIdx._impl,
+    `ANL.Words.Tool.Tick.ctorIdx._impl,
+    `ANL.Words.Tool.Result.ctorIdx._impl,
+    `ANL.Words.Mir.Block.ctorIdx._impl,
+    `ANL.Words.Mir.Operation.ctorIdx._impl,
+    `ANL.Words.Lowering.Local.ctorIdx._impl,
+    `ANL.Words.Lowering.InventoryProof.Kind.ctorIdx._impl,
+    `ANL.Words.Mir.Frame.ctorIdx._impl,
+    `ANL.Words.Mir.Control.ctorIdx._impl,
+    `ANL.Words.Mir.RunResult.ctorIdx._impl,
+    `ANL.Words.Simulation.ResultTarget.ctorIdx._impl,
+    `ANL.Words.Simulation.Capture.ctorIdx._impl,
+    `ANL.Words.Simulation.KontCode.ctorIdx._impl,
+    `ANL.Words.Reference.RunError.ctorIdx._impl,
+    `ANL.Words.Reference.Status.ctorIdx._impl,
+    `ANL.Words.Reference.Completion.ctorIdx._impl,
+    `ANL.Words.Wire.IOBoundary.Status.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do
@@ -127,11 +246,45 @@ run_elab do
         | _ => pure ()
         if info.isUnsafe then
           unless expectedShims.contains name do throwError "Unexpected unsafe declaration {name}"
+          let owner := name.getPrefix.getPrefix
+          let list (t : Expr) := mkApp (mkConst ``List [Level.zero]) t
+          -- Outcome is type-parameterized; KontCode has six indices.
+          let domains : List Expr := if owner == `ANL.Word.Outcome then
+            [mkSort (Level.succ Level.zero)]
+            else if owner == `ANL.Memory.Simulation.KontCode then
+            [mkConst ``Nat, mkConst `ANL.Memory.Lowering.Locals, list (mkConst ``Nat),
+              list (mkConst `ANL.Memory.Frame), mkConst `ANL.Memory.Simulation.ResultTarget,
+              list (mkConst `ANL.Memory.Simulation.Capture)]
+            else if owner == `ANL.Words.Simulation.KontCode then
+            [mkConst ``Nat, mkConst `ANL.Words.Lowering.Locals, list (mkConst ``Nat),
+              list (mkConst `ANL.Words.Frame), mkConst `ANL.Words.Simulation.ResultTarget,
+              list (mkConst `ANL.Words.Simulation.Capture)] else []
           let some value := info.value? | throwError "Missing generated body {name}"
-          unless value.getNumHeadLambdas > 0 do throwError "Non-wrapper generated body {name}"
-          let .app (.app (.const tag _) _) (.bvar 0) := value.getLambdaBody
-            | throwError "Unexpected generated body {name}: {value}"
-          unless tag == ``getObjTagNat do throwError "Unexpected generated primitive {name}: {tag}"
+          let mut typeCursor := info.type
+          let mut valueCursor := value
+          for expected in domains do
+            let .forallE _ domain body .implicit := typeCursor
+              | throwError "Wrong implicit type binder {name}: {typeCursor}"
+            unless domain == expected do throwError "Wrong implicit type domain {name}: {domain}"
+            typeCursor := body
+            let .lam _ domain body .implicit := valueCursor
+              | throwError "Wrong implicit body binder {name}: {valueCursor}"
+            unless domain == expected do throwError "Wrong implicit body domain {name}: {domain}"
+            valueCursor := body
+          let expectedInput := mkAppN (mkConst owner) ((List.range domains.length).reverse.map mkBVar).toArray
+          let .forallE _ input (.const codomain []) .default := typeCursor
+            | throwError "Wrong final type binder {name}: {typeCursor}"
+          unless input == expectedInput && codomain == ``Nat do
+            throwError "Wrong final type {name}: {typeCursor}"
+          let .lam _ input body .default := valueCursor
+            | throwError "Wrong final body binder {name}: {valueCursor}"
+          unless input == expectedInput do throwError "Wrong final body domain {name}: {input}"
+          let expectedTagDomain := mkAppN (mkConst owner)
+            ((List.range domains.length).reverse.map (fun i => mkBVar (i + 1))).toArray
+          let .app (.app (.const tag _) domain) (.bvar 0) := body
+            | throwError "Unexpected generated body {name}: {body}"
+          unless tag == ``getObjTagNat && domain == expectedTagDomain do
+            throwError "Unexpected generated primitive/domain {name}: {tag} {domain}"
           inspected := inspected.push name
           logInfo m!"INSPECTED_UNSAFE {name}\nTYPE {info.type}\nBODY {value}"
         let axioms ← collectAxioms name

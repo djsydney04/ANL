@@ -2,12 +2,14 @@ use crate::{
     MAX_DEPTH, MAX_SOURCE_BYTES, MAX_TOKENS,
     diagnostic::{Diagnostic, Span},
     types::{BinaryOp, Type, UnaryOp, ViewMode},
+    word::{ConvertMode, WordWidth},
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum TokenKind {
     Ident(String),
     Integer(String),
+    Word(String, WordWidth),
     Fn,
     Let,
     If,
@@ -33,6 +35,15 @@ enum TokenKind {
     Star,
     Slash,
     Percent,
+    WrapPlus,
+    WrapMinus,
+    WrapStar,
+    BitAnd,
+    BitXor,
+    BitOr,
+    Tilde,
+    Shl,
+    Shr,
     Bang,
     Eq,
     Ne,
@@ -109,10 +120,39 @@ fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
             while i < bytes.len() && bytes[i].is_ascii_digit() {
                 i += 1;
             }
-            TokenKind::Integer(source[start..i].to_owned())
+            let digits_end = i;
+            if bytes
+                .get(i)
+                .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_')
+            {
+                while bytes
+                    .get(i)
+                    .is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_')
+                {
+                    i += 1;
+                }
+                let width = WordWidth::from_name(&source[digits_end..i]).ok_or_else(|| {
+                    Diagnostic::new(
+                        Span {
+                            source_id,
+                            start,
+                            end: i,
+                        },
+                        "invalid unsigned literal suffix",
+                    )
+                })?;
+                TokenKind::Word(source[start..digits_end].to_owned(), width)
+            } else {
+                TokenKind::Integer(source[start..i].to_owned())
+            }
         } else {
             let pair = bytes.get(i..i + 2);
             let pair_kind = match pair {
+                Some(b"+%") => Some(TokenKind::WrapPlus),
+                Some(b"-%") => Some(TokenKind::WrapMinus),
+                Some(b"*%") => Some(TokenKind::WrapStar),
+                Some(b"<<") => Some(TokenKind::Shl),
+                Some(b">>") => Some(TokenKind::Shr),
                 Some(b"->") => Some(TokenKind::Arrow),
                 Some(b"==") => Some(TokenKind::Eq),
                 Some(b"!=") => Some(TokenKind::Ne),
@@ -145,6 +185,10 @@ fn lex(source: &str, source_id: usize) -> Result<Vec<Token>, Diagnostic> {
                     b'*' => TokenKind::Star,
                     b'/' => TokenKind::Slash,
                     b'%' => TokenKind::Percent,
+                    b'&' => TokenKind::BitAnd,
+                    b'|' => TokenKind::BitOr,
+                    b'^' => TokenKind::BitXor,
+                    b'~' => TokenKind::Tilde,
                     b'!' => TokenKind::Bang,
                     b'<' => TokenKind::Lt,
                     b'>' => TokenKind::Gt,
@@ -275,6 +319,12 @@ pub struct Expr {
 }
 #[derive(Debug)]
 pub enum ExprKind {
+    Word(String, WordWidth),
+    Convert {
+        mode: ConvertMode,
+        target: Type,
+        operand: Box<Expr>,
+    },
     Memory(Box<MemoryExpr>),
     Tuple(Vec<Expr>),
     Project {
@@ -385,9 +435,16 @@ impl Parser {
             Err(Diagnostic::new(token.span, "expected identifier"))
         }
     }
+    fn token_type(kind: &TokenKind) -> Option<Type> {
+        match kind {
+            TokenKind::Ty(t) => Some(*t),
+            TokenKind::Ident(s) => WordWidth::from_name(s).map(Type::Word),
+            _ => None,
+        }
+    }
     fn ty(&mut self) -> Result<(Type, Span), Diagnostic> {
         let token = self.bump();
-        if let TokenKind::Ty(ty) = token.kind {
+        if let Some(ty) = Self::token_type(&token.kind) {
             return Ok((ty, token.span));
         }
         if token.kind != TokenKind::LParen {
@@ -405,7 +462,7 @@ impl Parser {
                 ));
             }
             let field = self.bump();
-            let TokenKind::Ty(ty) = field.kind else {
+            let Some(ty) = Self::token_type(&field.kind) else {
                 return Err(Diagnostic::new(
                     field.span,
                     "tuple fields must be scalar types",
@@ -749,11 +806,19 @@ impl Parser {
             TokenKind::Le => (BinaryOp::Le, 4),
             TokenKind::Gt => (BinaryOp::Gt, 4),
             TokenKind::Ge => (BinaryOp::Ge, 4),
-            TokenKind::Plus => (BinaryOp::Add, 5),
-            TokenKind::Minus => (BinaryOp::Sub, 5),
-            TokenKind::Star => (BinaryOp::Mul, 6),
-            TokenKind::Slash => (BinaryOp::Div, 6),
-            TokenKind::Percent => (BinaryOp::Rem, 6),
+            TokenKind::BitOr => (BinaryOp::BitOr, 5),
+            TokenKind::BitXor => (BinaryOp::BitXor, 6),
+            TokenKind::BitAnd => (BinaryOp::BitAnd, 7),
+            TokenKind::Shl => (BinaryOp::Shl, 8),
+            TokenKind::Shr => (BinaryOp::Shr, 8),
+            TokenKind::Plus => (BinaryOp::Add, 9),
+            TokenKind::Minus => (BinaryOp::Sub, 9),
+            TokenKind::WrapPlus => (BinaryOp::WrapAdd, 9),
+            TokenKind::WrapMinus => (BinaryOp::WrapSub, 9),
+            TokenKind::Star => (BinaryOp::Mul, 10),
+            TokenKind::Slash => (BinaryOp::Div, 10),
+            TokenKind::Percent => (BinaryOp::Rem, 10),
+            TokenKind::WrapStar => (BinaryOp::WrapMul, 10),
             _ => return None,
         })
     }
@@ -776,7 +841,15 @@ impl Parser {
                 span,
                 depth,
             )?;
-            if matches!(precedence, 3 | 4) && self.operator().is_some_and(|(_, p)| p == precedence)
+            if matches!(
+                op,
+                BinaryOp::Eq
+                    | BinaryOp::Ne
+                    | BinaryOp::Lt
+                    | BinaryOp::Le
+                    | BinaryOp::Gt
+                    | BinaryOp::Ge
+            ) && self.operator().is_some_and(|(_, p)| p == precedence)
             {
                 return Err(Diagnostic::new(
                     self.current().span,
@@ -788,10 +861,15 @@ impl Parser {
     }
     fn unary(&mut self) -> Result<Expr, Diagnostic> {
         self.enter()?;
-        let result = if self.at(&TokenKind::Minus) || self.at(&TokenKind::Bang) {
+        let result = if self.at(&TokenKind::Minus)
+            || self.at(&TokenKind::Bang)
+            || self.at(&TokenKind::Tilde)
+        {
             let token = self.bump();
             let op = if token.kind == TokenKind::Minus {
                 UnaryOp::Neg
+            } else if token.kind == TokenKind::Tilde {
+                UnaryOp::BitNot
             } else {
                 UnaryOp::Not
             };
@@ -891,6 +969,37 @@ impl Parser {
         Ok(value)
     }
     fn primary(&mut self) -> Result<Expr, Diagnostic> {
+        let conversion = match &self.current().kind {
+            TokenKind::Ident(s) if s == "cast" => Some(ConvertMode::Checked),
+            TokenKind::Ident(s) if s == "truncate" => Some(ConvertMode::Truncate),
+            _ => None,
+        };
+        if let Some(mode) = conversion
+            && let Some(target) = self
+                .tokens
+                .get(self.pos + 1)
+                .and_then(|t| Self::token_type(&t.kind))
+            && target.integer()
+            && (mode == ConvertMode::Checked || matches!(target, Type::Word(_)))
+            && self.tokens.get(self.pos + 2).map(|t| &t.kind) == Some(&TokenKind::LParen)
+        {
+            let start = self.bump().span;
+            self.bump();
+            self.bump();
+            let operand = self.expression()?;
+            let end = self.expect(TokenKind::RParen, ")")?.span;
+            let depth = operand.depth + 1;
+            return self.node(
+                ExprKind::Convert {
+                    mode,
+                    target,
+                    operand: Box::new(operand),
+                },
+                start.join(end),
+                depth,
+            );
+        }
+
         if self.at(&TokenKind::LBrace) {
             return self.block();
         }
@@ -936,6 +1045,7 @@ impl Parser {
         let token = self.bump();
         let (kind, span, depth) = match token.kind {
             TokenKind::Integer(value) => (ExprKind::Integer(value), token.span, 1),
+            TokenKind::Word(value, width) => (ExprKind::Word(value, width), token.span, 1),
             TokenKind::True => (ExprKind::Boolean(true), token.span, 1),
             TokenKind::False => (ExprKind::Boolean(false), token.span, 1),
             TokenKind::LParen => {

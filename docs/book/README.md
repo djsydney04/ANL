@@ -5,6 +5,7 @@ scalar expressions, functions and modules. These chapters explain implemented
 language features through small programs:
 
 - [Scoped buffers and call-scoped views](owned-buffers.md)
+- [Unsigned words and explicit conversions](words.md)
 
 This is the beginning of the language book. It does not yet cover the complete
 planned language or operating system.

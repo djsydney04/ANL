@@ -1,0 +1,51 @@
+{
+  "allocation_profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "entry": 0,
+  "functions": [
+    {
+      "body": {
+        "condition": {
+          "tag": "boolean",
+          "ty": "bool",
+          "value": false
+        },
+        "else": {
+          "tag": "integer",
+          "ty": "i64",
+          "value": "42"
+        },
+        "tag": "if",
+        "then": {
+          "left": {
+            "tag": "integer",
+            "ty": "i64",
+            "value": "42"
+          },
+          "op": "shl",
+          "right": {
+            "tag": "integer",
+            "ty": "i64",
+            "value": "42"
+          },
+          "tag": "binary",
+          "ty": "i64"
+        },
+        "ty": "i64"
+      },
+      "id": 0,
+      "name": "main",
+      "params": [],
+      "result": "i64",
+      "view": null
+    }
+  ],
+  "schema": "anl-core-v3",
+  "semantic_revision": "anl-owned-buffers-v1"
+}

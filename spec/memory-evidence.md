@@ -5,6 +5,11 @@ This document describes the executable evidence interfaces for
 observed executions. They do not certify the Rust implementation, C compiler,
 allocator, JSON parser, filesystem or host runtime.
 
+The cumulative [unsigned-word revision](words.md) adds ordinary word values and
+new schema IDs without widening this historical revision. Its
+[word artifact protocols](words-evidence.md) apply to v4 programs; buffer cells,
+resource permissions and evaluation order remain unchanged.
+
 ## Builds and artifact export
 
 The ordinary compiler has no memory tracing or replay behavior. The

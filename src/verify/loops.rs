@@ -15,6 +15,11 @@ use crate::{
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
+fn legacy_unary_input(op: UnaryOp) -> Result<Type, Failure> {
+    op.legacy_input()
+        .ok_or_else(|| Failure::Unsupported("word operators are unsupported".into()))
+}
+
 pub(super) fn contains(program: &Program) -> bool {
     fn walk(e: &Expr) -> bool {
         match &e.kind {
@@ -85,10 +90,10 @@ fn assertion_type(
             .map(|c| c.0)
             .ok_or_else(|| invalid("invalid invariant local index"))?,
         LocalAssertionKind::Unary { op, operand } => {
-            if assertion_type(operand, env, budget)? != op.input() {
+            if assertion_type(operand, env, budget)? != legacy_unary_input(*op)? {
                 return Err(invalid("invalid invariant operand type"));
             }
-            op.input()
+            legacy_unary_input(*op)?
         }
         LocalAssertionKind::Binary { op, left, right } => op
             .result(
@@ -594,10 +599,10 @@ impl Analysis<'_, '_, '_, '_> {
         a: ProductSymbolic,
         machine: bool,
     ) -> Result<ProductSymbolic, Failure> {
-        a.value.validate(op.input())?;
+        a.value.validate(legacy_unary_input(op)?)?;
         let result = self.genr.unary(op, a.scalar()?, machine)?;
         Ok(ProductSymbolic {
-            value: SymValue::from_scalar(op.input(), result.value)?,
+            value: SymValue::from_scalar(legacy_unary_input(op)?, result.value)?,
             safe: result.safe,
         })
     }
@@ -1083,6 +1088,9 @@ impl Analysis<'_, '_, '_, '_> {
     ) -> Result<Flow, Failure> {
         self.genr.visit(depth)?;
         let value = match &expr.kind {
+            ExprKind::Word(_) | ExprKind::Convert { .. } => {
+                return Err(Failure::Unsupported("words are unsupported".into()));
+            }
             ExprKind::Memory(_) => {
                 return Err(Failure::Unsupported(
                     "buffers and views are not supported".into(),
@@ -1766,10 +1774,10 @@ fn specification_type(
             .ok_or_else(|| invalid("invalid specification parameter index"))?,
         SpecExprKind::Result => result.ok_or_else(|| invalid("result outside postcondition"))?,
         SpecExprKind::Unary { op, operand } => {
-            if specification_type(operand, params, result, budget)? != op.input() {
+            if specification_type(operand, params, result, budget)? != legacy_unary_input(*op)? {
                 return Err(invalid("invalid specification unary type"));
             }
-            op.input()
+            legacy_unary_input(*op)?
         }
         SpecExprKind::Binary { op, left, right } => op
             .result(

@@ -1,0 +1,37 @@
+{
+  "entry": 0,
+  "functions": [
+    {
+      "body": {
+        "condition": {
+          "tag": "boolean",
+          "ty": "bool",
+          "value": false
+        },
+        "else": {
+          "tag": "integer",
+          "ty": "i64",
+          "value": "42"
+        },
+        "tag": "if",
+        "then": {
+          "op": "bit_not",
+          "operand": {
+            "tag": "integer",
+            "ty": "i64",
+            "value": "42"
+          },
+          "tag": "unary",
+          "ty": "i64"
+        },
+        "ty": "i64"
+      },
+      "id": 0,
+      "name": "main",
+      "params": [],
+      "result": "i64"
+    }
+  ],
+  "schema": "apl-core-v2",
+  "semantic_revision": "flat-products-2026-11-17"
+}

@@ -6,6 +6,11 @@ and flat-tuple values remain copyable. It does not add resource-valued variables
 moves, resizing, subviews, raw pointers, explicit free, escaping references,
 callbacks, globals, early return, recoverable exceptions, or heap contracts.
 
+The cumulative [unsigned-word revision](words.md) adds ordinary word values and
+new schema IDs without widening this historical revision. Its
+[word artifact protocols](words-evidence.md) apply to v4 programs; buffer cells,
+resource permissions and evaluation order remain unchanged.
+
 ## Source syntax and permissions
 
 ```anl

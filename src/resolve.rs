@@ -7,6 +7,7 @@ use crate::{
         LocalAssertionKind, LocalClause, LoopAnnotation, MemoryExpr, Program, ResourceMode,
         SpecExpr, SpecExprKind, SpecType, Type, UnaryOp, ViewMode,
     },
+    word::WordValue,
 };
 use std::collections::{BTreeMap, HashMap};
 
@@ -220,12 +221,13 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
         }
     }
     let mut program = Program {
+        retained_revision: None,
         allocation_profile: None,
         functions: checked,
         sources,
         contracts: Some(contracts),
     };
-    if program.has_memory() {
+    if program.has_memory() || program.uses_words() {
         program.allocation_profile =
             Some(crate::memory::AllocationProfile::host().map_err(|message| {
                 let mut e = Diagnostic::new(Span::default(), message);
@@ -234,6 +236,15 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
             })?);
     }
     Ok(program)
+}
+
+fn spec_type(ty: Type, span: Span) -> Result<SpecType, Diagnostic> {
+    SpecType::from_type(ty).ok_or_else(|| {
+        Diagnostic::new(
+            span,
+            "word-containing values are unsupported in specifications",
+        )
+    })
 }
 
 fn spec_clause(
@@ -261,6 +272,12 @@ fn spec_expr(
 ) -> Result<SpecExpr, Diagnostic> {
     let span = expr.span;
     let (ty, kind) = match expr.kind {
+        syntax::ExprKind::Word(..) | syntax::ExprKind::Convert { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "word syntax is unsupported in specifications",
+            ));
+        }
         syntax::ExprKind::Integer(value) => {
             let value = specification_integer(value, span)?;
             (SpecType::Int, SpecExprKind::Integer(value))
@@ -269,10 +286,10 @@ fn spec_expr(
         syntax::ExprKind::Unit => (SpecType::Unit, SpecExprKind::Unit),
         syntax::ExprKind::Name(name) => {
             if let Some((_, ty)) = result.filter(|(binder, _)| *binder == name) {
-                (SpecType::from_type(ty), SpecExprKind::Result)
+                (spec_type(ty, span)?, SpecExprKind::Result)
             } else if let Some(index) = params.iter().position(|p| p.name.as_ref() == Some(&name)) {
                 (
-                    SpecType::from_type(params[index].ty),
+                    spec_type(params[index].ty, span)?,
                     SpecExprKind::Param(index),
                 )
             } else {
@@ -287,7 +304,10 @@ fn spec_expr(
         syntax::ExprKind::Group(inner) => return spec_expr(*inner, params, result),
         syntax::ExprKind::Unary { op, operand } => {
             let operand = spec_expr(*operand, params, result)?;
-            let ty = SpecType::from_type(op.input());
+            let input = op.legacy_input().ok_or_else(|| {
+                Diagnostic::new(span, "word operators are unsupported in specifications")
+            })?;
+            let ty = spec_type(input, span)?;
             if operand.ty != ty {
                 return Err(Diagnostic::new(
                     operand.span,
@@ -307,6 +327,12 @@ fn spec_expr(
             )
         }
         syntax::ExprKind::Binary { op, left, right } => {
+            if op.is_word() {
+                return Err(Diagnostic::new(
+                    span,
+                    "word operators are unsupported in specifications",
+                ));
+            }
             let left = spec_expr(*left, params, result)?;
             let right = spec_expr(*right, params, result)?;
             // Runtime shapes are shared; specification integer values remain unbounded.
@@ -324,7 +350,7 @@ fn spec_expr(
                     )
                 })?;
             (
-                SpecType::from_type(ty),
+                spec_type(ty, span)?,
                 SpecExprKind::Binary {
                     op,
                     left: Box::new(left),
@@ -360,7 +386,7 @@ fn spec_expr(
                 .ok_or_else(|| Diagnostic::new(span, "tuple projection index out of range"))?
                 .as_type();
             (
-                SpecType::from_type(ty),
+                spec_type(ty, span)?,
                 SpecExprKind::Project {
                     value: Box::new(value),
                     index,
@@ -431,6 +457,12 @@ fn local_assertion(
 ) -> Result<LocalAssertion, Diagnostic> {
     let span = expr.span;
     let (ty, kind) = match expr.kind {
+        syntax::ExprKind::Word(..) | syntax::ExprKind::Convert { .. } => {
+            return Err(Diagnostic::new(
+                span,
+                "word syntax is unsupported in specifications",
+            ));
+        }
         syntax::ExprKind::Integer(value) => (
             SpecType::Int,
             LocalAssertionKind::Integer(specification_integer(value, span)?),
@@ -449,14 +481,17 @@ fn local_assertion(
                     "undefined invariant name `{name}`; only bindings visible at the loop head are available"
                 )))?;
             (
-                SpecType::from_type(env[position].ty),
+                spec_type(env[position].ty, span)?,
                 LocalAssertionKind::Local(env.len() - position - 1),
             )
         }
         syntax::ExprKind::Group(inner) => return local_assertion(*inner, env, resources),
         syntax::ExprKind::Unary { op, operand } => {
             let operand = local_assertion(*operand, env, resources)?;
-            let ty = SpecType::from_type(op.input());
+            let input = op.legacy_input().ok_or_else(|| {
+                Diagnostic::new(span, "word operators are unsupported in specifications")
+            })?;
+            let ty = spec_type(input, span)?;
             if operand.ty != ty {
                 return Err(Diagnostic::new(
                     operand.span,
@@ -476,6 +511,12 @@ fn local_assertion(
             )
         }
         syntax::ExprKind::Binary { op, left, right } => {
+            if op.is_word() {
+                return Err(Diagnostic::new(
+                    span,
+                    "word operators are unsupported in specifications",
+                ));
+            }
             let left = local_assertion(*left, env, resources)?;
             let right = local_assertion(*right, env, resources)?;
             let ty = op
@@ -492,7 +533,7 @@ fn local_assertion(
                     )
                 })?;
             (
-                SpecType::from_type(ty),
+                spec_type(ty, span)?,
                 LocalAssertionKind::Binary {
                     op,
                     left: Box::new(left),
@@ -528,7 +569,7 @@ fn local_assertion(
                 .ok_or_else(|| Diagnostic::new(span, "tuple projection index out of range"))?
                 .as_type();
             (
-                SpecType::from_type(ty),
+                spec_type(ty, span)?,
                 LocalAssertionKind::Project {
                     value: Box::new(value),
                     index,
@@ -878,6 +919,39 @@ impl Checker {
         let span = expr.span;
         let (ty, kind, depth) = match expr.kind {
             syntax::ExprKind::Memory(memory) => return self.memory(*memory, env, span),
+            syntax::ExprKind::Word(digits, width) => {
+                let value = digits
+                    .parse::<u64>()
+                    .ok()
+                    .and_then(|v| WordValue::new(width, v))
+                    .ok_or_else(|| {
+                        Diagnostic::new(span, "unsigned literal is outside its declared width")
+                    })?;
+                (Type::Word(width), ExprKind::Word(value), 1)
+            }
+            syntax::ExprKind::Convert {
+                mode,
+                target,
+                operand,
+            } => {
+                let operand = self.expr(*operand, env)?;
+                let ty = mode.result(operand.ty, target).ok_or_else(|| {
+                    Diagnostic::new(
+                        span,
+                        "conversion requires integer source and permitted destination",
+                    )
+                })?;
+                let depth = operand.depth + 1;
+                (
+                    ty,
+                    ExprKind::Convert {
+                        mode,
+                        target,
+                        operand: Box::new(operand),
+                    },
+                    depth,
+                )
+            }
             syntax::ExprKind::Integer(value) => {
                 let value = value
                     .parse::<i64>()
@@ -1126,16 +1200,12 @@ impl Checker {
             }
             syntax::ExprKind::Unary { op, operand } => {
                 let operand = self.expr(*operand, env)?;
-                expect_type(
-                    operand.ty,
-                    op.input(),
-                    operand.span,
-                    span,
-                    "unary operator requires this type",
-                )?;
+                let ty = op.result(operand.ty).ok_or_else(|| {
+                    Diagnostic::new(span, "unary operator does not accept this operand type")
+                })?;
                 let depth = operand.depth + 1;
                 (
-                    op.input(),
+                    ty,
                     ExprKind::Unary {
                         op,
                         operand: Box::new(operand),

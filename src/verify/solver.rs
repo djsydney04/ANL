@@ -244,6 +244,11 @@ fn model(text: &str, params: &[Type]) -> Result<Value, Failure> {
         }
         seen[index] = true;
         let value = match params[index] {
+            Type::Word(_) => {
+                return Err(Failure::Unsupported(
+                    "word solver values are unsupported".into(),
+                ));
+            }
             Type::I64 => json!(
                 integer(value)
                     .ok_or_else(|| Failure::Error(
@@ -356,6 +361,11 @@ fn model_symbols(
         }
         let symbol = &symbols[index];
         let value_json = match symbol.ty {
+            Type::Word(_) => {
+                return Err(Failure::Unsupported(
+                    "word solver values are unsupported".into(),
+                ));
+            }
             Type::I64 if symbol.head.is_some() => {
                 Value::String(mathematical_integer(value, budget)?)
             }

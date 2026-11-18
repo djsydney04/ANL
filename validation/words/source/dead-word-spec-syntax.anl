@@ -1,0 +1,2 @@
+fn f()->i64 requires true || (1u8 == 1u8); { 0 }
+fn main()->i64 { 0 }

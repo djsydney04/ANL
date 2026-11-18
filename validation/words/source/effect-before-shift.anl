@@ -1,0 +1,11 @@
+fn main()->i64 {
+  heap b:i64[1] = 0 {
+    let x = 1u8 << {
+      heap scratch:i64[1] = 7 {
+        b[0] = scratch[0];
+        if b[0] == 7 { 8 } else { 0 }
+      } else { 0 }
+    };
+    cast i64(x)
+  } else { -1 }
+}

@@ -1,0 +1,2 @@
+fn unused(x:u8, n:i64)->i64 requires n >= 0; { n }
+fn main()->i64 { 0 }

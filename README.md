@@ -10,12 +10,14 @@ The [OS architecture](docs/architecture/operating-system.md) describes this plan
 work and its language requirements. There is no bootable ANL OS yet; the current
 compiler produces hosted executables.
 
-The current implementation checks, interprets, and compiles `i64`, `bool`, unit,
+The current implementation checks, interprets, and compiles `i64`, unsigned words `u8`/`u16`/`u32`/`u64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
 structured while loops, conditionals, recursive functions, file modules, and scoped
 `i64` buffers with read/edit call views. Buffer owners have fixed length and close
 on normal scope exit; views cannot escape a call.
-`anl verify` checks arithmetic safety and contracts for scalar and flat-tuple code
+Words add checked and explicit wrapping arithmetic, bitwise operations, logical
+shifts and explicit checked/truncating conversions. Buffer cells remain `i64`.
+`anl verify` checks arithmetic safety and contracts for word-free scalar and flat-tuple code
 with mutable locals, annotated while loops and acyclic calls, using Z3 5.3.3. Results are labeled
 `smt-trusted`.
 Ordinary compilation type-checks and erases function contracts and loop invariant
@@ -47,7 +49,11 @@ Core/MIR correspondence in both directions. Its independent pair checker links
 those theorems to accepted Core/MIR artifacts. Heap-bearing `verify` reports
 unsupported with exit 7; the model proofs do not prove user heap contracts or
 Rust/native correctness. See the [proof inventory](formal/PROOFS.md) for exact
-scope and assumptions.
+scope and assumptions. The cumulative `ANL.Words` model separately adds word
+primitive correctness, raw checker equivalence, Core/MIR execution and finite
+canonical correspondence, resource accounting and exact legacy embedding. New
+word readers and reference tools expose those model boundaries; this is not a
+proof of the source compiler, byte/JSON/IO boundary or native code. Word-bearing `verify` exits 7 as unsupported.
 
 From this checkout, with Rust installed through rustup:
 
@@ -74,6 +80,8 @@ equality, including invariant clauses. See the [tuple contract examples](docs/ve
 - [Programs with modules](docs/modules.md)
 - [Mutable locals and while loops](spec/control-flow.md)
 - [Flat tuples and multiple return values](spec/flat-products.md)
+- [Unsigned words and conversions](docs/book/words.md)
+- [Word language and interchange specification](spec/words.md)
 - [Scoped buffers and views](docs/book/owned-buffers.md)
 - [Buffer language and runtime specification](spec/owned-buffers.md)
 - [Verify function contracts](docs/verification.md)

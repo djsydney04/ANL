@@ -1,0 +1,2 @@
+fn f(p:(i64,u8))->i64 requires p.0 >= 0; { p.0 }
+fn main()->i64 { 0 }

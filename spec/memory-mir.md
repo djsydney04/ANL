@@ -5,6 +5,11 @@ It uses semantic revision `anl-owned-buffers-v1` and the same admissible
 [allocation profile](owned-buffers.md#target-profile-and-native-abi) as v3 Core.
 It is not an installed `anl` subcommand or a general optimization certificate.
 
+The cumulative [unsigned-word revision](words.md) adds ordinary word values and
+new schema IDs without widening this historical revision. Its
+[word artifact protocols](words-evidence.md) apply to v4 programs; buffer cells,
+resource permissions and evaluation order remain unchanged.
+
 ## Raw documents
 
 The root has exactly `schema`, `semantic_revision`, `allocation_profile`,

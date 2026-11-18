@@ -7,6 +7,11 @@ values, local bindings and branch results, including in recursive functions and
 programs with mutable state and while loops. Executable entry remains
 `fn main() -> i64` with no parameters.
 
+The cumulative [unsigned-word revision](words.md) adds ordinary word values and
+new schema IDs without widening this historical revision. Its
+[word artifact protocols](words-evidence.md) apply to v4 programs; buffer cells,
+resource permissions and evaluation order remain unchanged.
+
 ## Syntax and types
 
 | Form | Meaning |

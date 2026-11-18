@@ -1,0 +1,33 @@
+{
+  "expression": {
+    "condition": {
+      "tag": "boolean",
+      "ty": "bool",
+      "value": false
+    },
+    "else": {
+      "tag": "integer",
+      "ty": "i64",
+      "value": "42"
+    },
+    "tag": "if",
+    "then": {
+      "left": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "op": "wrap_add",
+      "right": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "tag": "binary",
+      "ty": "i64"
+    },
+    "ty": "i64"
+  },
+  "schema": "apl-expr-v1",
+  "semantic_revision": "local-state-2026-11-17"
+}

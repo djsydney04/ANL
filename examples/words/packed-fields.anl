@@ -1,0 +1,12 @@
+fn pack(high: u8, low: u8) -> u8 {
+    ((high & 15u8) << 4) | (low & 15u8)
+}
+
+fn split(value: u8) -> (u8, u8) {
+    (value >> 4, value & 15u8)
+}
+
+fn main() -> i64 {
+    let fields = split(42u8);
+    cast i64(pack(fields.0, fields.1))
+}

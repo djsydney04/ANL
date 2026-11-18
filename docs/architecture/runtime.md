@@ -1,7 +1,7 @@
 # Runtime and systems architecture
 
 Status: broader runtime facilities below remain design proposals unless linked to
-implementation evidence. Current execution supports scalars, flat tuples and local
+implementation evidence. Current execution supports scalars including unsigned words, flat tuples and local
 state, plus scoped `i64` buffer owners and call-scoped read/edit views, as defined
 by the [type-system specification](type-system.md).
 
@@ -85,6 +85,22 @@ The hosted allocator is trusted implementation support. Finite model safety and
 Core/MIR correspondence do not establish C allocator correctness or an OS allocator.
 
 The broader storage, concurrency, ABI and library designs below remain planned.
+
+## Word operations and runtime selection
+
+Unsigned words are ordinary scalar values, including in mixed tuples and live
+buffer scopes. The existing world still stores `i64` cells; words do not add
+addresses, byte buffers or layout guarantees. Width-specific arithmetic, logical
+shifts and conversions use the [word semantics](../../spec/words.md), with only
+`invalid_shift` added to the semantic trap set.
+
+Pure v4 programs have mandatory allocation-profile metadata without an allocator
+link or active trace/replay controls. Actual loaded memory forms/view signatures
+select the separate hosted C adapter. Word slots and tuple fields use the existing
+logical accounting; literal width and bit operations incur no extra fill charge.
+The compiler and hosted helpers may remain Rust/C bootstrap components. Hardware
+operations and OS allocation, drivers and services must eventually be authored in
+ANL; unsigned arithmetic alone does not supply those missing facilities.
 
 ## General storage and cleanup (planned)
 

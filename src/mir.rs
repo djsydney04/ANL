@@ -4,8 +4,9 @@ pub(crate) mod wire;
 // Checked arithmetic operations include their trap behavior, never raw partial
 // arithmetic. Branch-local temporaries cannot escape except through the yield.
 use crate::types::{
-    self, BinaryOp, Expr, ExprKind, MemoryExpr, ResourceMode, Type, UnaryOp, ViewMode,
+    self, BinaryOp, Expr, ExprKind, IrRevision, MemoryExpr, ResourceMode, Type, UnaryOp, ViewMode,
 };
+use crate::word::{ConvertMode, WordValue};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug)]
@@ -22,6 +23,7 @@ pub(crate) struct Slot {
 
 #[derive(Debug)]
 pub(crate) struct Program {
+    pub revision: IrRevision,
     pub allocation_profile: Option<crate::memory::AllocationProfile>,
     pub functions: Vec<Function>,
     pub entry: usize,
@@ -81,6 +83,12 @@ pub(crate) enum MemoryOperation {
 }
 #[derive(Debug)]
 pub(crate) enum Operation {
+    Word(WordValue),
+    Convert {
+        mode: ConvertMode,
+        target: Type,
+        operand: Temp,
+    },
     Memory(Box<MemoryOperation>),
     Tuple(Vec<Temp>),
     Project(Temp, usize),
@@ -106,6 +114,27 @@ pub(crate) enum Operation {
         then_block: Block,
         else_block: Block,
     },
+}
+
+impl Program {
+    pub fn has_memory(&self) -> bool {
+        fn block(b: &Block) -> bool {
+            b.instructions.iter().any(|i| match &i.kind {
+                Operation::Memory(_) => true,
+                Operation::MutableScope { body, .. } => block(body),
+                Operation::While { condition, body } => block(condition) || block(body),
+                Operation::Branch {
+                    then_block,
+                    else_block,
+                    ..
+                } => block(then_block) || block(else_block),
+                _ => false,
+            })
+        }
+        self.functions
+            .iter()
+            .any(|f| f.view.is_some() || block(&f.body))
+    }
 }
 
 #[derive(Debug)]
@@ -143,6 +172,7 @@ pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
         });
     }
     let program = Program {
+        revision: source.effective_revision(),
         allocation_profile: source.allocation_profile,
         functions,
         entry,
@@ -279,6 +309,16 @@ impl Builder {
         instructions: &mut Vec<Instruction>,
     ) -> Result<Temp> {
         let kind = match &expr.kind {
+            ExprKind::Word(w) => Operation::Word(*w),
+            ExprKind::Convert {
+                mode,
+                target,
+                operand,
+            } => Operation::Convert {
+                mode: *mode,
+                target: *target,
+                operand: self.expr(operand, locals, instructions)?,
+            },
             ExprKind::Memory(memory) => {
                 Operation::Memory(Box::new(self.memory(memory, locals, instructions)?))
             }
@@ -587,6 +627,23 @@ impl Validator<'_> {
     fn block(&mut self, block: &Block) -> Result<Type> {
         for instruction in &block.instructions {
             let ty = match &instruction.kind {
+                Operation::Word(w) => {
+                    if self.program.revision != IrRevision::WordsV4 {
+                        return Err(InvalidMir("word operation requires v4"));
+                    }
+                    Type::Word(w.width())
+                }
+                Operation::Convert {
+                    mode,
+                    target,
+                    operand,
+                } => {
+                    if self.program.revision != IrRevision::WordsV4 {
+                        return Err(InvalidMir("conversion requires v4"));
+                    }
+                    mode.result(self.use_temp(*operand)?, *target)
+                        .ok_or(InvalidMir("conversion operand type mismatch"))?
+                }
                 Operation::Memory(m) => self.memory(m)?,
                 Operation::Tuple(fields) => {
                     if !(1..=types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
@@ -618,12 +675,16 @@ impl Validator<'_> {
                 Operation::Boolean(_) => Type::Bool,
                 Operation::Unit => Type::Unit,
                 Operation::Unary(op, input) => {
-                    if self.use_temp(*input)? != op.input() {
-                        return Err(InvalidMir("unary operand type mismatch"));
+                    if op.is_word() && self.program.revision != IrRevision::WordsV4 {
+                        return Err(InvalidMir("word operator requires v4"));
                     }
-                    op.input()
+                    op.result(self.use_temp(*input)?)
+                        .ok_or(InvalidMir("unary operand type mismatch"))?
                 }
                 Operation::Binary(op, left, right) => {
+                    if op.is_word() && self.program.revision != IrRevision::WordsV4 {
+                        return Err(InvalidMir("word operator requires v4"));
+                    }
                     if matches!(op, BinaryOp::And | BinaryOp::Or) {
                         return Err(InvalidMir("short-circuit operator was not lowered"));
                     }

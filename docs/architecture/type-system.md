@@ -1,6 +1,6 @@
 # Type-system and executable-core specification
 
-Status: scalar types, flat tuples, functions, modules, typed contracts, initialized mutable
+Status: scalar types including unsigned words, flat tuples, functions, modules, typed contracts, initialized mutable
 locals, while loops, scoped `i64` buffers and read/edit call views are implemented.
 The broader types, movable ownership and
 effects below remain design proposals. The [grammar](../../spec/grammar.ebnf),
@@ -20,6 +20,7 @@ The current runtime supports these forms:
 | Form | Contract |
 | --- | --- |
 | `i64` | Mathematical integers in `[-2^63, 2^63-1]` with checked operations |
+| `u8`, `u16`, `u32`, `u64` | Unsigned integers from zero through `2^width - 1`; width is part of the type |
 | `bool` | Exactly `true` or `false` |
 | `unit` | One value, written `()` |
 | `(T1, ..., Tn)` | Flat tuple of 1–8 scalar fields; singleton spelling `(T,)` |
@@ -35,8 +36,10 @@ The current runtime supports these forms:
 | `fn f(read b: i64[], x: T) -> U` / `f(read b, x)` | One optional first call-scoped view, with matching read/edit mode |
 | `{ statements; final_expression }` | Lexical scope; omitted final expression has type `unit` |
 | `if c { a } else { b }` | `c: bool`; both branches have the same type |
-| Arithmetic | `+`, `-`, `*`, `/`, `%`, and unary `-`, on `i64` only |
-| Comparison | `<`, `<=`, `>`, `>=` on `i64`; `==`, `!=` on two values of the same type/tuple shape |
+| Arithmetic | Checked `+`, `-`, `*`, `/`, `%` on `i64` or same-width words; unary `-` only on `i64` |
+| Word operations | Same-width `+%`, `-%`, `*%`, `&`, `^`, `\|`; unary `~`; `<<`, `>>` with an `i64` count |
+| Numeric conversions | `cast T(e)` preserves the integer or traps; `truncate uw(e)` keeps low bits |
+| Comparison | `<`, `<=`, `>`, `>=` on `i64` or same-width words; `==`, `!=` on two values of the same type/tuple shape |
 | Boolean operations | `!`, short-circuit `&&`, and short-circuit `||` |
 | Expression statement | Evaluate an expression, discard its result, retain its trap behavior |
 
@@ -47,7 +50,7 @@ Calls may refer to later function declarations. Arity and each argument type mus
 [File modules](../../spec/modules.md) add private/public declarations and qualified
 names. [Contracts](../../spec/verification.md) add mathematical-integer clauses,
 type-checked and erased during ordinary execution. Their optional verifier accepts
-scalar and flat-tuple code with annotated loops and acyclic calls; recursion
+word-free scalar and flat-tuple code with annotated loops and acyclic calls; recursion
 remains unsupported by verification.
 Loop `invariant` clauses are checked as Boolean mathematical specification expressions
 in the scope before the condition runs, then erased. Their truth and definedness
@@ -72,17 +75,36 @@ resource and verifier boundaries; existing scalar rules below are unchanged.
 
 ## Scalar evaluation rules
 
-Operands and function arguments evaluate left to right. A trap stops the current evaluation; no later operand is evaluated. `false && e`, `true || e`, and an unselected `if` branch do not evaluate `e`. Arithmetic never invokes undefined behavior or silently wraps.
+Operands and function arguments evaluate left to right. A trap stops the current evaluation; no later operand is evaluated. `false && e`, `true || e`, and an unselected `if` branch do not evaluate `e`. Checked arithmetic traps on overflow. Word wrapping is explicit through `+%`,
+`-%`, `*%`; logical left shift also discards high bits as specified. See the
+[word specification](../../spec/words.md) for complete signatures and precedence.
 
-Let `L = -9223372036854775808` and `H = 9223372036854775807`. Addition, subtraction, multiplication, and negation first compute their mathematical result. A result outside `[L,H]` produces `ArithmeticOverflow`. Division and remainder produce `DivisionByZero` when the divisor is zero. Both produce `ArithmeticOverflow` for `L / -1` and `L % -1`. Otherwise division truncates toward zero and remainder is `a - trunc(a/b)*b`.
+For `i64`, let `L = -9223372036854775808` and `H = 9223372036854775807`. Addition, subtraction, multiplication, and negation first compute their mathematical result. A result outside `[L,H]` produces `ArithmeticOverflow`. Division and remainder produce `DivisionByZero` when the divisor is zero. Both produce `ArithmeticOverflow` for `L / -1` and `L % -1`. Otherwise division truncates toward zero and remainder is `a - trunc(a/b)*b`.
 
 The canonical interchange tags for these traps are `arithmetic_overflow` and `division_by_zero`. Descriptive names in mathematical prose do not define additional trap kinds.
 
-The lexer retains the unsigned decimal magnitude of an integer token without converting through a host signed integer. An unnegated literal must be at most `H`. The syntactic form `-9223372036854775808` is admitted as `L`; negating that value again traps. Parentheses around the positive out-of-range magnitude do not make it legal. Underscores, radix prefixes, and numeric suffixes are absent from M1.
+The lexer retains the unsigned decimal magnitude of an integer token without converting through a host signed integer. An unnegated literal must be at most `H`. The syntactic form `-9223372036854775808` is admitted as `L`; negating that value again traps. Parentheses around the positive out-of-range magnitude do not make it legal. The original unsuffixed `i64` rules are unchanged. The word revision adds only
+the exact `u8`/`u16`/`u32`/`u64` suffixes; underscores and radix prefixes remain unsupported.
 
 `if` evaluates its condition and exactly one branch. `let` evaluates its initializer in the old environment, then extends the environment for subsequent statements. The initializer cannot refer to its own binding. A nested block removes its own bindings on exit while preserving updates to outer mutable locals. An expression statement still evaluates even when its value is discarded.
 
 A program may diverge through recursion or a while loop. The reference interpreter uses a documented fuel budget and reports `resource_limit` when that budget is exhausted. This is not a language trap, proof of divergence, or proof of safety. A native stack or allocation failure is a host resource failure, outside the scalar semantics. Future verified termination claims require a separate proof.
+
+## Word typing and specification boundary
+
+Word payloads must fit their declared width before becoming values. Raw Core and
+MIR keep malformed payload/annotation combinations representable for independent
+checking; rejection is not a runtime trap. Same-width words compose through flat
+tuples and ordinary bindings without implicit widening. Shift counts alone use
+`i64`; malformed counts outside the raw `i64` range are invalid input, while a
+valid count outside `[0,width)` produces `invalid_shift`.
+
+Heap operations still require `i64`. An explicit conversion remains a metered
+node even when source and destination types are identical. Specification checking
+rejects new word syntax and references to complete word-containing types, but
+permits ordinary-only clauses beside unreferenced words. Every word graph's
+`verify` result is unsupported before tools. No new VCG rule follows from runtime
+operator typing.
 
 ## Typing judgments
 

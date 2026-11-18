@@ -1,0 +1,1 @@
+mod dep; fn main()->i64 { 42 }

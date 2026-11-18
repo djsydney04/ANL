@@ -1,0 +1,33 @@
+{
+  "expression": {
+    "condition": {
+      "tag": "boolean",
+      "ty": "bool",
+      "value": false
+    },
+    "else": {
+      "tag": "integer",
+      "ty": "i64",
+      "value": "42"
+    },
+    "tag": "if",
+    "then": {
+      "left": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "op": "bit_and",
+      "right": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "tag": "binary",
+      "ty": "i64"
+    },
+    "ty": "i64"
+  },
+  "schema": "apl-expr-v2",
+  "semantic_revision": "flat-products-2026-11-17"
+}

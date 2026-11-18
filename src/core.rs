@@ -6,9 +6,10 @@ use crate::{
     eval::{EvalError, Value as Scalar},
     syntax,
     types::{
-        BinaryOp, Expr, ExprKind, Function, MemoryExpr, Program, ResourceMode, Type, UnaryOp,
-        ViewMode,
+        BinaryOp, Expr, ExprKind, Function, IrRevision, MemoryExpr, Program, ResourceMode, Type,
+        UnaryOp, ViewMode,
     },
+    word::{ConvertMode, WordValue, WordWidth},
 };
 use serde::de::{self, Deserialize, Deserializer, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value, json};
@@ -119,9 +120,11 @@ pub(crate) fn natural(value: &Value) -> Result<usize, ImportError> {
         .and_then(|n| usize::try_from(n).ok())
         .ok_or_else(|| invalid("expected natural-number index"))
 }
-pub(crate) fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
+pub(crate) fn ty_words(value: &Value, products: bool, words: bool) -> Result<Type, ImportError> {
     if let Some(name) = value.as_str() {
-        return Type::from_name(name).ok_or_else(|| invalid("unknown scalar type"));
+        return Type::from_name(name)
+            .filter(|t| words || !t.contains_words())
+            .ok_or_else(|| invalid("unknown scalar type"));
     }
     if !products {
         return Err(invalid("tuple types require v2"));
@@ -134,6 +137,7 @@ pub(crate) fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
         .iter()
         .map(|v| {
             Type::from_name(string(v)?)
+                .filter(|t| words || !t.contains_words())
                 .and_then(Type::scalar)
                 .ok_or_else(|| invalid("tuple field must be a scalar type"))
         })
@@ -141,6 +145,20 @@ pub(crate) fn ty(value: &Value, products: bool) -> Result<Type, ImportError> {
     Ok(Type::Tuple(
         crate::types::TupleShape::new(&fields).map_err(|e| invalid(e.to_string()))?,
     ))
+}
+pub(crate) fn word_payload(width: &Value, value: &Value) -> Result<WordValue, ImportError> {
+    let width = width
+        .as_u64()
+        .and_then(WordWidth::from_bits)
+        .ok_or_else(|| invalid("invalid word width"))?;
+    let text = string(value)?;
+    let n = text
+        .parse::<u64>()
+        .map_err(|_| invalid("word literal is outside uint64"))?;
+    if n.to_string() != text {
+        return Err(invalid("noncanonical word literal"));
+    }
+    WordValue::new(width, n).ok_or_else(|| invalid("word literal is outside declared width"))
 }
 pub(crate) fn array(value: &Value) -> Result<&Vec<Value>, ImportError> {
     value.as_array().ok_or_else(|| invalid("expected array"))
@@ -165,7 +183,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         .and_then(Value::as_str)
         .ok_or_else(|| invalid("missing schema"))?;
     let fields: &[&str] = match schema {
-        "anl-core-v3" => &[
+        "anl-core-v3" | "anl-core-v4" => &[
             "schema",
             "semantic_revision",
             "allocation_profile",
@@ -181,7 +199,8 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         _ => return Err(invalid("unsupported schema")),
     };
     let root = object(&value, fields)?;
-    let allow_memory = schema == "anl-core-v3";
+    let allow_words = schema == "anl-core-v4";
+    let allow_memory = allow_words || schema == "anl-core-v3";
     let allocation_profile = if allow_memory {
         Some(profile(&root["allocation_profile"])?)
     } else {
@@ -189,7 +208,9 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     };
     let allow_products = allow_memory || matches!(schema, "apl-core-v2" | "apl-expr-v2");
     let allow_local_state = allow_products || matches!(schema, "apl-core-v1" | "apl-expr-v1");
-    let revision = if allow_memory {
+    let revision = if allow_words {
+        "anl-words-v1"
+    } else if allow_memory {
         crate::memory::SEMANTIC_REVISION
     } else if allow_products {
         FLAT_PRODUCTS_SEMANTIC_REVISION
@@ -206,6 +227,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         resources: Vec::new(),
         next_site: 0,
         allow_memory,
+        allow_words,
         signatures: Vec::new(),
         next_id: 0,
         allow_calls: allow_memory
@@ -217,6 +239,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         let body = importer.expr(&root["expression"], &mut Vec::new(), 0)?;
         return Ok(Artifact {
             program: Program {
+                retained_revision: None,
                 allocation_profile: None,
                 sources: Default::default(),
                 contracts: None,
@@ -257,11 +280,12 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         }
         let params = array(&function["params"])?
             .iter()
-            .map(|v| ty(v, allow_products))
+            .map(|v| ty_words(v, allow_products, allow_words))
             .collect::<Result<Vec<_>, _>>()?;
-        importer
-            .signatures
-            .push((params, ty(&function["result"], allow_products)?));
+        importer.signatures.push((
+            params,
+            ty_words(&function["result"], allow_products, allow_words)?,
+        ));
     }
     let entry = natural(&root["entry"])?;
     let entry_signature = importer
@@ -304,6 +328,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
     }
     Ok(Artifact {
         program: Program {
+            retained_revision: allow_words.then_some(IrRevision::WordsV4),
             allocation_profile,
             functions: checked,
             sources: Default::default(),
@@ -351,6 +376,7 @@ struct Importer {
     resources: Vec<ResourceMode>,
     next_site: usize,
     allow_memory: bool,
+    allow_words: bool,
     signatures: Vec<(Vec<Type>, Type)>,
     next_id: usize,
     allow_calls: bool,
@@ -480,6 +506,8 @@ impl Importer {
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("missing expression tag"))?;
         let fields: &[&str] = match tag {
+            "word" if self.allow_words => &["tag", "ty", "width", "value"],
+            "convert" if self.allow_words => &["tag", "ty", "mode", "target", "operand"],
             "heap" if self.allow_memory => &[
                 "tag", "ty", "site", "length", "initial", "success", "failure",
             ],
@@ -505,9 +533,33 @@ impl Importer {
             _ => return Err(invalid("unknown expression constructor")),
         };
         let obj = object(value, fields)?;
-        let annotation = ty(&obj["ty"], self.allow_products)?;
+        let annotation = ty_words(&obj["ty"], self.allow_products, self.allow_words)?;
         let next = nesting + 1;
         let (inferred, kind, depth) = match tag {
+            "word" => {
+                let value = word_payload(&obj["width"], &obj["value"])?;
+                (Type::Word(value.width()), ExprKind::Word(value), 1)
+            }
+            "convert" => {
+                let mode = ConvertMode::from_name(string(&obj["mode"])?)
+                    .ok_or_else(|| invalid("unknown conversion mode"))?;
+                let target = ty_words(&obj["target"], false, true)?;
+                let operand = self.expr(&obj["operand"], env, next)?;
+                let ty = mode
+                    .result(operand.ty, target)
+                    .ok_or_else(|| invalid("invalid conversion signature"))?;
+                let depth = operand.depth + 1;
+                (
+                    ty,
+                    ExprKind::Convert {
+                        mode,
+                        target,
+                        operand: Box::new(operand),
+                    },
+                    depth,
+                )
+            }
+
             "heap" | "buffer_length" | "buffer_read" | "buffer_write" | "call_view" => {
                 let kind = self.memory(tag, obj, env, next)?;
                 let ty = match &kind {
@@ -681,15 +733,16 @@ impl Importer {
                 let op = match string(&obj["op"])? {
                     "neg" => UnaryOp::Neg,
                     "not" => UnaryOp::Not,
+                    "bit_not" if self.allow_words => UnaryOp::BitNot,
                     _ => return Err(invalid("unknown unary operator")),
                 };
                 let operand = self.expr(&obj["operand"], env, next)?;
-                if operand.ty != op.input() {
-                    return Err(invalid("unary operand type mismatch"));
-                }
+                let ty = op
+                    .result(operand.ty)
+                    .ok_or_else(|| invalid("unary operand type mismatch"))?;
                 let depth = operand.depth + 1;
                 (
-                    op.input(),
+                    ty,
                     ExprKind::Unary {
                         op,
                         operand: Box::new(operand),
@@ -699,6 +752,7 @@ impl Importer {
             }
             "binary" => {
                 let op = BinaryOp::from_name(string(&obj["op"])?)
+                    .filter(|op| self.allow_words || !op.is_word())
                     .ok_or_else(|| invalid("unknown binary operator"))?;
                 let left = self.expr(&obj["left"], env, next)?;
                 let right = self.expr(&obj["right"], env, next)?;
@@ -773,7 +827,10 @@ impl Importer {
 /// Export the lowest applicable schema. This host API is fallible: v2 emission
 /// is bounded before materializing the JSON value; scalar wire bytes are unchanged.
 pub fn export(program: &Program, entry: usize) -> Result<Value, crate::bounded::OutputError> {
-    if program.has_memory() || program.has_flat_products() {
+    if program.effective_revision() == IrRevision::WordsV4
+        || program.has_memory()
+        || program.has_flat_products()
+    {
         return wire::export(program, entry, MAX_SOURCE_BYTES);
     }
     let functions: Vec<Value> = program.functions.iter().enumerate().map(|(id, function)| json!({
@@ -791,7 +848,11 @@ pub fn export(program: &Program, entry: usize) -> Result<Value, crate::bounded::
 }
 fn export_expr(expr: &Expr) -> Value {
     let mut value = match &expr.kind {
-        ExprKind::Memory(_) | ExprKind::Tuple(_) | ExprKind::Project { .. } => {
+        ExprKind::Word(_)
+        | ExprKind::Convert { .. }
+        | ExprKind::Memory(_)
+        | ExprKind::Tuple(_)
+        | ExprKind::Project { .. } => {
             unreachable!("aggregate export uses bounded serializer")
         }
         ExprKind::Integer(n) => json!({"tag":"integer", "value":n.to_string()}),
@@ -837,6 +898,7 @@ pub fn outcome(result: &Result<Scalar, EvalError>) -> Value {
     match result {
         Ok(value) => {
             let repr = match value {
+                Scalar::Word(w) => json!(w.value().to_string()),
                 Scalar::Integer(n) => json!(n.to_string()),
                 Scalar::Boolean(b) => json!(b),
                 Scalar::Unit => Value::Null,
@@ -845,6 +907,7 @@ pub fn outcome(result: &Result<Scalar, EvalError>) -> Value {
                         .fields()
                         .iter()
                         .map(|field| match field {
+                            crate::eval::ScalarValue::Word(w) => json!(w.value().to_string()),
                             crate::eval::ScalarValue::Integer(n) => json!(n.to_string()),
                             crate::eval::ScalarValue::Boolean(b) => json!(b),
                             crate::eval::ScalarValue::Unit => Value::Null,

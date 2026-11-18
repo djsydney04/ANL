@@ -1,0 +1,18 @@
+{
+  "allocation_profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "completion": {
+    "kind": "value",
+    "type": "i64",
+    "value": "9"
+  },
+  "events": [],
+  "schema": "anl-words-trace-v1",
+  "semantic_revision": "anl-words-v1"
+}

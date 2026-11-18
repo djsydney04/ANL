@@ -1,0 +1,7 @@
+{
+  "default": "success",
+  "responses": [
+    "success"
+  ],
+  "schema": "anl-memory-response-plan-v1"
+}

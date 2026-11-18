@@ -1,7 +1,7 @@
 # ANL architectural overview
 
 Status: architecture for the complete language, with an implemented scalar/flat-tuple core,
-native C11 compiler, file modules, initialized local state and loops, scalar
+native C11 compiler, file modules, initialized local state and loops, word-free scalar
 and flat-tuple contract verification with invariants and acyclic calls, and scoped immutable, local-state,
 flat-tuple runtime and verification-condition proofs. Scoped `i64` buffer owners
 and call-scoped read/edit views add a separate finite memory-safety model,
@@ -12,6 +12,13 @@ the complete-language release requirements open.
 
 The [decision records](decisions.md) summarize alternatives and proof obligations.
 The [bibliography](../research/bibliography.md) lists the supporting literature.
+
+The [unsigned-word revision](../../spec/words.md) extends ordinary values with
+`u8`, `u16`, `u32`, `u64`, checked/wrapping arithmetic, bitwise operations, shifts
+and explicit numeric conversions. Its cumulative model has independent raw typing,
+finite Core/MIR safety/correspondence, resource accounting and legacy embedding.
+Reader/reference execution retains byte/JSON/IO trust boundaries. Word contract verification,
+byte storage, addresses, hardware operations and the complete ANL OS remain open.
 
 ## Purpose and requirements
 

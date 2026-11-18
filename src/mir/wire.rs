@@ -57,6 +57,22 @@ impl Serialize for Operation {
             };
         }
         match self {
+            Self::Word(w) => {
+                tag!("word");
+                field!("width", &w.width().bits());
+                field!("value", &w.value().to_string());
+            }
+            Self::Convert {
+                mode,
+                target,
+                operand,
+            } => {
+                tag!("convert");
+                field!("mode", mode.as_str());
+                field!("target", target);
+                field!("operand", operand);
+            }
+
             Self::Integer(v) => {
                 tag!("integer");
                 field!("value", &v.to_string());
@@ -214,8 +230,15 @@ impl Serialize for Functions<'_> {
 impl Serialize for Program {
     fn serialize<S: Serializer>(&self, s: S) -> std::result::Result<S::Ok, S::Error> {
         let mut m = s.serialize_map(Some(5))?;
-        m.serialize_entry("schema", "anl-memory-mir-v1")?;
-        m.serialize_entry("semantic_revision", crate::memory::SEMANTIC_REVISION)?;
+        m.serialize_entry(
+            "schema",
+            if self.revision == IrRevision::WordsV4 {
+                "anl-words-mir-v1"
+            } else {
+                "anl-memory-mir-v1"
+            },
+        )?;
+        m.serialize_entry("semantic_revision", self.revision.semantic_revision())?;
         m.serialize_entry(
             "allocation_profile",
             &self.allocation_profile.expect("memory MIR profile").json(),
@@ -237,19 +260,19 @@ pub(crate) fn export(program: &Program) -> std::result::Result<String, OutputErr
 fn bad(s: &str) -> ImportError {
     ImportError::Invalid(s.into())
 }
-fn temp(v: &Value) -> std::result::Result<Temp, ImportError> {
+fn temp(v: &Value, words: bool) -> std::result::Result<Temp, ImportError> {
     let o = core::object(v, &["id", "ty"])?;
     Ok(Temp {
         id: core::natural(&o["id"])?,
-        ty: core::ty(&o["ty"], true)?,
+        ty: core::ty_words(&o["ty"], true, words)?,
     })
 }
-fn slot(v: &Value) -> std::result::Result<Slot, ImportError> {
-    let t = temp(v)?;
+fn slot(v: &Value, words: bool) -> std::result::Result<Slot, ImportError> {
+    let t = temp(v, words)?;
     Ok(Slot { id: t.id, ty: t.ty })
 }
-fn temps(v: &Value) -> std::result::Result<Vec<Temp>, ImportError> {
-    core::array(v)?.iter().map(temp).collect()
+fn temps(v: &Value, words: bool) -> std::result::Result<Vec<Temp>, ImportError> {
+    core::array(v)?.iter().map(|v| temp(v, words)).collect()
 }
 #[derive(Default)]
 struct Counts {
@@ -257,7 +280,12 @@ struct Counts {
     slots: usize,
     resources: usize,
 }
-fn block(v: &Value, depth: usize, counts: &mut Counts) -> std::result::Result<Block, ImportError> {
+fn block(
+    v: &Value,
+    depth: usize,
+    counts: &mut Counts,
+    words: bool,
+) -> std::result::Result<Block, ImportError> {
     if depth >= crate::MAX_DEPTH {
         return Err(ImportError::ResourceLimit(
             "memory MIR block depth exceeded".into(),
@@ -267,26 +295,29 @@ fn block(v: &Value, depth: usize, counts: &mut Counts) -> std::result::Result<Bl
     let mut instructions = Vec::new();
     for v in core::array(&o["instructions"])? {
         let i = core::object(v, &["destination", "operation"])?;
-        let destination = temp(&i["destination"])?;
-        let kind = operation(&i["operation"], depth + 1, counts)?;
+        let destination = temp(&i["destination"], words)?;
+        let kind = operation(&i["operation"], depth + 1, counts, words)?;
         counts.temps += 1;
         instructions.push(Instruction { destination, kind });
     }
     Ok(Block {
         instructions,
-        yield_value: temp(&o["yield"])?,
+        yield_value: temp(&o["yield"], words)?,
     })
 }
 fn operation(
     v: &Value,
     depth: usize,
     c: &mut Counts,
+    words: bool,
 ) -> std::result::Result<Operation, ImportError> {
     let tag = v
         .get("tag")
         .and_then(Value::as_str)
         .ok_or_else(|| bad("missing MIR operation tag"))?;
     let fields: &[&str] = match tag {
+        "word" if words => &["tag", "width", "value"],
+        "convert" if words => &["tag", "mode", "target", "operand"],
         "integer" | "boolean" => &["tag", "value"],
         "unit" => &["tag"],
         "tuple" => &["tag", "fields"],
@@ -310,6 +341,13 @@ fn operation(
     };
     let o = core::object(v, fields)?;
     Ok(match tag {
+        "word" => Operation::Word(core::word_payload(&o["width"], &o["value"])?),
+        "convert" => Operation::Convert {
+            mode: ConvertMode::from_name(core::string(&o["mode"])?)
+                .ok_or_else(|| bad("invalid conversion mode"))?,
+            target: core::ty_words(&o["target"], false, true)?,
+            operand: temp(&o["operand"], words)?,
+        },
         "integer" => {
             let t = core::string(&o["value"])?;
             let n = t.parse::<i64>().map_err(|_| bad("invalid MIR integer"))?;
@@ -324,41 +362,46 @@ fn operation(
                 .ok_or_else(|| bad("invalid MIR bool"))?,
         ),
         "unit" => Operation::Unit,
-        "tuple" => Operation::Tuple(temps(&o["fields"])?),
-        "project" => Operation::Project(temp(&o["value"])?, core::natural(&o["index"])?),
+        "tuple" => Operation::Tuple(temps(&o["fields"], words)?),
+        "project" => Operation::Project(temp(&o["value"], words)?, core::natural(&o["index"])?),
         "unary" => Operation::Unary(
             match core::string(&o["op"])? {
                 "neg" => UnaryOp::Neg,
                 "not" => UnaryOp::Not,
+                "bit_not" if words => UnaryOp::BitNot,
                 _ => return Err(bad("invalid MIR unary")),
             },
-            temp(&o["operand"])?,
+            temp(&o["operand"], words)?,
         ),
         "binary" => Operation::Binary(
             BinaryOp::from_name(core::string(&o["op"])?)
+                .filter(|op| words || !op.is_word())
                 .ok_or_else(|| bad("invalid MIR binary"))?,
-            temp(&o["left"])?,
-            temp(&o["right"])?,
+            temp(&o["left"], words)?,
+            temp(&o["right"], words)?,
         ),
-        "call" => Operation::Call(core::natural(&o["function"])?, temps(&o["arguments"])?),
+        "call" => Operation::Call(
+            core::natural(&o["function"])?,
+            temps(&o["arguments"], words)?,
+        ),
         "mutable_scope" => {
             c.slots += 1;
             Operation::MutableScope {
-                slot: slot(&o["slot"])?,
-                initial: temp(&o["initial"])?,
-                body: block(&o["body"], depth, c)?,
+                slot: slot(&o["slot"], words)?,
+                initial: temp(&o["initial"], words)?,
+                body: block(&o["body"], depth, c, words)?,
             }
         }
-        "load" => Operation::Load(slot(&o["slot"])?),
-        "store" => Operation::Store(slot(&o["slot"])?, temp(&o["value"])?),
+        "load" => Operation::Load(slot(&o["slot"], words)?),
+        "store" => Operation::Store(slot(&o["slot"], words)?, temp(&o["value"], words)?),
         "while" => Operation::While {
-            condition: block(&o["condition"], depth, c)?,
-            body: block(&o["body"], depth, c)?,
+            condition: block(&o["condition"], depth, c, words)?,
+            body: block(&o["body"], depth, c, words)?,
         },
         "branch" => Operation::Branch {
-            condition: temp(&o["condition"])?,
-            then_block: block(&o["then"], depth, c)?,
-            else_block: block(&o["else"], depth, c)?,
+            condition: temp(&o["condition"], words)?,
+            then_block: block(&o["then"], depth, c, words)?,
+            else_block: block(&o["else"], depth, c, words)?,
         },
         _ => Operation::Memory(Box::new(match tag {
             "heap_scope" => {
@@ -366,10 +409,10 @@ fn operation(
                 MemoryOperation::HeapScope {
                     site: core::natural(&o["site"])?,
                     owner: core::natural(&o["owner"])?,
-                    length: temp(&o["length"])?,
-                    initial: block(&o["initial"], depth, c)?,
-                    success: block(&o["success"], depth, c)?,
-                    failure: block(&o["failure"], depth, c)?,
+                    length: temp(&o["length"], words)?,
+                    initial: block(&o["initial"], depth, c, words)?,
+                    success: block(&o["success"], depth, c, words)?,
+                    failure: block(&o["failure"], depth, c, words)?,
                 }
             }
             "buffer_length" => MemoryOperation::Length {
@@ -377,18 +420,18 @@ fn operation(
             },
             "buffer_read" => MemoryOperation::Read {
                 resource: core::natural(&o["resource"])?,
-                index: temp(&o["index"])?,
+                index: temp(&o["index"], words)?,
             },
             "buffer_write" => MemoryOperation::Write {
                 resource: core::natural(&o["resource"])?,
-                index: temp(&o["index"])?,
-                value: block(&o["value"], depth, c)?,
+                index: temp(&o["index"], words)?,
+                value: block(&o["value"], depth, c, words)?,
             },
             "call_view" => MemoryOperation::CallView {
                 function: core::natural(&o["function"])?,
                 resource: core::natural(&o["resource"])?,
                 mode: core::view(&o["mode"])?,
-                arguments: temps(&o["arguments"])?,
+                arguments: temps(&o["arguments"], words)?,
             },
             _ => return Err(bad("unknown memory MIR operation")),
         })),
@@ -418,11 +461,15 @@ pub(crate) fn import(text: &str) -> std::result::Result<Program, ImportError> {
             "entry",
         ],
     )?;
-    if core::string(&o["schema"])? != "anl-memory-mir-v1"
-        || core::string(&o["semantic_revision"])? != crate::memory::SEMANTIC_REVISION
-    {
-        return Err(bad("unsupported memory MIR revision"));
-    }
+    let revision = match (
+        core::string(&o["schema"])?,
+        core::string(&o["semantic_revision"])?,
+    ) {
+        ("anl-memory-mir-v1", crate::memory::SEMANTIC_REVISION) => IrRevision::MemoryV3,
+        ("anl-words-mir-v1", "anl-words-v1") => IrRevision::WordsV4,
+        _ => return Err(bad("unsupported memory MIR revision")),
+    };
+    let words = revision == IrRevision::WordsV4;
     let profile = core::profile(&o["allocation_profile"])?;
     let mut functions = Vec::new();
     for (id, v) in core::array(&o["functions"])?.iter().enumerate() {
@@ -448,13 +495,13 @@ pub(crate) fn import(text: &str) -> std::result::Result<Program, ImportError> {
             let v = core::object(&o["view"], &["mode", "resource"])?;
             Some((core::view(&v["mode"])?, core::natural(&v["resource"])?))
         };
-        let params = temps(&o["params"])?;
+        let params = temps(&o["params"], words)?;
         let mut counts = Counts {
             temps: params.len(),
             slots: 0,
             resources: usize::from(view.is_some()),
         };
-        let body = block(&o["body"], 0, &mut counts)?;
+        let body = block(&o["body"], 0, &mut counts, words)?;
         let temp_count = core::natural(&o["temp_count"])?;
         let slot_count = core::natural(&o["slot_count"])?;
         let resource_count = core::natural(&o["resource_count"])?;
@@ -467,7 +514,7 @@ pub(crate) fn import(text: &str) -> std::result::Result<Program, ImportError> {
         functions.push(Function {
             view,
             params,
-            result: core::ty(&o["result"], true)?,
+            result: core::ty_words(&o["result"], true, words)?,
             body,
             temp_count,
             slot_count,
@@ -475,6 +522,7 @@ pub(crate) fn import(text: &str) -> std::result::Result<Program, ImportError> {
         });
     }
     let program = Program {
+        revision,
         allocation_profile: Some(profile),
         functions,
         entry: core::natural(&o["entry"])?,

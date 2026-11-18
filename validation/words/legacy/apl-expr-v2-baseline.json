@@ -1,0 +1,9 @@
+{
+  "expression": {
+    "tag": "integer",
+    "ty": "i64",
+    "value": "42"
+  },
+  "schema": "apl-expr-v2",
+  "semantic_revision": "flat-products-2026-11-17"
+}

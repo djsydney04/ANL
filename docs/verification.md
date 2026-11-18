@@ -1,6 +1,6 @@
 # Verify function contracts
 
-`anl verify` checks arithmetic safety and function contracts for scalar and
+`anl verify` checks arithmetic safety and function contracts for word-free scalar and
 flat-tuple code, including mutable locals and while loops with invariants. It uses Z3 5.3.3
 and reports solver-trusted results. It supports acyclic calls across source
 modules. Verification requires an invariant on every loaded loop and rejects
@@ -8,6 +8,31 @@ recursive call graphs. Ordinary compilation supports unannotated loops and recur
 Tuple clauses use the same value syntax as executable code, with mathematical
 integer fields. Every clause must return `bool`. The [tuple specification](../spec/flat-products.md#verification-boundary)
 defines their evaluation, reports and limits.
+
+## Word and buffer boundaries
+
+Words do not yet have specification arithmetic or SMT support. A clause cannot
+contain a word literal, conversion, wrapping/bitwise/shift node, or reference to
+a word-containing binding. A projection from `(i64,u8)` is rejected even if its
+selected field is `i64`. These are source-checking errors, including in dead
+Boolean branches.
+
+Ordinary-only clauses remain legal beside words: a word parameter does not
+prevent `requires true`, and an unreferenced word local does not prevent an
+invariant about an `i64` loop counter. Such clauses are checked and erased in
+ordinary execution. They are not proved by `check`.
+
+```sh
+./target/release/anl verify examples/words/packed-fields.anl --json
+```
+
+This returns `anl-verify-v5`, `anl-words-v1`, `anl-words-unsupported-v1`, status
+`unsupported`, trust `not_established`, exit 7. It binds the loaded sources and
+functions, has empty obligations and null compiler/solver identities, and claims
+no arithmetic safety, partial correctness, termination or native proof. The guard
+runs after full source checking and before obligation generation or external tools,
+even without clauses or with buffers. Word-free heap graphs retain their separate
+unsupported report. See the [word rules](../spec/words.md#specifications-and-verification).
 
 ## Run a verification
 

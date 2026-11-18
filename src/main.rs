@@ -185,7 +185,10 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     }
     if command == "emit-c" {
         let c = codegen::emit_c(&program, entry)?;
-        if program.has_memory() || program.has_flat_products() {
+        if program.has_memory()
+            || program.has_flat_products()
+            || program.effective_revision() == anl::types::IrRevision::WordsV4
+        {
             io::stdout()
                 .lock()
                 .write_all(c.as_bytes())

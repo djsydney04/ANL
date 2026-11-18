@@ -1,0 +1,1 @@
+fn main()->i64 { cast i64(1u8 & { heap b:i64[1] = 3 { truncate u8(b[0]) } else { 0u8 } }) }

@@ -5,11 +5,13 @@ use crate::{
         BinaryOp, Expr, ExprKind, MAX_TUPLE_FIELDS, MemoryExpr, Program, ResourceMode, ScalarType,
         TupleError, TupleShape, Type, UnaryOp, ViewMode,
     },
+    word::{ConvertMode, WordValue},
 };
 use std::{fmt, sync::Arc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScalarValue {
+    Word(WordValue),
     Integer(i64),
     Boolean(bool),
     Unit,
@@ -17,6 +19,7 @@ pub enum ScalarValue {
 impl ScalarValue {
     pub fn ty(self) -> ScalarType {
         match self {
+            Self::Word(w) => ScalarType::Word(w.width()),
             Self::Integer(_) => ScalarType::I64,
             Self::Boolean(_) => ScalarType::Bool,
             Self::Unit => ScalarType::Unit,
@@ -24,6 +27,7 @@ impl ScalarValue {
     }
     pub fn as_value(self) -> Value {
         match self {
+            Self::Word(w) => Value::Word(w),
             Self::Integer(n) => Value::Integer(n),
             Self::Boolean(b) => Value::Boolean(b),
             Self::Unit => Value::Unit,
@@ -81,6 +85,7 @@ impl TupleValue {
 /// Clone; `ty` borrows, and tuple clones share an immutable validated payload.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Value {
+    Word(WordValue),
     Integer(i64),
     Boolean(bool),
     Unit,
@@ -90,6 +95,7 @@ impl Clone for Value {
     #[inline(always)]
     fn clone(&self) -> Self {
         match self {
+            Self::Word(w) => Self::Word(*w),
             Self::Integer(n) => Self::Integer(*n),
             Self::Boolean(b) => Self::Boolean(*b),
             Self::Unit => Self::Unit,
@@ -101,6 +107,7 @@ impl Value {
     #[inline]
     fn has_type(&self, expected: &Type) -> bool {
         match (self, expected) {
+            (Self::Word(w), Type::Word(t)) => w.width() == *t,
             (Self::Integer(_), Type::I64)
             | (Self::Boolean(_), Type::Bool)
             | (Self::Unit, Type::Unit) => true,
@@ -111,6 +118,7 @@ impl Value {
     #[inline]
     fn same_type(&self, other: &Self) -> bool {
         match (self, other) {
+            (Self::Word(a), Self::Word(b)) => a.width() == b.width(),
             (Self::Integer(_), Self::Integer(_))
             | (Self::Boolean(_), Self::Boolean(_))
             | (Self::Unit, Self::Unit) => true,
@@ -120,6 +128,7 @@ impl Value {
     }
     pub fn ty(&self) -> Type {
         match self {
+            Self::Word(w) => Type::Word(w.width()),
             Self::Integer(_) => Type::I64,
             Self::Boolean(_) => Type::Bool,
             Self::Unit => Type::Unit,
@@ -130,6 +139,7 @@ impl Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Word(w) => write!(f, "{}{}", w.value(), w.width().as_str()),
             Self::Integer(n) => write!(f, "{n}"),
             Self::Boolean(b) => write!(f, "{b}"),
             Self::Unit => f.write_str("()"),
@@ -151,6 +161,7 @@ impl fmt::Display for Value {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Trap {
+    InvalidShift,
     InvalidLength,
     IndexOutOfBounds,
     ArithmeticOverflow,
@@ -159,6 +170,7 @@ pub enum Trap {
 impl Trap {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::InvalidShift => "invalid_shift",
             Self::InvalidLength => "invalid_length",
             Self::IndexOutOfBounds => "index_out_of_bounds",
             Self::ArithmeticOverflow => "arithmetic_overflow",
@@ -208,7 +220,8 @@ fn evaluate_inner(
     let mut evaluator = Evaluator {
         program,
         fuel,
-        products: program.has_flat_products(),
+        products: program.has_flat_products()
+            || program.effective_revision() == crate::types::IrRevision::WordsV4,
         memory: program.has_memory(),
         buffers: Vec::new(),
         live_cells: 0,
@@ -574,6 +587,7 @@ impl Evaluator<'_> {
                 let mut values = [ScalarValue::Unit; MAX_TUPLE_FIELDS];
                 for (i, field) in fields.iter().enumerate() {
                     values[i] = match self.expr(field, env, resources, function_id, next)? {
+                        Value::Word(w) => ScalarValue::Word(w),
                         Value::Integer(n) => ScalarValue::Integer(n),
                         Value::Boolean(b) => ScalarValue::Boolean(b),
                         Value::Unit => ScalarValue::Unit,
@@ -592,6 +606,15 @@ impl Evaluator<'_> {
                     .get(*index)
                     .ok_or(EvalError::InvalidIr)?
                     .as_value()
+            }
+            ExprKind::Word(w) => Value::Word(*w),
+            ExprKind::Convert {
+                mode,
+                target,
+                operand,
+            } => {
+                let value = self.expr(operand, env, resources, function_id, next)?;
+                convert(*mode, *target, value, expr.span)?
             }
             ExprKind::Integer(n) => Value::Integer(*n),
             ExprKind::Boolean(b) => Value::Boolean(*b),
@@ -661,6 +684,10 @@ impl Evaluator<'_> {
             ExprKind::Unary { op, operand } => {
                 let value = self.expr(operand, env, resources, function_id, next)?;
                 match (op, value) {
+                    (UnaryOp::BitNot, Value::Word(w)) => Value::Word(
+                        WordValue::new(w.width(), w.width().max() ^ w.value())
+                            .ok_or(EvalError::InvalidIr)?,
+                    ),
                     (UnaryOp::Not, Value::Boolean(b)) => Value::Boolean(!b),
                     (UnaryOp::Neg, Value::Integer(n)) => {
                         Value::Integer(n.checked_neg().ok_or(EvalError::Trap {
@@ -705,6 +732,44 @@ impl Evaluator<'_> {
     }
 }
 
+fn convert(mode: ConvertMode, target: Type, value: Value, span: Span) -> Result<Value, EvalError> {
+    if mode.result(value.ty(), target).is_none() {
+        return Err(EvalError::InvalidIr);
+    }
+    let overflow = || EvalError::Trap {
+        kind: Trap::ArithmeticOverflow,
+        span,
+    };
+    match (target, value) {
+        (Type::I64, Value::Integer(n)) => Ok(Value::Integer(n)),
+        (Type::I64, Value::Word(w)) => Ok(Value::Integer(
+            i64::try_from(w.value()).map_err(|_| overflow())?,
+        )),
+        (Type::Word(width), value) => {
+            let value = match value {
+                Value::Integer(n) => {
+                    if mode == ConvertMode::Truncate {
+                        n as u64
+                    } else {
+                        u64::try_from(n).map_err(|_| overflow())?
+                    }
+                }
+                Value::Word(w) => w.value(),
+                _ => return Err(EvalError::InvalidIr),
+            };
+            let value = if mode == ConvertMode::Truncate {
+                value & width.max()
+            } else {
+                value
+            };
+            Ok(Value::Word(
+                WordValue::new(width, value).ok_or_else(overflow)?,
+            ))
+        }
+        _ => Err(EvalError::InvalidIr),
+    }
+}
+
 fn binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Value, EvalError> {
     let overflow = || EvalError::Trap {
         kind: Trap::ArithmeticOverflow,
@@ -715,6 +780,59 @@ fn binary(op: BinaryOp, left: Value, right: Value, span: Span) -> Result<Value, 
         (BinaryOp::Ne, a, b) if a.same_type(&b) => Ok(Value::Boolean(a != b)),
         (BinaryOp::And, Value::Boolean(a), Value::Boolean(b)) => Ok(Value::Boolean(a && b)),
         (BinaryOp::Or, Value::Boolean(a), Value::Boolean(b)) => Ok(Value::Boolean(a || b)),
+        (op @ (BinaryOp::Shl | BinaryOp::Shr), Value::Word(a), Value::Integer(n)) => {
+            if n < 0 || n >= i64::from(a.width().bits()) {
+                return Err(EvalError::Trap {
+                    kind: Trap::InvalidShift,
+                    span,
+                });
+            }
+            let value = if op == BinaryOp::Shl {
+                a.value().wrapping_shl(n as u32) & a.width().max()
+            } else {
+                a.value() >> n
+            };
+            Ok(Value::Word(
+                WordValue::new(a.width(), value).ok_or(EvalError::InvalidIr)?,
+            ))
+        }
+        (op, Value::Word(a), Value::Word(b)) if a.width() == b.width() => {
+            let (x, y, max) = (a.value(), b.value(), a.width().max());
+            let value = match op {
+                BinaryOp::Add => x
+                    .checked_add(y)
+                    .filter(|n| *n <= max)
+                    .ok_or_else(overflow)?,
+                BinaryOp::Sub => x.checked_sub(y).ok_or_else(overflow)?,
+                BinaryOp::Mul => x
+                    .checked_mul(y)
+                    .filter(|n| *n <= max)
+                    .ok_or_else(overflow)?,
+                BinaryOp::WrapAdd => x.wrapping_add(y) & max,
+                BinaryOp::WrapSub => x.wrapping_sub(y) & max,
+                BinaryOp::WrapMul => x.wrapping_mul(y) & max,
+                BinaryOp::BitAnd => x & y,
+                BinaryOp::BitXor => x ^ y,
+                BinaryOp::BitOr => x | y,
+                BinaryOp::Div | BinaryOp::Rem => {
+                    if y == 0 {
+                        return Err(EvalError::Trap {
+                            kind: Trap::DivisionByZero,
+                            span,
+                        });
+                    }
+                    if op == BinaryOp::Div { x / y } else { x % y }
+                }
+                BinaryOp::Lt => return Ok(Value::Boolean(x < y)),
+                BinaryOp::Le => return Ok(Value::Boolean(x <= y)),
+                BinaryOp::Gt => return Ok(Value::Boolean(x > y)),
+                BinaryOp::Ge => return Ok(Value::Boolean(x >= y)),
+                _ => return Err(EvalError::InvalidIr),
+            };
+            Ok(Value::Word(
+                WordValue::new(a.width(), value).ok_or(EvalError::InvalidIr)?,
+            ))
+        }
         (op, Value::Integer(a), Value::Integer(b)) => {
             let value = match op {
                 BinaryOp::Add => Value::Integer(a.checked_add(b).ok_or_else(overflow)?),
@@ -821,6 +939,7 @@ mod product_budget_tests {
             for field in 0..width {
                 let mut changed = fields.clone();
                 changed[field] = match changed[field] {
+                    ScalarValue::Word(_) => ScalarValue::Boolean(false),
                     ScalarValue::Integer(_) => ScalarValue::Boolean(false),
                     ScalarValue::Boolean(_) => ScalarValue::Unit,
                     ScalarValue::Unit => ScalarValue::Integer(0),

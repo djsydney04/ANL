@@ -23,3 +23,7 @@ memory-evidence = []
 [[example]]
 name = "memory_evidence"
 required-features = ["memory-evidence"]
+
+[[example]]
+name = "mir_validation"
+required-features = ["memory-evidence"]

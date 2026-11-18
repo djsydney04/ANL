@@ -1,10 +1,11 @@
-(* ANL scalar, flat-tuple and scoped-buffer grammar with erased contracts and local state.
+(* ANL scalar, unsigned-word, flat-tuple and scoped-buffer grammar with erased contracts and local state.
    Complete language grammar is intentionally not claimed here.
    Semantics and static restrictions: docs/architecture/type-system.md.
    Module declarations, public functions and qualified paths: spec/modules.md.
    Contract types, scope and verification: spec/verification.md.
    Mutable locals, assignment, and while: spec/control-flow.md.
    Flat tuple syntax, width, types, and evaluation: spec/flat-products.md.
+   Unsigned words, explicit conversions and precedence: spec/words.md.
    Owned buffers and call-scoped views: spec/owned-buffers.md.
    Erased loop annotations and invariant verification: spec/loop-verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
@@ -24,7 +25,9 @@ view_parameter  = view_mode, identifier, ":", "i64", "[", "]" ;
 view_mode       = "read" | "edit" ;
 parameter       = identifier, ":", type ;
 type            = scalar_type | tuple_type ;
-scalar_type     = "i64" | "bool" | "unit" ;
+scalar_type     = "i64" | "bool" | "unit" | word_type ;
+word_type       = "u8" | "u16" | "u32" | "u64" ;
+numeric_type    = "i64" | word_type ;
 tuple_type      = "(", scalar_type, ",",
                   [ scalar_type, { ",", scalar_type }, [ "," ] ], ")" ;
 
@@ -42,14 +45,21 @@ expression      = disjunction ;
 disjunction     = conjunction, { "||", conjunction } ;
 conjunction     = equality, { "&&", equality } ;
 equality        = comparison, [ ( "==" | "!=" ), comparison ] ;
-comparison      = sum, [ ( "<" | "<=" | ">" | ">=" ), sum ] ;
-sum             = product, { ( "+" | "-" ), product } ;
-product         = unary, { ( "*" | "/" | "%" ), unary } ;
-unary           = ( "!" | "-" ), unary | postfix ;
+comparison      = bit_or, [ ( "<" | "<=" | ">" | ">=" ), bit_or ] ;
+bit_or          = bit_xor, { "|", bit_xor } ;
+bit_xor         = bit_and, { "^", bit_and } ;
+bit_and         = shift, { "&", shift } ;
+shift           = sum, { ( "<<" | ">>" ), sum } ;
+sum             = product, { ( "+" | "-" | "+%" | "-%" ), product } ;
+product         = unary, { ( "*" | "/" | "%" | "*%" ), unary } ;
+unary           = ( "!" | "-" | "~" ), unary | postfix ;
 postfix         = primary, { ".", projection_index
                           | ".", "length" | "[", expression, "]" } ;
 projection_index = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" ;
-primary         = integer
+primary         = word_literal
+                | checked_cast
+                | truncation
+                | integer
                 | "true"
                 | "false"
                 | "(", ")"
@@ -59,6 +69,9 @@ primary         = integer
                 | "if", expression, block, "else", block
                 | heap_expression
                 | block ;
+checked_cast    = "cast", numeric_type, "(", expression, ")" ;
+truncation      = "truncate", word_type, "(", expression, ")" ;
+word_literal    = digit, { digit }, word_type ; (* one contiguous token *)
 heap_expression = "heap", identifier, ":", "i64", "[", expression, "]",
                   "=", expression, block, "else", block ;
 tuple_expression = "(", expression, ",",
@@ -91,6 +104,9 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
 (* Source is valid UTF-8. Identifiers are ASCII in M1. Non-ASCII text is
    accepted in comments only. Unknown characters produce lexical errors.
    Keywords: fn let if else true false i64 bool unit.
+   Word type names are identifiers outside type positions. cast/truncate are
+   contextual only before the complete destination-and-opening-parenthesis
+   prefix; otherwise their ordinary names/calls remain valid.
    requires and ensures are contextual only after a function result type.
    mut is contextual after let only when followed by an identifier.
    while is contextual at a statement boundary only when its matching
@@ -105,6 +121,9 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    Grouped, qualified and arbitrary expression bases are rejected. Only tuple
    projection accepts a general expression base. A buffer write is a statement.
    Resource bindings and buffer operations are excluded from specifications.
+   Words, conversions and new operators are excluded from specification syntax;
+   referencing a word-containing binding is rejected, including a projection
+   of a mixed tuple. Unreferenced word bindings do not forbid ordinary clauses.
    Heap length and initializer have i64 type; both branch result types agree.
    Only the success block sees the new owner; other operands use the old scope.
    Existing while calls and identifiers remain valid. A while statement has
@@ -118,7 +137,7 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    limit, resolve names at the loop head, and must have bool type. Ordinary source
    checking does not prove their truth or definedness; execution erases them. Verification
    requires an invariant on every loaded loop and rejects recursive call graphs.
-   Repeated sum/product/boolean operators associate left.
+   Repeated sum/product/shift/bitwise/boolean operators associate left.
    Unary operators associate right. Repeated comparisons at the comparison
    level and repeated equalities at the equality level require parentheses:
    1 < 2 < 3 and 1 == 2 == false are invalid. Mixed precedence follows the
@@ -127,10 +146,12 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    Unit () and grouping (e) are unchanged; (e,) is a singleton tuple.
    Tuple types require a comma; (i64) and () are not type spellings.
    Projection consumes a whole decimal token and requires one digit 0..7
-   below the tuple arity; .01 is invalid. Projection binds before unary operators.
+   below the tuple arity; .01 and .0u8 are invalid. Projection binds before unary operators.
    Function arguments and parameters do not permit trailing commas.
-   Block comments, escapes, integer suffixes, radix prefixes, and
-   underscore-separated integer literals are unsupported.
+   Word suffixes are exactly u8/u16/u32/u64; other suffixes, radix prefixes,
+   digit separators, block comments and escapes are unsupported. Word literals
+   must fit their width; no implicit coercion or word unary minus exists.
+   Shift counts are i64; all other word binary operands have equal widths.
    Integer range and the special negative-minimum form are checked before
    constructing a typed literal. Unary minus is not part of the token.
    A final expression has no semicolon; an empty block evaluates to unit.

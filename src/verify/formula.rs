@@ -478,6 +478,7 @@ fn definition_bytes(id: usize, sort: &str, body_bytes: usize) -> usize {
 }
 pub(super) fn sort(ty: Type) -> Result<&'static str, Failure> {
     match ty {
+        Type::Word(_) => Err(Failure::Unsupported("word sorts are unsupported".into())),
         Type::Bool => Ok("Bool"),
         Type::I64 | Type::Unit => Ok("Int"),
         Type::Tuple(_) => Err(Failure::Error("product reached scalar SMT sort".into())),
@@ -607,6 +608,9 @@ impl<'a> Generator<'a> {
         self.visit(depth)?;
         let safe = self.arena.truth()?;
         Ok(match &expr.kind {
+            ExprKind::Word(_) | ExprKind::Convert { .. } => {
+                return Err(Failure::Unsupported("words are unsupported".into()));
+            }
             ExprKind::Memory(_) => {
                 return Err(Failure::Unsupported(
                     "buffers and views are not supported".into(),
@@ -721,6 +725,11 @@ impl<'a> Generator<'a> {
         machine: bool,
     ) -> Result<Symbolic, Failure> {
         let value = match op {
+            UnaryOp::BitNot => {
+                return Err(Failure::Unsupported(
+                    "word operators are unsupported".into(),
+                ));
+            }
             UnaryOp::Not => self.arena.not(a.value)?,
             UnaryOp::Neg => self
                 .arena
@@ -758,6 +767,11 @@ impl<'a> Generator<'a> {
             BinaryOp::Ne => format!("(not (= n{x} n{y}))"),
             BinaryOp::And => format!("(and n{x} n{y})"),
             BinaryOp::Or => format!("(or n{x} n{y})"),
+            _ => {
+                return Err(Failure::Unsupported(
+                    "word operators are unsupported".into(),
+                ));
+            }
         };
         let value = self.arena.app(sort(ty)?, body, &[x, y])?;
         let mut conditions = vec![a.safe];
@@ -793,6 +807,7 @@ pub(super) fn supported(program: &Program) -> Result<(), Failure> {
         let mut work = vec![&function.body];
         while let Some(expr) = work.pop() {
             let construct = match &expr.kind {
+                ExprKind::Word(_) | ExprKind::Convert { .. } => Some("words"),
                 ExprKind::Memory(_) => Some("buffers and views"),
                 ExprKind::Tuple(_) | ExprKind::Project { .. } => Some("flat products"),
                 ExprKind::While { .. } => Some("while"),

@@ -72,6 +72,9 @@ void anl_memory_value(int64_t value) {
 }
 void anl_memory_trap(const char *tag) {
     unsigned trap = !strcmp(tag, "arithmetic_overflow") ? 1U : !strcmp(tag, "division_by_zero") ? 2U : !strcmp(tag, "invalid_length") ? 3U : !strcmp(tag, "index_out_of_bounds") ? 4U : 0U;
+#ifdef ANL_WORDS_EVIDENCE
+    if (!strcmp(tag, "invalid_shift")) trap = 5U;
+#endif
     char text[128];
     int n = snprintf(text, sizeof(text), "{\"kind\":\"trap\",\"trap\":\"%s\"}", tag);
     if (trap == 0 || n < 0 || (size_t)n >= sizeof(text)) anl_evidence_fail("invalid trap completion");

@@ -118,6 +118,21 @@ jobs:
           lean --version
           test "$(lean --short-version)" = '4.36.0'
           command -v leanchecker
+      - name: Pin source inputs for word validation
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, json, os, pathlib, subprocess
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          names=subprocess.check_output(['git','ls-files','-z'],cwd=root).split(b'\0')
+          rows=[]
+          for name in names:
+              if not name: continue
+              p=root/os.fsdecode(name)
+              if p.is_file(): rows.append(dict(path=os.fsdecode(name),bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()))
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'anl-memory-ci/word-sources-before.json'
+          out.write_text(json.dumps(rows,sort_keys=True,indent=2)+'\n')
+          PYTHON
       - name: Check proofs, axioms, and kernel replay
         shell: bash
         run: |
@@ -142,7 +157,7 @@ jobs:
           cargo +1.99.1 build --locked --release --bin anl --target-dir .tools/memory-default \
             2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/default-build.log"
           cargo +1.99.1 build --locked --release --features memory-evidence \
-            --bin anl --example memory_evidence --target-dir .tools/memory-evidence \
+            --bin anl --example memory_evidence --example mir_validation --target-dir .tools/memory-evidence \
             2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/evidence-build.log"
       - name: Validate memory corpus and boundaries
         shell: bash
@@ -161,6 +176,50 @@ jobs:
             --cc "$(command -v cc)" \
             --out "$RUNNER_TEMP/anl-memory-ci/corpus" \
             2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/corpus.log"
+      - name: Bind word validation tools and build captures
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, json, os, pathlib, shutil
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'anl-memory-ci'
+          def identity(path):
+              p=pathlib.Path(path).resolve(strict=True)
+              return dict(path=str(p),bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest())
+          sources=json.loads((out/'word-sources-before.json').read_text())
+          for row in sources:
+              actual=identity(root/row['path'])
+              assert actual['bytes']==row['bytes'] and actual['sha256']==row['sha256'], 'source changed during builds: '+row['path']
+          manifest=out/'word-build-bindings.json'
+          manifest.write_text(json.dumps(dict(sources=sources,logs=[identity(out/p) for p in ['formal-check.log','default-build.log','evidence-build.log']],
+              rust_default=['cargo','+1.99.1','build','--locked','--release','--bin','anl','--target-dir','.tools/memory-default'],
+              rust_evidence=['cargo','+1.99.1','build','--locked','--release','--features','memory-evidence','--bin','anl','--example','memory_evidence','--example','mir_validation','--target-dir','.tools/memory-evidence'],
+              formal=['formal/check.sh'],claim='Source, command recipes, completed build logs and binary identities; no stronger claim than the corresponding build/proof steps.'),sort_keys=True,indent=2)+'\n')
+          provenance=dict(path=str(manifest),sha256=identity(manifest)['sha256'])
+          roles={'rust':('.tools/memory-default/release/anl','default'),
+              'evidence':('.tools/memory-evidence/release/anl','memory-evidence'),
+              'exporter':('.tools/memory-evidence/release/examples/memory_evidence','memory-evidence'),
+              'rust_mir':('.tools/memory-evidence/release/examples/mir_validation','memory-evidence'),
+              'pair':('formal/.lake/build/bin/anl_words_pair_checker','formal'),
+              'raw':('formal/.lake/build/bin/anl_words_raw_probe','formal'),
+              'reference':('formal/.lake/build/bin/anl_words_reference_runner','formal'),
+              'old_scalar':('formal/.lake/build/bin/anl_formal','formal'),
+              'old_products':('formal/.lake/build/bin/anl_formal_v2','formal'),
+              'old_raw':('formal/.lake/build/bin/anl_memory_raw_probe','formal')}
+          tools={k:dict(**identity(root/p),configuration=c,source_manifest=provenance) for k,(p,c) in roles.items()}
+          tools['cc']=identity(shutil.which('cc'))
+          (out/'word-tools.json').write_text(json.dumps(dict(schema='anl-words-validation-tools-v1',tools=tools),sort_keys=True,indent=2)+'\n')
+          PYTHON
+      - name: Validate word corpus and boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 validation/words/run.py audit \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/word-audit.log"
+          python3 validation/words/run.py gate \
+            --tools "$RUNNER_TEMP/anl-memory-ci/word-tools.json" \
+            --out "$RUNNER_TEMP/anl-memory-ci/words" \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/word-gate.log"
       - name: Audit recorded memory performance evidence
         shell: bash
         run: |

@@ -28,6 +28,22 @@ impl Serialize for Expr {
         let mut map = serializer.serialize_map(None)?;
         map.serialize_entry("ty", &self.ty)?;
         match &self.kind {
+            ExprKind::Word(w) => {
+                map.serialize_entry("tag", "word")?;
+                map.serialize_entry("width", &w.width().bits())?;
+                map.serialize_entry("value", &w.value().to_string())?;
+            }
+            ExprKind::Convert {
+                mode,
+                target,
+                operand,
+            } => {
+                map.serialize_entry("tag", "convert")?;
+                map.serialize_entry("mode", mode.as_str())?;
+                map.serialize_entry("target", target)?;
+                map.serialize_entry("operand", operand)?;
+            }
+
             ExprKind::Memory(memory) => match memory.as_ref() {
                 MemoryExpr::Heap {
                     site,
@@ -182,7 +198,11 @@ impl Serialize for Functions<'_> {
 struct ProgramWire<'a>(&'a Program, usize);
 impl Serialize for ProgramWire<'_> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let memory = self.0.has_memory();
+        let revision = self.0.effective_revision();
+        let memory = matches!(
+            revision,
+            crate::types::IrRevision::MemoryV3 | crate::types::IrRevision::WordsV4
+        );
         let mut map = serializer.serialize_map(Some(if memory { 5 } else { 4 }))?;
         if memory {
             map.serialize_entry(
@@ -194,15 +214,8 @@ impl Serialize for ProgramWire<'_> {
                     .json(),
             )?;
         }
-        map.serialize_entry("schema", if memory { "anl-core-v3" } else { "apl-core-v2" })?;
-        map.serialize_entry(
-            "semantic_revision",
-            if memory {
-                crate::memory::SEMANTIC_REVISION
-            } else {
-                super::FLAT_PRODUCTS_SEMANTIC_REVISION
-            },
-        )?;
+        map.serialize_entry("schema", revision.core_schema())?;
+        map.serialize_entry("semantic_revision", revision.semantic_revision())?;
         map.serialize_entry("entry", &self.1)?;
         map.serialize_entry("functions", &Functions(&self.0.functions, memory))?;
         map.end()

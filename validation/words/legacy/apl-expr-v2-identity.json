@@ -1,0 +1,29 @@
+{
+  "expression": {
+    "condition": {
+      "tag": "boolean",
+      "ty": "bool",
+      "value": false
+    },
+    "else": {
+      "tag": "integer",
+      "ty": "i64",
+      "value": "42"
+    },
+    "tag": "if",
+    "then": {
+      "mode": "checked",
+      "operand": {
+        "tag": "integer",
+        "ty": "i64",
+        "value": "42"
+      },
+      "tag": "convert",
+      "target": "i64",
+      "ty": "i64"
+    },
+    "ty": "i64"
+  },
+  "schema": "apl-expr-v2",
+  "semantic_revision": "flat-products-2026-11-17"
+}

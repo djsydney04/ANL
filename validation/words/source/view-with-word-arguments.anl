@@ -1,0 +1,9 @@
+fn put(edit b:i64[], x:u16)->u16 { b[0] = cast i64(x); x +% 1u16 }
+fn get(read b:i64[], x:u16)->(u16,i64) { (x, b[0]) }
+fn main()->i64 {
+  heap b:i64[1] = 0 {
+    let x = put(edit b, 65535u16);
+    let p = get(read b, x);
+    cast i64(p.0) + p.1
+  } else { -1 }
+}

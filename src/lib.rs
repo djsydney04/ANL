@@ -14,6 +14,7 @@ mod resolve;
 mod syntax;
 pub mod types;
 pub mod verify;
+pub mod word;
 
 pub const MAX_SOURCE_BYTES: usize = 1_048_576;
 pub const MAX_PROGRAM_BYTES: usize = 8_388_608;

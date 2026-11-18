@@ -190,6 +190,28 @@ reclamation and native code remain tested or trusted boundaries, not consequence
 of the runtime theorems. Neither adapter correctness nor compilation of the Lean
 executable is proved by the inventory.
 
+## Cumulative unsigned-word model
+
+`ANL.Word` proves finite-width primitive range and operation behavior; `ANL.Words`
+lifts the ordinary domain through raw Core/MIR syntax, independent typing,
+state machines, resource accounting and canonical lowering. Invalid raw literals,
+annotations and signatures remain expressible and independently rejected.
+Bounded runtime values do not substitute for a raw-input acceptance theorem.
+
+The accepted model has finite Core/MIR correspondence in both completed
+directions under the same allocation responses, exact final world/capability
+state, invalid-prefix exclusion and normal cleanup. Budgets are independently
+existential across Core/MIR. The legacy injection separately preserves old
+machine and tool runs with the same corresponding budgets and exact meters;
+this does not identify Core and MIR transition counts.
+
+The new strict reader/reference and compiled CLI expose actual decoded terms and
+finite model execution. The [inventory](../../formal/PROOFS.md#unsigned-word-model)
+distinguishes mathematical acceptance from the byte/JSON/IO and compiled-tool
+trust boundaries. Source parsing, Rust semantics, bytes/JSON/IO, Lean
+compilation/runtime and C/native behavior are not proved by the model. No word
+SMT support or whole-compiler proof follows.
+
 ## Mechanization boundaries and proof obligations
 
 Lean 4 defines untyped core syntax, the typing relation, values, transitions, and an executable evaluator. A separate typing relation prevents a proof from assuming the production type checker has already established the property at issue. The representation may use de Bruijn indices for local variables, with a documented context order and capture-avoiding substitution.

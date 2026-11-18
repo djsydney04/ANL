@@ -2,12 +2,12 @@
 
 ANL provides a Rust command-line checker, reference interpreter, and native
 compiler for a small, statically typed language. It supports checked `i64`
-arithmetic, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
+arithmetic, unsigned words `u8`/`u16`/`u32`/`u64`, booleans, unit, flat tuples, immutable and initialized mutable bindings, assignment,
 while loops, lexical blocks, conditionals, recursive functions, file modules, and
 scoped fixed-length `i64` buffers with read/edit call views.
 An optional verifier checks arithmetic safety and contracts for scalar and flat-tuple functions
-with mutable locals, annotated while loops and acyclic calls. Heap-bearing
-verification is unsupported. General collections and ownership transfers,
+with mutable locals, annotated while loops and acyclic calls. Word-bearing and
+heap-bearing verification are unsupported. General collections and ownership transfers,
 source-level I/O, concurrency, and recursive verification remain in
 the [roadmap](roadmap.md).
 
@@ -62,6 +62,22 @@ path; `run` builds and runs a temporary executable. `CC` may select a compiler
 executable. See [native compilation](native-compilation.md) for output paths,
 traps, tool failures, and emitted C. Native execution uses the host stack without
 the interpreter's artificial fuel and nesting budgets.
+
+## Use an unsigned word
+
+```sh
+./target/release/anl check examples/words/packed-fields.anl
+./target/release/anl eval examples/words/packed-fields.anl
+./target/release/anl run examples/words/packed-fields.anl
+```
+
+The example prints `42`. Words use explicit suffixes such as `42u8` and exact
+widths. `+` checks overflow; `+%` wraps. Shift counts are `i64` and must be below
+the word width. `cast i64(value)` checks a numeric conversion; `truncate u8(value)`
+keeps the low eight bits, including for negative `i64` values. No conversion is
+implicit. The [book chapter](book/words.md) also combines words with a buffer
+view. Buffers still store `i64`; words do not add byte storage or addresses.
+`verify` returns unsupported with exit 7 for these programs before external tools.
 
 ## Own a scoped buffer
 
@@ -225,12 +241,12 @@ Save it as `mutable-increment.anl` and run
 `./target/release/anl verify mutable-increment.anl`. It returns `verified` with
 `trust=smt-trusted`. Verification accepts this library without a `main` function.
 
-`requires` and `ensures` clauses use mathematical integers. Runtime expressions
-still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
+`requires` and `ensures` clauses use mathematical integers. Runtime expressions in this
+example still use checked `i64`. Ordinary `check`, `eval`, `build`, and `run` type-check and
 erase clauses without proving or dynamically enforcing them; core export
 also erases them. Verification reports bind source, tools, and queries to their
 exact hashes. Refuting models are candidate inputs labeled `replayed: false`,
-not confirmed executions. Pure programs retain `apl-verify-v0` reports. Programs
+not confirmed executions. Word-free immutable scalar programs retain `apl-verify-v0` reports. Programs
 containing scalar local-state constructs use `apl-verify-v1` with verification
 revision `apl-state-verify-v1` or `apl-loop-verify-v1`. A tuple in executable
 code or any clause selects `anl-verify-v3` with revision
@@ -252,6 +268,8 @@ the scalar examples; the tuple commands above exercise the new examples.
 | [contracts/increment.anl](../examples/contracts/increment.anl) | Preconditions and a result postcondition | 42 |
 | [control-flow/sum.anl](../examples/control-flow/sum.anl) | Mutable accumulation in a while loop | 5050 |
 | [control-flow/gcd.anl](../examples/control-flow/gcd.anl) | Iterative Euclid's algorithm | 21 |
+| [words/packed-fields.anl](../examples/words/packed-fields.anl) | Bit masks, shifts, word tuples and explicit conversion | 42 |
+| [words/buffer-counter.anl](../examples/words/buffer-counter.anl) | Wrapping arithmetic through an i64 buffer view | 42 on allocation success; -1 on refusal |
 | [tuples/count-sum.anl](../examples/tuples/count-sum.anl) | Multiple results and whole-tuple loop updates | 55 |
 | [tuples/snapshots.anl](../examples/tuples/snapshots.anl) | Saved values and ordered argument capture | 42 |
 | [contracts/tuple-snapshots.anl](../examples/contracts/tuple-snapshots.anl) | Contracts over captured tuple arguments and results | 42 |
@@ -260,7 +278,8 @@ the scalar examples; the tuple commands above exercise the new examples.
 All signed operations are checked. Division truncates toward zero, so `-7 / 3`
 is `-2` and `-7 % 3` is `-1`. Overflow and division by zero are explicit traps.
 The minimum value is written `-9223372036854775808`; the positive magnitude
-`9223372036854775808` is outside the language's integer range.
+`9223372036854775808` is outside the unsuffixed `i64` range. A suffixed
+`9223372036854775808u64` is a valid unsigned word.
 
 ## Diagnostics and limits
 
@@ -268,7 +287,7 @@ The minimum value is written `-9223372036854775808`; the positive magnitude
 | ---: | --- |
 | 0 | Successful checking, compilation, or execution |
 | 1 | Invalid source or rejected core artifact |
-| 2 | `arithmetic_overflow` or `division_by_zero` |
+| 2 | A semantic trap: `arithmetic_overflow`, `division_by_zero`, `invalid_shift`, `invalid_length`, or `index_out_of_bounds` |
 | 3 | A tool resource limit was reached |
 | 4 | Invalid CLI invocation, missing file, or infrastructure error |
 | 5 | Verification found a refuted property or unsatisfiable preconditions |
@@ -305,6 +324,10 @@ refunds cells and the descriptor, not fill fuel. Negative length skips the
 initializer; other lengths evaluate it before target-size rejection. See the
 [complete resource policy](../spec/owned-buffers.md#reference-tool-resource-policy).
 
+V4 uses this cumulative policy even without memory forms. Word width and payload
+size add no fuel; a conversion consumes an entry plus its operand, including an
+identity conversion. See the [word resource rules](../spec/words.md#resource-policy-and-input-limits).
+
 The separate memory reference runner models those expression/fill charges and
 has an additional administrative transition budget. Its exhausted budget retains
 an incomplete prefix. The [protocol](../spec/memory-evidence.md#formal-reference-runner)
@@ -318,7 +341,8 @@ cover tuples. Successful decoding by the Lean v2 reader is proved to yield a typ
 model input. JSON-text interpretation, compiled execution and agreement with Rust
 remain separate tested boundaries.
 
-Each source file and JSON input is limited to 1 MiB, source tokens per file to
+Each source file and Core JSON input is limited to 1 MiB; word MIR/trace inputs
+have separate 8 MiB bounds. Source tokens per file are limited to
 100000, and core expression depth to 128. Parsing has a separate 128-level
 recursion bound. A module graph is limited to 128 files, 32 active files in an
 import chain, and 8 MiB of total source. Reaching a resource limit is neither a
@@ -351,13 +375,17 @@ checks are development evidence, not installation or release qualification.
 
 `anl dump-core FILE` exports checked source into the versioned JSON format, and
 `anl eval-core FILE [--fuel N]` independently validates a core artifact and emits
-a JSON outcome. Programs using only immutable constructors still export the
+a JSON outcome. Word-free programs using only original immutable constructors still export the
 unchanged `apl-core-v0` revision `m1-2026-11-16`. In scalar programs, any local-state constructor,
 including one in an unused function, selects `apl-core-v1` revision
 `local-state-2026-11-17`. Tuple use anywhere instead selects `apl-core-v2`,
 revision `flat-products-2026-11-17`. Scalar-only v2 inputs normalize to v0/v1
 behavior. Any loaded memory constructor or view signature instead selects
 `anl-core-v3`, revision `anl-owned-buffers-v1`, with an explicit allocation profile.
+Words or new operator/conversion nodes anywhere in the loaded graph instead
+select `anl-core-v4`, revision `anl-words-v1`, even an identity `cast i64(1)`.
+V4 retains its mandatory allocation profile without requiring memory operations;
+explicit v4 imports preserve that revision. See the [word Core rules](../spec/words.md#core-v4-and-word-mir).
 Each importer checks its own schema and revision. The [buffer Core rules](../spec/owned-buffers.md#core-v3-interchange)
 include all-function validation, independent resource indices and canonical sites.
 The Rust JSON parser admits at most 127 nested containers; the Lean reader permits

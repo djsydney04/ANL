@@ -1,0 +1,60 @@
+{
+  "allocation_profile": {
+    "abi": "anl-buffer-c11-v1",
+    "char_bits": 8,
+    "i64_align": 8,
+    "i64_bytes": 8,
+    "ptrdiff_bits": 64,
+    "size_bits": 64
+  },
+  "entry": 0,
+  "functions": [
+    {
+      "body": {
+        "instructions": [
+          {
+            "destination": {
+              "id": 0,
+              "ty": "i64"
+            },
+            "operation": {
+              "tag": "integer",
+              "value": "42"
+            }
+          },
+          {
+            "destination": {
+              "id": 1,
+              "ty": "i64"
+            },
+            "operation": {
+              "left": {
+                "id": 0,
+                "ty": "i64"
+              },
+              "op": "shl",
+              "right": {
+                "id": 0,
+                "ty": "i64"
+              },
+              "tag": "binary"
+            }
+          }
+        ],
+        "yield": {
+          "id": 0,
+          "ty": "i64"
+        }
+      },
+      "id": 0,
+      "params": [],
+      "resource_count": 0,
+      "result": "i64",
+      "slot_count": 0,
+      "temp_count": 2,
+      "view": null
+    }
+  ],
+  "schema": "anl-memory-mir-v1",
+  "semantic_revision": "anl-owned-buffers-v1"
+}

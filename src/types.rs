@@ -1,8 +1,10 @@
 use crate::diagnostic::{Diagnostic, Sources, Span};
+use crate::word::{ConvertMode, WordValue, WordWidth};
 use std::{collections::BTreeMap, fmt};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
+    Word(WordWidth),
     I64,
     Bool,
     Unit,
@@ -12,6 +14,7 @@ pub const MAX_TUPLE_FIELDS: usize = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ScalarType {
+    Word(WordWidth),
     I64,
     Bool,
     Unit,
@@ -19,6 +22,7 @@ pub enum ScalarType {
 impl ScalarType {
     pub fn as_type(self) -> Type {
         match self {
+            Self::Word(w) => Type::Word(w),
             Self::I64 => Type::I64,
             Self::Bool => Type::Bool,
             Self::Unit => Type::Unit,
@@ -67,6 +71,7 @@ impl TupleShape {
 impl Type {
     pub fn scalar(self) -> Option<ScalarType> {
         match self {
+            Self::Word(w) => Some(ScalarType::Word(w)),
             Self::I64 => Some(ScalarType::I64),
             Self::Bool => Some(ScalarType::Bool),
             Self::Unit => Some(ScalarType::Unit),
@@ -76,6 +81,7 @@ impl Type {
 
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Word(w) => w.as_str(),
             Self::I64 => "i64",
             Self::Bool => "bool",
             Self::Unit => "unit",
@@ -87,8 +93,26 @@ impl Type {
             "i64" => Some(Self::I64),
             "bool" => Some(Self::Bool),
             "unit" => Some(Self::Unit),
-            _ => None,
+            name => WordWidth::from_name(name).map(Self::Word),
         }
+    }
+    pub fn integer(self) -> bool {
+        matches!(self, Self::I64 | Self::Word(_))
+    }
+    pub fn contains_words(self) -> bool {
+        match self {
+            Self::Word(_) => true,
+            Self::Tuple(s) => s.fields().iter().any(|t| matches!(t, ScalarType::Word(_))),
+            _ => false,
+        }
+    }
+}
+impl ConvertMode {
+    pub fn result(self, input: Type, target: Type) -> Option<Type> {
+        (input.integer()
+            && target.integer()
+            && (self == Self::Checked || matches!(target, Type::Word(_))))
+        .then_some(target)
     }
 }
 impl fmt::Display for Type {
@@ -113,26 +137,48 @@ impl fmt::Display for Type {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnaryOp {
+    BitNot,
     Neg,
     Not,
 }
 impl UnaryOp {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::BitNot => "bit_not",
             Self::Neg => "neg",
             Self::Not => "not",
         }
     }
-    pub fn input(self) -> Type {
+    pub fn is_word(self) -> bool {
+        self == Self::BitNot
+    }
+    pub fn result(self, input: Type) -> Option<Type> {
         match self {
-            Self::Neg => Type::I64,
-            Self::Not => Type::Bool,
+            Self::BitNot if matches!(input, Type::Word(_)) => Some(input),
+            Self::Neg if input == Type::I64 => Some(Type::I64),
+            Self::Not if input == Type::Bool => Some(Type::Bool),
+            _ => None,
+        }
+    }
+    pub fn legacy_input(self) -> Option<Type> {
+        match self {
+            Self::Neg => Some(Type::I64),
+            Self::Not => Some(Type::Bool),
+            Self::BitNot => None,
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryOp {
+    WrapAdd,
+    WrapSub,
+    WrapMul,
+    BitAnd,
+    BitXor,
+    BitOr,
+    Shl,
+    Shr,
     Add,
     Sub,
     Mul,
@@ -150,6 +196,14 @@ pub enum BinaryOp {
 impl BinaryOp {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::WrapAdd => "wrap_add",
+            Self::WrapSub => "wrap_sub",
+            Self::WrapMul => "wrap_mul",
+            Self::BitAnd => "bit_and",
+            Self::BitXor => "bit_xor",
+            Self::BitOr => "bit_or",
+            Self::Shl => "shl",
+            Self::Shr => "shr",
             Self::Add => "add",
             Self::Sub => "sub",
             Self::Mul => "mul",
@@ -167,6 +221,14 @@ impl BinaryOp {
     }
     pub fn from_name(name: &str) -> Option<Self> {
         [
+            Self::WrapAdd,
+            Self::WrapSub,
+            Self::WrapMul,
+            Self::BitAnd,
+            Self::BitXor,
+            Self::BitOr,
+            Self::Shl,
+            Self::Shr,
             Self::Add,
             Self::Sub,
             Self::Mul,
@@ -184,15 +246,41 @@ impl BinaryOp {
         .into_iter()
         .find(|op| op.as_str() == name)
     }
+    pub fn is_word(self) -> bool {
+        matches!(
+            self,
+            Self::WrapAdd
+                | Self::WrapSub
+                | Self::WrapMul
+                | Self::BitAnd
+                | Self::BitXor
+                | Self::BitOr
+                | Self::Shl
+                | Self::Shr
+        )
+    }
     pub fn result(self, left: Type, right: Type) -> Option<Type> {
+        if matches!(self, Self::Shl | Self::Shr) {
+            return (matches!(left, Type::Word(_)) && right == Type::I64).then_some(left);
+        }
         if left != right {
             return None;
         }
         match self {
-            Self::Add | Self::Sub | Self::Mul | Self::Div | Self::Rem if left == Type::I64 => {
-                Some(Type::I64)
+            Self::Add | Self::Sub | Self::Mul | Self::Div | Self::Rem if left.integer() => {
+                Some(left)
             }
-            Self::Lt | Self::Le | Self::Gt | Self::Ge if left == Type::I64 => Some(Type::Bool),
+            Self::WrapAdd
+            | Self::WrapSub
+            | Self::WrapMul
+            | Self::BitAnd
+            | Self::BitXor
+            | Self::BitOr
+                if matches!(left, Type::Word(_)) =>
+            {
+                Some(left)
+            }
+            Self::Lt | Self::Le | Self::Gt | Self::Ge if left.integer() => Some(Type::Bool),
             Self::Eq | Self::Ne => Some(Type::Bool),
             Self::And | Self::Or if left == Type::Bool => Some(Type::Bool),
             _ => None,
@@ -211,6 +299,12 @@ pub struct Expr {
 
 #[derive(Clone, Debug)]
 pub enum ExprKind {
+    Word(WordValue),
+    Convert {
+        mode: ConvertMode,
+        target: Type,
+        operand: Box<Expr>,
+    },
     Memory(Box<MemoryExpr>),
     Tuple(Vec<Expr>),
     Project {
@@ -364,13 +458,17 @@ pub(crate) enum SpecType {
 }
 
 impl SpecType {
-    pub(crate) fn from_type(ty: Type) -> Self {
-        match ty {
+    pub(crate) fn from_type(ty: Type) -> Option<Self> {
+        if ty.contains_words() {
+            return None;
+        }
+        Some(match ty {
+            Type::Word(_) => return None,
             Type::I64 => Self::Int,
             Type::Bool => Self::Bool,
             Type::Unit => Self::Unit,
             Type::Tuple(shape) => Self::Tuple(shape),
-        }
+        })
     }
 }
 
@@ -394,6 +492,7 @@ impl fmt::Display for SpecType {
                     f.write_str(",")?;
                 }
                 f.write_str(match field {
+                    ScalarType::Word(_) => "unsupported-word",
                     ScalarType::I64 => "int",
                     ScalarType::Bool => "bool",
                     ScalarType::Unit => "unit",
@@ -529,113 +628,135 @@ pub(crate) struct FunctionContract {
 /// ```
 #[derive(Clone, Debug)]
 pub struct Program {
+    pub(crate) retained_revision: Option<IrRevision>,
     pub(crate) allocation_profile: Option<crate::memory::AllocationProfile>,
     pub(crate) functions: Vec<Function>,
     pub(crate) sources: Sources,
     pub(crate) contracts: Option<Vec<FunctionContract>>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IrRevision {
+    ScalarV0,
+    StateV1,
+    ProductsV2,
+    MemoryV3,
+    WordsV4,
+}
+impl IrRevision {
+    pub fn semantic_revision(self) -> &'static str {
+        match self {
+            Self::ScalarV0 => crate::core::SEMANTIC_REVISION,
+            Self::StateV1 => crate::core::LOCAL_STATE_SEMANTIC_REVISION,
+            Self::ProductsV2 => crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION,
+            Self::MemoryV3 => crate::memory::SEMANTIC_REVISION,
+            Self::WordsV4 => "anl-words-v1",
+        }
+    }
+    pub fn core_schema(self) -> &'static str {
+        match self {
+            Self::ScalarV0 => "apl-core-v0",
+            Self::StateV1 => "apl-core-v1",
+            Self::ProductsV2 => "apl-core-v2",
+            Self::MemoryV3 => "anl-core-v3",
+            Self::WordsV4 => "anl-core-v4",
+        }
+    }
+}
+impl Expr {
+    fn any(&self, predicate: &impl Fn(&Expr) -> bool) -> bool {
+        if predicate(self) {
+            return true;
+        }
+        match &self.kind {
+            ExprKind::Memory(m) => m.children().into_iter().any(|e| e.any(predicate)),
+            ExprKind::Tuple(xs) | ExprKind::Call { arguments: xs, .. } => {
+                xs.iter().any(|e| e.any(predicate))
+            }
+            ExprKind::Project { value, .. }
+            | ExprKind::Assign { value, .. }
+            | ExprKind::Unary { operand: value, .. }
+            | ExprKind::Convert { operand: value, .. } => value.any(predicate),
+            ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
+                value.any(predicate) || body.any(predicate)
+            }
+            ExprKind::While { condition, body } => condition.any(predicate) || body.any(predicate),
+            ExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                condition.any(predicate) || then_branch.any(predicate) || else_branch.any(predicate)
+            }
+            ExprKind::Binary { left, right, .. } => left.any(predicate) || right.any(predicate),
+            _ => false,
+        }
+    }
+}
 impl Program {
     pub fn has_memory(&self) -> bool {
-        fn contains(e: &Expr) -> bool {
-            match &e.kind {
-                ExprKind::Memory(_) => true,
-                ExprKind::Tuple(xs) => xs.iter().any(contains),
-                ExprKind::Project { value, .. }
-                | ExprKind::Unary { operand: value, .. }
-                | ExprKind::Assign { value, .. } => contains(value),
-                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
-                    contains(value) || contains(body)
-                }
-                ExprKind::While { condition, body } => contains(condition) || contains(body),
-                ExprKind::If {
-                    condition,
-                    then_branch,
-                    else_branch,
-                } => contains(condition) || contains(then_branch) || contains(else_branch),
-                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
-                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
-                _ => false,
-            }
-        }
         self.functions
             .iter()
-            .any(|f| f.view.is_some() || contains(&f.body))
+            .any(|f| f.view.is_some() || f.body.any(&|e| matches!(e.kind, ExprKind::Memory(_))))
     }
     pub fn has_local_state(&self) -> bool {
-        fn contains(expr: &Expr) -> bool {
-            match &expr.kind {
-                ExprKind::Memory(m) => m.children().into_iter().any(contains),
-                ExprKind::LetMut { .. } | ExprKind::Assign { .. } | ExprKind::While { .. } => true,
-                ExprKind::Let { value, body } => contains(value) || contains(body),
-                ExprKind::If {
-                    condition,
-                    then_branch,
-                    else_branch,
-                } => contains(condition) || contains(then_branch) || contains(else_branch),
-                ExprKind::Tuple(fields) => fields.iter().any(contains),
-                ExprKind::Project { value, .. } => contains(value),
-                ExprKind::Unary { operand, .. } => contains(operand),
-                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
-                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
-                ExprKind::Integer(_)
-                | ExprKind::Boolean(_)
-                | ExprKind::Unit
-                | ExprKind::Local(_) => false,
-            }
-        }
-        self.functions
-            .iter()
-            .any(|function| contains(&function.body))
+        self.functions.iter().any(|f| {
+            f.body.any(&|e| {
+                matches!(
+                    e.kind,
+                    ExprKind::LetMut { .. } | ExprKind::Assign { .. } | ExprKind::While { .. }
+                )
+            })
+        })
     }
-
-    /// Structural feature detection includes unreachable code and retained source bindings.
     pub fn has_flat_products(&self) -> bool {
-        fn contains(e: &Expr) -> bool {
-            if matches!(e.ty, Type::Tuple(_)) {
-                return true;
-            }
-            match &e.kind {
-                ExprKind::Tuple(_) | ExprKind::Project { .. } => true,
-                ExprKind::Let { value, body } | ExprKind::LetMut { value, body } => {
-                    contains(value) || contains(body)
-                }
-                ExprKind::Assign { value, .. } | ExprKind::Unary { operand: value, .. } => {
-                    contains(value)
-                }
-                ExprKind::While { condition, body } => contains(condition) || contains(body),
-                ExprKind::If {
-                    condition,
-                    then_branch,
-                    else_branch,
-                } => contains(condition) || contains(then_branch) || contains(else_branch),
-                ExprKind::Binary { left, right, .. } => contains(left) || contains(right),
-                ExprKind::Call { arguments, .. } => arguments.iter().any(contains),
-                _ => false,
-            }
-        }
         self.functions.iter().any(|f| {
             f.params
                 .iter()
                 .chain(std::iter::once(&f.result))
                 .any(|t| matches!(t, Type::Tuple(_)))
-                || contains(&f.body)
+                || f.body.any(&|e| {
+                    matches!(e.ty, Type::Tuple(_)) || matches!(e.kind, ExprKind::Project { .. })
+                })
         }) || self.contracts.as_ref().is_some_and(|cs| {
             cs.iter()
                 .any(|c| c.bindings.iter().any(|b| matches!(b.ty, Type::Tuple(_))))
         })
     }
-
+    pub fn uses_words(&self) -> bool {
+        self.functions.iter().any(|f| {
+            f.params
+                .iter()
+                .chain(std::iter::once(&f.result))
+                .any(|t| t.contains_words())
+                || f.body.any(&|e| {
+                    e.ty.contains_words()
+                        || matches!(e.kind, ExprKind::Word(_) | ExprKind::Convert { .. })
+                        || matches!(e.kind, ExprKind::Unary { op, .. } if op.is_word())
+                        || matches!(e.kind, ExprKind::Binary { op, .. } if op.is_word())
+                })
+        }) || self.contracts.as_ref().is_some_and(|cs| {
+            cs.iter()
+                .any(|c| c.bindings.iter().any(|b| b.ty.contains_words()))
+        })
+    }
+    pub fn effective_revision(&self) -> IrRevision {
+        self.retained_revision.unwrap_or_else(|| {
+            if self.uses_words() {
+                IrRevision::WordsV4
+            } else if self.has_memory() {
+                IrRevision::MemoryV3
+            } else if self.has_flat_products() {
+                IrRevision::ProductsV2
+            } else if self.has_local_state() {
+                IrRevision::StateV1
+            } else {
+                IrRevision::ScalarV0
+            }
+        })
+    }
     pub fn semantic_revision(&self) -> &'static str {
-        if self.has_memory() {
-            crate::memory::SEMANTIC_REVISION
-        } else if self.has_flat_products() {
-            crate::core::FLAT_PRODUCTS_SEMANTIC_REVISION
-        } else if self.has_local_state() {
-            crate::core::LOCAL_STATE_SEMANTIC_REVISION
-        } else {
-            crate::core::SEMANTIC_REVISION
-        }
+        self.effective_revision().semantic_revision()
     }
 
     /// Attach this program's immutable source map to a diagnostic, including

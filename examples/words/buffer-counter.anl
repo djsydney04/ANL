@@ -1,0 +1,13 @@
+fn advance(read counters: i64[], amount: u8) -> u8 {
+    cast u8(counters[0]) +% amount
+}
+
+fn main() -> i64 {
+    heap counters: i64[1] = 255 {
+        let next = advance(read counters, 43u8);
+        counters[0] = cast i64(next);
+        counters[0]
+    } else {
+        -1
+    }
+}

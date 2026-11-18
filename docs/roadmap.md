@@ -22,7 +22,7 @@ contracts are stable. A phase number expresses dependencies, not a claim that al
 work in prior phases is finished.
 
 Current status: the scalar/flat-tuple checker and interpreter, native C11 backend, file modules,
-initialized mutable locals, while loops, versioned core JSON interchange, scalar
+initialized mutable locals, while loops, versioned core JSON interchange, word-free scalar
 and flat-tuple contract verification with invariants and acyclic calls, and scoped Lean proofs are
 available. Scoped `i64` buffer owners and read/edit call views now add Core v3,
 validated memory MIR, a separate hosted allocator runtime and a finite memory model.
@@ -46,6 +46,14 @@ ecosystem capabilities.
 The [OS authorship and expressibility gate](requirements.md#os-authorship-and-expressibility-gate)
 also remains open. No bootable ANL OS, freestanding entry or hardware intrinsics
 exist yet, and no OS target architecture or ISA has been selected.
+
+The [unsigned-word increment](../spec/words.md) adds u8/u16/u32/u64 values,
+explicit conversions, checked/wrapping arithmetic and bit operations to the
+existing language. Its accepted model covers cumulative typing, Core/MIR
+execution, resource safety, finite canonical correspondence and legacy embedding.
+Strict word reader/reference tools expose those model interfaces while
+byte/JSON/IO and compiled execution remain trusted boundaries. This does not close word contract verification, byte storage/layout, address and
+hardware primitives, target qualification or the ANL-authored OS gate.
 
 ## M0: architecture
 
