@@ -1,0 +1,177 @@
+{
+  "boundaries": [
+    {
+      "bytes": 1048576,
+      "formal_exit": 0,
+      "kind": "pad",
+      "name": "byte-exact",
+      "rust_exit": 7
+    },
+    {
+      "bytes": 1048577,
+      "formal_exit": 3,
+      "kind": "pad",
+      "name": "byte-over",
+      "rust_exit": 3
+    },
+    {
+      "arrays": 127,
+      "formal_exit": 1,
+      "kind": "extra_arrays",
+      "name": "rust-container-cutoff",
+      "rust_exit": 3
+    },
+    {
+      "arrays": 1024,
+      "formal_exit": 3,
+      "kind": "extra_arrays",
+      "name": "formal-container-cutoff",
+      "rust_exit": 3
+    }
+  ],
+  "command_timeout_seconds": 30,
+  "exclusions": [
+    "No boot evaluation, MIR lowering/pair semantics, native emission, firmware, emulator or hardware execution.",
+    "No general parser/compiler correctness theorem or complete source/raw corpus coverage.",
+    "Formal JSON container admission differs from Rust:1024 versus127.",
+    "Only explicitly completed child statuses establish semantic outcomes; external timeouts/signals/capture exhaustion are INCONCLUSIVE.",
+    "No performance measurements or new unit-test framework."
+  ],
+  "raw": [
+    {
+      "exit": 0,
+      "name": "minimal-valid",
+      "path": "raw/minimal-valid.json",
+      "sha256": "c24aee5b460454b89b83811c5fec80d64c12ae53484fe817584673243257a64e"
+    },
+    {
+      "exit": 1,
+      "name": "escaped-duplicate-key",
+      "path": "raw/escaped-duplicate-key.json",
+      "sha256": "b7c746e09860919bf316da804381f13cd1a90d20e24ad09c6786f8feb49afb55"
+    },
+    {
+      "exit": 1,
+      "name": "callee-max",
+      "path": "raw/callee-max.json",
+      "sha256": "e2861a0f729356b35c76f4eaa10cb7019a550cd2a0bf817102ea16064f6ab5fa"
+    },
+    {
+      "exit": 1,
+      "name": "uint64-overflow",
+      "path": "raw/uint64-overflow.json",
+      "sha256": "0464dae3795191ce304666a1a8f66f84003aaa3faf9acd30014de13d356e8b82"
+    },
+    {
+      "exit": 1,
+      "name": "negative-zero",
+      "path": "raw/negative-zero.json",
+      "sha256": "d8fe4a3878292069a8acf910db71bc298522ba2662cd211b4962c72d7c3522b8"
+    },
+    {
+      "exit": 1,
+      "name": "reordered-table-same-runtime-prefix",
+      "path": "raw/reordered-table-same-runtime-prefix.json",
+      "sha256": "c4660ab7404142af553fd0b4df403e2ffaba099e93d053bc358eda24a21073ac"
+    },
+    {
+      "exit": 1,
+      "name": "dead-branch-self-cycle",
+      "path": "raw/dead-branch-self-cycle.json",
+      "sha256": "27a074c676ab1f7d7b58cfd3db248d88499aa8c87018d473e9b6eba137beef25"
+    },
+    {
+      "exit": 0,
+      "name": "raw-name-hw",
+      "path": "raw/raw-name-hw.json",
+      "sha256": "98cf3af7e0fdec2ea01421858bf928e694166c9643d79ee161ab7bb7904223b2"
+    }
+  ],
+  "schema": "anl-boot-validation-corpus-v1",
+  "source": [
+    {
+      "exit": 0,
+      "name": "uart-normal",
+      "path": "source/uart-normal.anl",
+      "reason": "Frozen ANL UART fixture; canonical primitive IDs from the independently retained IR shape.",
+      "sha256": "044dd583cbcc5d772b2308817bf25facc26072a1c95ad08830a11303394e27df"
+    },
+    {
+      "exit": 0,
+      "name": "minimal-park",
+      "path": "source/minimal-park.anl",
+      "reason": "No UART access required by the static profile; explicit UART declaration/authority remain present.",
+      "sha256": "03b047d91e43ed264940b744d4516a8cd8e5f6dbf6e5f5336ecca8a17be7fcb6"
+    },
+    {
+      "exit": 0,
+      "name": "nested-write-read",
+      "path": "source/nested-write-read.anl",
+      "reason": "Preorder discovers outer write before inner read; later MIR executes read first.",
+      "sha256": "40209db081cb9ed969107bf6c10a856d2a66357be595cf91f772e36cb4a73917"
+    },
+    {
+      "exit": 1,
+      "name": "call-role-dead-branch",
+      "path": "source/call-role-dead-branch.anl",
+      "reason": "Unreachable ordinary calls to a role are rejected.",
+      "sha256": "e7e225881184e78295ec2322bec8756d6bc54dc0531cc1849c5f26fec2ad5a07"
+    },
+    {
+      "exit": 1,
+      "name": "caller-authority",
+      "path": "source/caller-authority.anl",
+      "reason": "Ordinary caller must include callee authority.",
+      "sha256": "2658c3d3cae80d4ed7b4f627e785184c79b85100458ab06fd78ac30ec52ce85c"
+    },
+    {
+      "exit": 1,
+      "name": "unused-recursion",
+      "path": "source/unused-recursion.anl",
+      "reason": "The full defined-function call graph must be acyclic.",
+      "sha256": "cf61f310a58e3db6140c199224834c37170732a3a7e6f8159a2479bbb21be4cd"
+    },
+    {
+      "exit": 1,
+      "name": "platform-first-import",
+      "path": "source/platform-first-import.anl",
+      "reason": "Reject boot import before missing child IO",
+      "sha256": "c58cdb3efaa60ec8945c7234ec4b318f4f3f30006e83d67d949c141d435bec96"
+    },
+    {
+      "exit": 1,
+      "name": "generated-call",
+      "path": "source/generated-call.anl",
+      "reason": "User cannot call generated primitive name",
+      "sha256": "4b4a1b71770068a1057dd71d6424bbb8ebc4557d16d8ba54df1b65b002828e43"
+    }
+  ],
+  "source_oracles": {
+    "minimal-park": {
+      "defined": 3,
+      "tags": [
+        "csr_clear",
+        "csr_write",
+        "install_trap"
+      ]
+    },
+    "nested-write-read": {
+      "defined": 3,
+      "nested_read_id": 7,
+      "outer_write_id": 6,
+      "tags": [
+        "csr_clear",
+        "csr_write",
+        "install_trap",
+        "mmio_write8",
+        "mmio_read8"
+      ]
+    },
+    "uart-normal": {
+      "defined": 5,
+      "primitive_file": "normal-primitives.json"
+    }
+  },
+  "stderr_limit": 65536,
+  "stdout_limit": 2097152
+}

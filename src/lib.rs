@@ -1,5 +1,6 @@
 //! ANL checker, typed core interchange, reference evaluator, and native compiler.
 //! Formal proof scope is recorded separately under `formal/`.
+pub mod boot;
 pub mod bounded;
 pub mod codegen;
 pub mod core;
@@ -28,6 +29,7 @@ pub const MAX_FUEL: u64 = 1_000_000_000;
 
 pub fn compile(source: &str) -> Result<types::Program, diagnostic::Diagnostic> {
     let file = syntax::parse(source, 0)?;
+    reject_boot_syntax(&file)?;
     if let Some(module) = file.modules.first() {
         return Err(diagnostic::Diagnostic::new(
             module.span,
@@ -51,4 +53,62 @@ pub fn compile_file(
     path: impl AsRef<std::path::Path>,
 ) -> Result<types::Program, diagnostic::Diagnostic> {
     modules::compile_file(path.as_ref())
+}
+
+/// Source selection does not authorize execution of a boot program.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TargetSelection {
+    #[default]
+    Auto,
+    Hosted,
+    Rv64VirtSbiV1,
+}
+/// A hosted source graph retained with its checked specification metadata.
+/// Imported Core programs cannot construct this verification capability.
+pub struct CheckedHostedProgram(types::Program);
+impl CheckedHostedProgram {
+    pub fn into_program(self) -> types::Program {
+        self.0
+    }
+    pub fn verify(
+        self,
+        options: &verify::VerifyOptions,
+    ) -> Result<verify::VerificationReport, diagnostic::Diagnostic> {
+        verify::verify_checked(self.0, options)
+    }
+}
+pub enum CheckedSource {
+    Hosted(CheckedHostedProgram),
+    Boot(boot::CheckedProgram),
+}
+#[derive(Debug)]
+pub enum TargetCompileError {
+    Source(diagnostic::Diagnostic),
+    Conflict(String),
+}
+impl From<diagnostic::Diagnostic> for TargetCompileError {
+    fn from(error: diagnostic::Diagnostic) -> Self {
+        Self::Source(error)
+    }
+}
+pub fn compile_target_file(
+    path: impl AsRef<std::path::Path>,
+    target: TargetSelection,
+) -> Result<CheckedSource, TargetCompileError> {
+    modules::compile_target_file(path.as_ref(), target)
+}
+fn reject_boot_syntax(file: &syntax::File) -> Result<(), diagnostic::Diagnostic> {
+    if let Some(platform) = &file.platform {
+        return Err(diagnostic::Diagnostic::new(
+            platform.span,
+            "boot platform requires compile_target_file",
+        ));
+    }
+    if let Some(f) = file.functions.iter().find(|f| f.effects.is_some()) {
+        return Err(diagnostic::Diagnostic::new(
+            f.span,
+            "effects require a boot platform",
+        ));
+    }
+    Ok(())
 }

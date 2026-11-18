@@ -1,6 +1,6 @@
 name = "anl_formal"
 version = "0.1.0"
-defaultTargets = ["APL", "ANL", "anl_formal", "anl_formal_v2", "anl_memory_pair_checker", "anl_memory_raw_probe", "anl_memory_reference_runner", "anl_words_pair_checker", "anl_words_raw_probe", "anl_words_reference_runner"]
+defaultTargets = ["APL", "ANL", "anl_formal", "anl_formal_v2", "anl_memory_pair_checker", "anl_memory_raw_probe", "anl_memory_reference_runner", "anl_words_pair_checker", "anl_words_raw_probe", "anl_words_reference_runner", "anl_boot_raw_probe"]
 moreLeanArgs = ["-DwarningAsError=true"]
 
 [[lean_lib]]
@@ -40,3 +40,7 @@ root = "WordsRawProbe"
 [[lean_exe]]
 name = "anl_words_reference_runner"
 root = "WordsReferenceMain"
+
+[[lean_exe]]
+name = "anl_boot_raw_probe"
+root = "BootRawProbe"

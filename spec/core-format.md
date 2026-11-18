@@ -27,6 +27,13 @@ when a loaded graph uses words or a new operator/conversion. It retains explicit
 v4 imports and requires an allocation profile even for pure programs. Old
 schemas below keep their original allowlists and reject new word constructs.
 
+The [boot Core envelope](boot-profile.md#core-envelope) is separate from this
+hosted revision family. `anl-boot-core-v1` uses the existing ordinary word
+expression encoding inside a closed target/effects/role profile, with body-free
+primitive declarations and no hosted entry or allocation profile. Old readers
+reject it. Its CLI import performs static checks and returns unsupported rather
+than evaluating a carrier.
+
 ## Documents
 
 A program is an object with exactly these members:

@@ -68,7 +68,40 @@ enum Member {
     },
 }
 
+pub(crate) struct ExternalSignature {
+    pub name: String,
+    pub params: Vec<Type>,
+    pub result: Type,
+}
+pub(crate) struct CheckedFunctions {
+    pub functions: Vec<Function>,
+    pub contracts: Vec<FunctionContract>,
+}
+
 pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnostic> {
+    let checked = check_functions(modules, Vec::new())?;
+    let mut program = Program {
+        retained_revision: None,
+        allocation_profile: None,
+        functions: checked.functions,
+        sources,
+        contracts: Some(checked.contracts),
+    };
+    if program.has_memory() || program.uses_words() {
+        program.allocation_profile =
+            Some(crate::memory::AllocationProfile::host().map_err(|message| {
+                let mut e = Diagnostic::new(Span::default(), message);
+                e.infrastructure = true;
+                e
+            })?);
+    }
+    Ok(program)
+}
+
+pub(crate) fn check_functions(
+    modules: Vec<Module>,
+    external: Vec<ExternalSignature>,
+) -> Result<CheckedFunctions, Diagnostic> {
     let mut checker = Checker {
         resources: Vec::new(),
         next_order: 0,
@@ -125,6 +158,23 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
             }
         }
         checker.names.push(names);
+    }
+    for signature in external {
+        let id = checker.signatures.len();
+        if checker.names.len() != 1 || checker.names[0].contains_key(&signature.name) {
+            return Err(Diagnostic::new(
+                Span::default(),
+                "invalid external signature namespace",
+            ));
+        }
+        checker.names[0].insert(signature.name, Member::Function(id));
+        checker.signatures.push(Signature {
+            view: None,
+            params: signature.params,
+            result: signature.result,
+            span: Span::default(),
+            public: false,
+        });
     }
     let modular = modules.len() > 1;
     let mut checked = Vec::with_capacity(checker.signatures.len());
@@ -220,22 +270,10 @@ pub fn check(modules: Vec<Module>, sources: Sources) -> Result<Program, Diagnost
             });
         }
     }
-    let mut program = Program {
-        retained_revision: None,
-        allocation_profile: None,
+    Ok(CheckedFunctions {
         functions: checked,
-        sources,
-        contracts: Some(contracts),
-    };
-    if program.has_memory() || program.uses_words() {
-        program.allocation_profile =
-            Some(crate::memory::AllocationProfile::host().map_err(|message| {
-                let mut e = Diagnostic::new(Span::default(), message);
-                e.infrastructure = true;
-                e
-            })?);
-    }
-    Ok(program)
+        contracts,
+    })
 }
 
 fn spec_type(ty: Type, span: Span) -> Result<SpecType, Diagnostic> {

@@ -223,6 +223,7 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         return Err(invalid("unsupported semantic revision"));
     }
     let mut importer = Importer {
+        strict_indices: false,
         views: Vec::new(),
         resources: Vec::new(),
         next_site: 0,
@@ -337,6 +338,36 @@ pub fn import(text: &str) -> Result<Artifact, ImportError> {
         entry,
     })
 }
+pub(crate) fn check_boot_body(
+    value: &Value,
+    params: &[Type],
+    result: Type,
+    signatures: &[(Vec<Type>, Type)],
+) -> Result<Expr, ImportError> {
+    let mut importer = Importer {
+        views: vec![None; signatures.len()],
+        resources: Vec::new(),
+        next_site: 0,
+        allow_memory: false,
+        allow_words: true,
+        signatures: signatures.to_vec(),
+        next_id: 0,
+        allow_calls: true,
+        allow_local_state: true,
+        allow_products: true,
+        strict_indices: true,
+    };
+    let mut env = params
+        .iter()
+        .map(|&ty| Binding { ty, mutable: false })
+        .collect();
+    let body = importer.expr(value, &mut env, 0)?;
+    if body.ty != result {
+        return Err(invalid("function result type mismatch"));
+    }
+    Ok(body)
+}
+
 pub(crate) fn profile(value: &Value) -> Result<crate::memory::AllocationProfile, ImportError> {
     let o = object(
         value,
@@ -372,6 +403,7 @@ pub(crate) fn view(value: &Value) -> Result<ViewMode, ImportError> {
     ViewMode::from_name(string(value)?).ok_or_else(|| invalid("unknown view mode"))
 }
 struct Importer {
+    strict_indices: bool,
     views: Vec<Option<ViewMode>>,
     resources: Vec<ResourceMode>,
     next_site: usize,
@@ -397,6 +429,20 @@ fn local_position(length: usize, index: usize) -> Result<usize, ImportError> {
         .ok_or_else(|| invalid("unbound local index"))
 }
 impl Importer {
+    fn index(&self, value: &Value, bound: usize) -> Result<usize, ImportError> {
+        if self.strict_indices {
+            let n = value
+                .as_u64()
+                .ok_or_else(|| invalid("expected natural-number index"))?;
+            if n >= bound as u64 {
+                return Err(invalid("index out of range"));
+            }
+            usize::try_from(n).map_err(|_| invalid("index out of range"))
+        } else {
+            natural(value)
+        }
+    }
+
     fn memory(
         &mut self,
         tag: &str,
@@ -600,7 +646,7 @@ impl Importer {
                 )
             }
             "project" => {
-                let index = natural(&obj["index"])?;
+                let index = self.index(&obj["index"], crate::types::MAX_TUPLE_FIELDS)?;
                 if index >= crate::types::MAX_TUPLE_FIELDS {
                     return Err(invalid("projection index outside 0..7"));
                 }
@@ -644,7 +690,7 @@ impl Importer {
             ),
             "unit" => (Type::Unit, ExprKind::Unit, 1),
             "local" => {
-                let index = natural(&obj["index"])?;
+                let index = self.index(&obj["index"], env.len())?;
                 let position = local_position(env.len(), index)?;
                 (env[position].ty, ExprKind::Local(index), 1)
             }
@@ -672,7 +718,7 @@ impl Importer {
                 (ty, kind, depth)
             }
             "assign" => {
-                let index = natural(&obj["index"])?;
+                let index = self.index(&obj["index"], env.len())?;
                 let position = local_position(env.len(), index)?;
                 if !env[position].mutable {
                     return Err(invalid("assignment target is immutable"));
@@ -771,14 +817,14 @@ impl Importer {
                 )
             }
             "call" => {
-                let id = natural(&obj["function"])?;
+                let id = self.index(&obj["function"], self.signatures.len())?;
                 if self.views.get(id).is_some_and(Option::is_some) {
                     return Err(invalid("ordinary call targets a view function"));
                 }
                 if !self.allow_calls {
                     return Err(invalid("calls are outside expression fixture scope"));
                 }
-                let function = natural(&obj["function"])?;
+                let function = id;
                 let (params, result) = self
                     .signatures
                     .get(function)

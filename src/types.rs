@@ -664,7 +664,7 @@ impl IrRevision {
     }
 }
 impl Expr {
-    fn any(&self, predicate: &impl Fn(&Expr) -> bool) -> bool {
+    pub(crate) fn any(&self, predicate: &impl Fn(&Expr) -> bool) -> bool {
         if predicate(self) {
             return true;
         }

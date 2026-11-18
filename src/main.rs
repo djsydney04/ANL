@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
+const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl emit-boot FILE --out PATH [--target rv64-virt-sbi-v1]\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSource commands accept --target hosted|rv64-virt-sbi-v1.\nBoot source supports check and dump-core; emission, build, execution and\nverification return unsupported (7) after static checking. Boot build requires\n--toolchain LOCK and -o PATH; no lock or external tool is used yet.\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -93,28 +93,51 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     let command = args.first().and_then(|arg| arg.to_str()).ok_or(usage)?;
     if !matches!(
         command,
-        "check" | "eval" | "dump-core" | "eval-core" | "build" | "run" | "emit-c"
+        "check" | "eval" | "dump-core" | "eval-core" | "build" | "run" | "emit-c" | "emit-boot"
     ) || args.len() < 2
     {
         return Err(usage.into());
     }
-    let fuel = match args.len() {
-        2 => DEFAULT_FUEL,
-        4 if command == "build" && args[2] == "-o" => DEFAULT_FUEL,
-        4 if matches!(command, "eval" | "eval-core") && args[2] == "--fuel" => {
-            let text = args[3]
-                .to_str()
-                .ok_or("fuel must be decimal in 0..1000000000")?;
-            if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
-                return Err("fuel must be decimal in 0..1000000000".into());
+    let mut fuel = DEFAULT_FUEL;
+    let mut fuel_seen = false;
+    let mut target = anl::TargetSelection::Auto;
+    let mut target_seen = false;
+    let mut destination_arg = None;
+    let mut toolchain = None;
+    let mut out = None;
+    let mut i = 2;
+    while i < args.len() {
+        let value = args.get(i + 1).ok_or(usage)?;
+        match args[i].to_str() {
+            Some("--fuel") if matches!(command, "eval" | "eval-core") && !fuel_seen => {
+                let text = value
+                    .to_str()
+                    .ok_or("fuel must be decimal in 0..1000000000")?;
+                if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+                    return Err("fuel must be decimal in 0..1000000000".into());
+                }
+                fuel = text
+                    .parse::<u64>()
+                    .ok()
+                    .filter(|n| *n <= MAX_FUEL)
+                    .ok_or("fuel must be decimal in 0..1000000000")?;
+                fuel_seen = true;
             }
-            text.parse::<u64>()
-                .ok()
-                .filter(|fuel| *fuel <= MAX_FUEL)
-                .ok_or("fuel must be decimal in 0..1000000000")?
+            Some("--target") if command != "eval-core" && !target_seen => {
+                target = parse_target(value)?;
+                target_seen = true;
+            }
+            Some("-o") if command == "build" && destination_arg.is_none() => {
+                destination_arg = Some(value)
+            }
+            Some("--toolchain") if command == "build" && toolchain.is_none() => {
+                toolchain = Some(value)
+            }
+            Some("--out") if command == "emit-boot" && out.is_none() => out = Some(value),
+            _ => return Err(usage.into()),
         }
-        _ => return Err(usage.into()),
-    };
+        i += 2;
+    }
     let path = Path::new(&args[1]);
     let filename = path.to_string_lossy();
     let source = if command == "eval-core" {
@@ -154,6 +177,28 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         String::new()
     };
     if command == "eval-core" {
+        let is_boot = serde_json::from_str::<serde_json::Value>(&source)
+            .ok()
+            .is_some_and(|v| {
+                v.get("schema").and_then(serde_json::Value::as_str) == Some(anl::boot::SCHEMA)
+            });
+        if is_boot {
+            match anl::boot::import_core(&source) {
+                Ok(_) => {
+                    output("{\"outcome\":\"unsupported_boot_operation\"}")?;
+                    return Ok(7);
+                }
+                Err(error) => {
+                    let (code, tag) = match &error {
+                        ImportError::Invalid(_) => (1, "invalid_ir"),
+                        ImportError::ResourceLimit(_) => (3, "resource_limit"),
+                    };
+                    output(serde_json::json!({"outcome":tag}))?;
+                    diagnostic(format_args!("{filename}: {tag}: {error}"))?;
+                    return Ok(code);
+                }
+            }
+        }
         let artifact = match core::import(&source) {
             Ok(artifact) => artifact,
             Err(error) => {
@@ -170,9 +215,10 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
         output(core::outcome(&result))?;
         return report_execution(result, &filename, &source, None);
     }
-    let program = match anl::compile_file(path) {
+    let checked = match anl::compile_target_file(path, target) {
         Ok(program) => program,
-        Err(error) => {
+        Err(anl::TargetCompileError::Conflict(message)) => return Err(message.into()),
+        Err(anl::TargetCompileError::Source(error)) => {
             diagnostic(error.render(&filename, &source))?;
             return Ok(if error.infrastructure {
                 4
@@ -183,6 +229,41 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
             });
         }
     };
+    if command == "emit-boot" && out.is_none() {
+        return Err("emit-boot requires --out PATH".into());
+    }
+    let program = match checked {
+        anl::CheckedSource::Boot(program) => {
+            if command == "check" {
+                return Ok(0);
+            }
+            if command == "dump-core" {
+                let text = anl::boot::export_core(&program)?;
+                write_stdout(|stdout| stdout.write_all(text.as_bytes()))?;
+                return Ok(0);
+            }
+            if command == "build" && (toolchain.is_none() || destination_arg.is_none()) {
+                return Err("boot build requires --toolchain LOCK and -o PATH".into());
+            }
+            let state = if matches!(command, "emit-boot" | "build") {
+                "implemented"
+            } else {
+                "supported"
+            };
+            diagnostic(format_args!(
+                "unsupported_boot_operation: {command} is not {state} for rv64-virt-sbi-v1"
+            ))?;
+            return Ok(7);
+        }
+        anl::CheckedSource::Hosted(program) => program.into_program(),
+    };
+    if toolchain.is_some() {
+        return Err("--toolchain is unavailable for hosted builds".into());
+    }
+    if command == "emit-boot" {
+        diagnostic("unsupported_boot_operation: emit-boot requires rv64-virt-sbi-v1 source")?;
+        return Ok(7);
+    }
     if command == "check" {
         return Ok(0);
     }
@@ -217,11 +298,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
             name.push(".out");
             name.into()
         };
-        let destination = if args.len() == 4 {
-            Path::new(&args[3])
-        } else {
-            &default
-        };
+        let destination = destination_arg.map(Path::new).unwrap_or(&default);
         #[cfg(feature = "memory-evidence")]
         if let Some(evidence) = anl::memory_evidence::EvidenceOptions::from_environment(&program)? {
             codegen::build_evidence(&program, entry, path, destination, &evidence)?;
@@ -291,16 +368,51 @@ fn report_execution(
     })
 }
 
+fn parse_target(value: &OsString) -> Result<anl::TargetSelection, CliError> {
+    match value.to_str() {
+        Some("hosted") => Ok(anl::TargetSelection::Hosted),
+        Some("rv64-virt-sbi-v1") => Ok(anl::TargetSelection::Rv64VirtSbiV1),
+        _ => Err("target must be hosted or rv64-virt-sbi-v1".into()),
+    }
+}
+fn boot_verification(json: bool) -> Result<u8, CliError> {
+    if json {
+        output(serde_json::json!({
+            "schema":"anl-boot-verify-v1", "semantic_revision":"anl-boot-rv64-virt-v1",
+            "verification_revision":"anl-boot-unsupported-v1", "status":"unsupported",
+            "reason":"unsupported_boot_operation", "trust":"not_established",
+            "scope":{"functions":"all_loaded", "arithmetic_safety":false, "partial_correctness":false,
+                "termination_proved":false, "native_correctness":false, "hardware_correctness":false,
+                "model_proof":null, "fragment":"boot_unsupported"},
+            "type_checked":true, "tested":false, "dynamic_checks":false, "contracts_erased":true,
+            "compiler":null, "solver":null, "limits":{}, "obligations":[],
+            "message":"Contract verification is not implemented for the boot profile; static checking does not establish hardware or native correctness."
+        }))?;
+    } else {
+        output(
+            "unsupported_boot_operation: contract verification is not implemented for rv64-virt-sbi-v1; trust=not_established",
+        )?;
+    }
+    Ok(7)
+}
+
 fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
     let usage = "usage: anl verify FILE [--solver PATH] [--timeout-ms N] [--json]";
     let path = args.first().ok_or(usage)?;
     let mut options = anl::verify::VerifyOptions::default();
     let mut json = false;
+    let mut target = anl::TargetSelection::Auto;
+    let mut target_seen = false;
     let mut solver_seen = false;
     let mut timeout_seen = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].to_str() {
+            Some("--target") if !target_seen => {
+                target = parse_target(args.get(i + 1).ok_or(usage)?)?;
+                target_seen = true;
+                i += 2;
+            }
             Some("--json") if !json => {
                 json = true;
                 i += 1;
@@ -326,9 +438,17 @@ fn verify_command(args: &[OsString]) -> Result<u8, CliError> {
             _ => return Err(usage.into()),
         }
     }
-    let report = match anl::verify::verify_file(Path::new(path), &options) {
-        Ok(report) => report,
-        Err(error) => {
+    let report = match anl::compile_target_file(Path::new(path), target) {
+        Ok(anl::CheckedSource::Boot(_)) => return boot_verification(json),
+        Ok(anl::CheckedSource::Hosted(program)) => match program.verify(&options) {
+            Ok(report) => report,
+            Err(error) => {
+                diagnostic(error.render(&path.to_string_lossy(), ""))?;
+                anl::verify::VerificationReport::source_error(&error)
+            }
+        },
+        Err(anl::TargetCompileError::Conflict(message)) => return Err(message.into()),
+        Err(anl::TargetCompileError::Source(error)) => {
             diagnostic(error.render(&path.to_string_lossy(), ""))?;
             anl::verify::VerificationReport::source_error(&error)
         }

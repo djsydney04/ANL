@@ -1295,3 +1295,55 @@ Words add no SMT word theory or VCG rule. Every successfully checked v4 source
 returns unsupported verification, even with ordinary-only clauses; rejected
 word-dependent clauses are source errors. The full-language release requirements,
 hardware operations, freestanding entry and the entire ANL-authored OS remain open.
+
+## Boot static model and Core reader
+
+The `ANL.Boot` namespace models the `anl-boot-core-v1` envelope with revision
+`anl-boot-rv64-virt-v1`, ordinary `anl-words-v1` types/terms, and explicit raw
+platform, role, effect and bodyless primitive declarations. Malformed metadata,
+annotations, signatures and IDs remain representable before checking. The model
+reuses the unchanged Words kernel; a platform declaration does not allocate
+physical stacks or implement hardware effects.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootCheckProofs](ANL/BootCheckProofs.lean), `checkProgram_iff` | The actual Boolean checker accepts exactly independent `WellFormedProgram`: fixed metadata/roles, full ordinary typing, all-body memory/view exclusion, exact machine prefix, authority inclusion, declaration ordering/IDs/names, primitive discovery and acyclicity. |
+| [BootGraphProofs](ANL/BootGraphProofs.lean), `acyclic_iff_cycleFree`, `checkGraph_cycleFree_iff` | The finite path-bound judgment and executable graph check are equivalent to absence of a positive-length cycle in the complete defined-call graph, including unused bodies and dead branches. |
+| [BootCheckProofs](ANL/BootCheckProofs.lean) and [BootTableProofs](ANL/BootTableProofs.lean), `WellFormedProgram.call_target`, `primitive_id`, `primitive_keys_unique` | Admitted calls use actual-table targets, exclude role and synthetic entry IDs, and obey the prefix/effect policy. Primitive rows have canonical suffix IDs and unique first-use keys; all are used and at most ten are admitted. |
+| [BootTail](ANL/BootTail.lean), `designatedTail_iff`, `SelectedTail.unique`, `noNormalReturn_iff` | The executable initializer-first search agrees with an independent selected-path judgment. Immutable and mutable let initializers take precedence over their bodies. Ordinary typing still checks every subtree. |
+| [BootNoReturn](ANL/BootNoReturn.lean), `HasTail.no_normal_return`, `NoNormalReturn.no_value_terminal` | Over actual ordinary `Words.Step`/`Steps`, evaluating a certified body cannot finish with a returned value at the original continuation, or with an empty continuation. The continuation proof covers terminal loops in either child of immutable/mutable lets. |
+| [BootCarrier](ANL/BootCarrier.lean), `carrier_wellFormed` | A well-formed boot program has a well-typed ordinary Words signature adapter. Its dummy primitive bodies and synthetic entry are proof devices, not a boot executable or hardware implementation. |
+| [BootWireSafety](ANL/BootWireSafety.lean), `checkCoreDocument_iff` | Actual checked decoding succeeds exactly when raw decoding returns that program and its independent boot well-formedness judgment holds. Derived facts cover metadata, roles, effects, call bounds, cycles, primitive identity and static carrier typing. |
+
+The no-normal-return theorems concern the existing ordinary machine and original
+continuation. They allow a trap or invalid stopped state and do not prove
+infinite progress, trap freedom, hardware delivery/reset, native loop preservation
+or adequacy of a physical stack. No theorem here identifies unwrapped execution
+of the hosted signature adapter with boot execution. The exported boot envelope
+has no dummy bodies or synthetic entry.
+
+The [static probe](README.md#boot-core-static-checking) uses
+`Boot.Wire.readCore` and `checkCoreDocument` from [BootWire](ANL/BootWire.lean).
+It checks every decoded definition, including unreachable code. Its raw metadata
+and supplied annotations are checked rather than replaced by expected values.
+The decoded-wire theorem is:
+
+```text
+checkCoreDocument text = .ok p
+  ↔ readCore text = .ok p ∧ Boot.WellFormedProgram p
+```
+
+The 1MiB original-byte limit, logical depth 128 and formal JSON-container depth
+1,024 are distinct. Rust's 127-container reader does not have the same admission
+domain. The graph checker is a finite mathematical algorithm; its correctness
+proof does not bound practical checking time for every byte-admissible table.
+The probe emits no per-artifact kernel certificate.
+
+These modules receive all-declaration axiom checking and separate-module kernel
+replay. The same allowed logical axioms remain `propext`, `Classical.choice` and
+`Quot.sound`. Byte decoding, JSON duplicate-key handling/parsing, I/O, Lean
+compilation/runtime and production source-to-Core translation remain trusted or
+separately qualified boundaries. Finite actual-export comparisons do not prove
+universal Rust/Lean equivalence. Boot MIR admission/correspondence, device and trap
+execution, ELF/ABI generation, firmware handoff and the complete ANL-authored OS
+remain outside this proof slice.

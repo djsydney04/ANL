@@ -1,0 +1,65 @@
+// Static boot profile example; native boot emission and execution are unavailable.
+platform rv64_virt_sbi_v1 {
+    image_base 2149580800u64;
+    image_limit 1048576;
+    stack boot_stack[16384] align 16;
+    stack terminal_stack[4096] align 16;
+    device uart0 at 268435456u64 size 256 {
+        read8 5;
+        write8 0, 1, 2, 3, 4;
+    }
+    entry boot_entry using boot_stack;
+    hardware_trap hardware_fault using terminal_stack;
+    language_trap language_fault using terminal_stack;
+}
+
+fn status() -> u8 effects(uart0) {
+    let value = hw::read8(uart0, 5);
+    hw::fence_io(uart0);
+    value
+}
+
+fn put(byte: u8) -> unit effects(uart0) {
+    while ((status() & 32u8) == 0u8) {}
+    hw::write8(uart0, 0, byte);
+    hw::fence_io(uart0);
+}
+
+fn boot_entry(hart: u64, opaque_dtb: u64) -> unit effects(machine, uart0) {
+    hw::csr_clear(machine, sstatus, 2u64);
+    hw::csr_write(machine, sie, 0u64);
+    hw::install_trap(machine, hardware_fault);
+    hw::fence_io(uart0);
+    // Drain preceding firmware output before reconfiguring the UART.
+    while ((status() & 64u8) == 0u8) {}
+    hw::write8(uart0, 3, 3u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 1, 0u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 2, 0u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 4, 0u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 3, 131u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 0, 2u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 1, 0u8);
+    hw::fence_io(uart0);
+    hw::write8(uart0, 3, 3u8);
+    hw::fence_io(uart0);
+    put(65u8);
+    put(78u8);
+    put(76u8);
+    put(10u8);
+    while ((status() & 64u8) == 0u8) {}
+    while (true) {}
+}
+
+fn hardware_fault(raw_scause: u64, raw_sepc: u64, raw_stval: u64) -> unit {
+    while (true) {}
+}
+
+fn language_fault(tag: u8) -> unit {
+    while (true) {}
+}

@@ -1,0 +1,103 @@
+{
+  "files": {
+    "manifest.json": {
+      "bytes": 5498,
+      "sha256": "54da235706e0c430ec27bccbd9357e33a13444c0141425e1670bae0e56fe82db"
+    },
+    "normal-primitives.json": {
+      "bytes": 2440,
+      "sha256": "342c889ab599e4af9f23e4b69f1487fc4bb6844112152f265670a485fea96e3f"
+    },
+    "raw/callee-max.json": {
+      "bytes": 2434,
+      "sha256": "e2861a0f729356b35c76f4eaa10cb7019a550cd2a0bf817102ea16064f6ab5fa"
+    },
+    "raw/dead-branch-self-cycle.json": {
+      "bytes": 2695,
+      "sha256": "27a074c676ab1f7d7b58cfd3db248d88499aa8c87018d473e9b6eba137beef25"
+    },
+    "raw/escaped-duplicate-key.json": {
+      "bytes": 2448,
+      "sha256": "b7c746e09860919bf316da804381f13cd1a90d20e24ad09c6786f8feb49afb55"
+    },
+    "raw/minimal-valid.json": {
+      "bytes": 2415,
+      "sha256": "c24aee5b460454b89b83811c5fec80d64c12ae53484fe817584673243257a64e"
+    },
+    "raw/negative-zero.json": {
+      "bytes": 2416,
+      "sha256": "d8fe4a3878292069a8acf910db71bc298522ba2662cd211b4962c72d7c3522b8"
+    },
+    "raw/raw-name-hw.json": {
+      "bytes": 2540,
+      "sha256": "98cf3af7e0fdec2ea01421858bf928e694166c9643d79ee161ab7bb7904223b2"
+    },
+    "raw/reordered-table-same-runtime-prefix.json": {
+      "bytes": 2415,
+      "sha256": "c4660ab7404142af553fd0b4df403e2ffaba099e93d053bc358eda24a21073ac"
+    },
+    "raw/uint64-overflow.json": {
+      "bytes": 2434,
+      "sha256": "0464dae3795191ce304666a1a8f66f84003aaa3faf9acd30014de13d356e8b82"
+    },
+    "run.py": {
+      "bytes": 15493,
+      "sha256": "ad27e68315b05fbfc9cf73e82042d5f197587c815c22b539dd6580e032a01eda"
+    },
+    "source/call-role-dead-branch.anl": {
+      "bytes": 873,
+      "sha256": "e7e225881184e78295ec2322bec8756d6bc54dc0531cc1849c5f26fec2ad5a07"
+    },
+    "source/caller-authority.anl": {
+      "bytes": 892,
+      "sha256": "2658c3d3cae80d4ed7b4f627e785184c79b85100458ab06fd78ac30ec52ce85c"
+    },
+    "source/generated-call.anl": {
+      "bytes": 810,
+      "sha256": "4b4a1b71770068a1057dd71d6424bbb8ebc4557d16d8ba54df1b65b002828e43"
+    },
+    "source/minimal-park.anl": {
+      "bytes": 796,
+      "sha256": "03b047d91e43ed264940b744d4516a8cd8e5f6dbf6e5f5336ecca8a17be7fcb6"
+    },
+    "source/nested-write-read.anl": {
+      "bytes": 843,
+      "sha256": "40209db081cb9ed969107bf6c10a856d2a66357be595cf91f772e36cb4a73917"
+    },
+    "source/platform-first-import.anl": {
+      "bytes": 833,
+      "sha256": "c58cdb3efaa60ec8945c7234ec4b318f4f3f30006e83d67d949c141d435bec96"
+    },
+    "source/uart-normal.anl": {
+      "bytes": 1734,
+      "sha256": "044dd583cbcc5d772b2308817bf25facc26072a1c95ad08830a11303394e27df"
+    },
+    "source/unused-recursion.anl": {
+      "bytes": 828,
+      "sha256": "cf61f310a58e3db6140c199224834c37170732a3a7e6f8159a2479bbb21be4cd"
+    },
+    "unsupported-verify.json": {
+      "bytes": 717,
+      "sha256": "f2b3ef8fe6821db13051ba0d33292276dcb74651a3f0c3a69ba02e99895e6419"
+    }
+  },
+  "schema": "anl-boot-validation-integrity-v1",
+  "shared": {
+    "memory/capture.py": {
+      "bytes": 5041,
+      "sha256": "fd1231c1da444f50d3d2b7d852c04330d08427bd378715aa73093d5020b730a6"
+    },
+    "memory/oracle.py": {
+      "bytes": 10450,
+      "sha256": "5821d75014530ac0f94906e33458f6bc3c09c641c10ae7f01be904d93ccc4868"
+    },
+    "memory/tool_spy.py": {
+      "bytes": 310,
+      "sha256": "4785e17bbede429c28632ebc9864bd944d4a124f30c9e4d06d0c7db49556c9f2"
+    },
+    "words/closed_stdout.py": {
+      "bytes": 211,
+      "sha256": "afe1a0183b2c5ac7256b9b13075f30b07a5f3d47fdf5eaa90d39c1dcca6d48e2"
+    }
+  }
+}

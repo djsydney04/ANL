@@ -10,10 +10,12 @@ are pending. The backend and its
 runtime helpers are tested, not formally verified.
 
 This is hosted compilation. Generated C uses libc for result printing and failure
-handling and runs under the host operating system. Freestanding entry, hardware
-intrinsics and an ANL OS are not implemented. The required
-[ANL-authored OS](architecture/operating-system.md) needs separate compiler and
-language extensions; a host executable is not a bootable OS image.
+handling and runs under the host operating system. The separate [RV64 boot profile](book/boot-profile.md) accepts platform,
+authority and hardware-operation syntax for static checking and Core interchange.
+It does not yet generate freestanding entry, primitive instructions or a bootable
+image. Its `emit-boot` and `build --toolchain` routes return unsupported after
+checking; this page's host C11 build behavior applies to hosted programs.
+The required [ANL-authored OS](architecture/operating-system.md) remains unfinished.
 
 Install a host C11 toolchain providing `cc`, then build the ANL CLI with the pinned
 Rust toolchain. `CC` can select another compiler executable. Its value is one

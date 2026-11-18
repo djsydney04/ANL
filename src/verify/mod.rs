@@ -209,6 +209,10 @@ pub fn verify_file(
     path: impl AsRef<Path>,
     options: &VerifyOptions,
 ) -> Result<VerificationReport, Diagnostic> {
+    validate_options(options)?;
+    verify_checked(crate::compile_file(path)?, options)
+}
+fn validate_options(options: &VerifyOptions) -> Result<(), Diagnostic> {
     if options.timeout_ms == 0 || options.timeout_ms > 600_000 {
         let mut error = Diagnostic::new(
             Span::default(),
@@ -217,7 +221,13 @@ pub fn verify_file(
         error.infrastructure = true;
         return Err(error);
     }
-    let program = crate::compile_file(path)?;
+    Ok(())
+}
+pub(crate) fn verify_checked(
+    program: Program,
+    options: &VerifyOptions,
+) -> Result<VerificationReport, Diagnostic> {
+    validate_options(options)?;
     if program.effective_revision() == crate::types::IrRevision::WordsV4 {
         let contracts = program
             .contracts

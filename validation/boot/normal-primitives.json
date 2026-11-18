@@ -1,0 +1,163 @@
+[
+  {
+    "effects": [
+      1
+    ],
+    "id": 5,
+    "kind": "primitive",
+    "name": "__hw_5",
+    "operation": {
+      "offset": 5,
+      "region": 0,
+      "tag": "mmio_read8"
+    },
+    "params": [],
+    "result": "u8"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 6,
+    "kind": "primitive",
+    "name": "__hw_6",
+    "operation": {
+      "region": 0,
+      "tag": "io_fence"
+    },
+    "params": [],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 7,
+    "kind": "primitive",
+    "name": "__hw_7",
+    "operation": {
+      "offset": 0,
+      "region": 0,
+      "tag": "mmio_write8"
+    },
+    "params": [
+      "u8"
+    ],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      0
+    ],
+    "id": 8,
+    "kind": "primitive",
+    "name": "__hw_8",
+    "operation": {
+      "authority": 0,
+      "mask": "2",
+      "register": "sstatus",
+      "tag": "csr_clear"
+    },
+    "params": [],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      0
+    ],
+    "id": 9,
+    "kind": "primitive",
+    "name": "__hw_9",
+    "operation": {
+      "authority": 0,
+      "register": "sie",
+      "tag": "csr_write",
+      "value": "0"
+    },
+    "params": [],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      0
+    ],
+    "id": 10,
+    "kind": "primitive",
+    "name": "__hw_10",
+    "operation": {
+      "authority": 0,
+      "handler": 3,
+      "tag": "install_trap"
+    },
+    "params": [],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 11,
+    "kind": "primitive",
+    "name": "__hw_11",
+    "operation": {
+      "offset": 3,
+      "region": 0,
+      "tag": "mmio_write8"
+    },
+    "params": [
+      "u8"
+    ],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 12,
+    "kind": "primitive",
+    "name": "__hw_12",
+    "operation": {
+      "offset": 1,
+      "region": 0,
+      "tag": "mmio_write8"
+    },
+    "params": [
+      "u8"
+    ],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 13,
+    "kind": "primitive",
+    "name": "__hw_13",
+    "operation": {
+      "offset": 2,
+      "region": 0,
+      "tag": "mmio_write8"
+    },
+    "params": [
+      "u8"
+    ],
+    "result": "unit"
+  },
+  {
+    "effects": [
+      1
+    ],
+    "id": 14,
+    "kind": "primitive",
+    "name": "__hw_14",
+    "operation": {
+      "offset": 4,
+      "region": 0,
+      "tag": "mmio_write8"
+    },
+    "params": [
+      "u8"
+    ],
+    "result": "unit"
+  }
+]

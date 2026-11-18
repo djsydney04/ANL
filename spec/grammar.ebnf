@@ -7,6 +7,7 @@
    Flat tuple syntax, width, types, and evaluation: spec/flat-products.md.
    Unsigned words, explicit conversions and precedence: spec/words.md.
    Owned buffers and call-scoped views: spec/owned-buffers.md.
+   Closed boot profile and static restrictions: spec/boot-profile.md.
    Erased loop annotations and invariant verification: spec/loop-verification.md.
    Terminals are quoted. [] means optional; {} means zero or more.
    Whitespace and line comments may occur between tokens.
@@ -14,9 +15,24 @@
    Reserved keywords cannot be identifiers. Input must end after program.
 *)
 
-program         = { function } ;
+program         = [ platform_declaration ], { function } ;
+platform_declaration = "platform", "rv64_virt_sbi_v1", "{", { platform_item }, "}" ;
+platform_item   = "image_base", word_literal, ";"
+                | "image_limit", natural, ";"
+                | "stack", identifier, "[", natural, "]", "align", natural, ";"
+                | "device", identifier, "at", word_literal, "size", natural,
+                  "{", { device_permission }, "}"
+                | role_kind, identifier, "using", identifier, ";" ;
+role_kind       = "entry" | "hardware_trap" | "language_trap" ;
+device_permission = ( "read8" | "write8" ), natural, { ",", natural }, ";" ;
+effects_clause  = "effects", "(", [ identifier, { ",", identifier } ], ")" ;
+natural         = "0" | ( "1" .. "9" ), { digit } ;
+(* Boot requires every fixed platform declaration exactly once, the exact
+   selector/permission values, no imports/views/heap/recursion, and checked roles.
+   Hardware calls use the qualified-path syntax in spec/modules.md; their static
+   selectors and ordinary operands are specified in spec/boot-profile.md. *)
 function        = "fn", identifier, "(", [ parameters ], ")",
-                  "->", type, { requires_clause }, { ensures_clause }, block ;
+                  "->", type, [ effects_clause ], { requires_clause }, { ensures_clause }, block ;
 requires_clause = "requires", spec_expression, ";" ;
 ensures_clause  = "ensures", "(", identifier, ")", spec_expression, ";" ;
 parameters      = parameter, { ",", parameter }
@@ -107,7 +123,10 @@ line_comment    = "//", { ? any Unicode scalar except CR or LF ? } ;
    Word type names are identifiers outside type positions. cast/truncate are
    contextual only before the complete destination-and-opening-parenthesis
    prefix; otherwise their ordinary names/calls remain valid.
-   requires and ensures are contextual only after a function result type.
+   platform is contextual as the first root item; effects is contextual after
+   a result type. Effects are accepted only in the closed boot profile and precede
+   requires/ensures. These words remain ordinary names in other positions.
+   requires and ensures are contextual after a function result type/effects.
    mut is contextual after let only when followed by an identifier.
    while is contextual at a statement boundary only when its matching
    parenthesized condition is followed by a block or contextual invariant.

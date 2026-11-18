@@ -7,8 +7,10 @@ formal verification.
 A complete operating system authored in ANL is a required product outcome,
 including boot code, the kernel, drivers, services, agent infrastructure and GUI.
 The [OS architecture](docs/architecture/operating-system.md) describes this planned
-work and its language requirements. There is no bootable ANL OS yet; the current
-compiler produces hosted executables.
+work and its language requirements. The first RV64 boot profile now supports
+source checking and strict Core export/import. Boot image emission and execution
+remain unavailable; there is no bootable ANL OS yet. Ordinary native compilation
+continues to produce hosted executables. See [Check an ANL boot program](docs/book/boot-profile.md).
 
 The current implementation checks, interprets, and compiles `i64`, unsigned words `u8`/`u16`/`u32`/`u64`, `bool`, unit,
 flat tuples of 1–8 scalar fields, immutable and initialized mutable bindings, assignment,
@@ -77,6 +79,8 @@ equality, including invariant clauses. See the [tuple contract examples](docs/ve
 
 - [Getting started](docs/getting-started.md)
 - [Native compilation](docs/native-compilation.md)
+- [Boot profile source and static checking](docs/book/boot-profile.md)
+- [Boot profile and Core specification](spec/boot-profile.md)
 - [Programs with modules](docs/modules.md)
 - [Mutable locals and while loops](spec/control-flow.md)
 - [Flat tuples and multiple return values](spec/flat-products.md)

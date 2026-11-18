@@ -590,3 +590,41 @@ Word `verify` remains unsupported with exit 7 before external tools. Word-depend
 specifications are rejected; ordinary word-free clauses may still type-check
 beside words and are erased on ordinary execution. Runtime safety is not a proof
 of those clauses or of an ANL-authored OS.
+
+## Boot Core static checking
+
+The [boot profile](../spec/boot-profile.md) has a separate raw `ANL.Boot.Program`
+and independent static judgment. Its checker validates fixed platform metadata,
+roles, all ordinary bodies, effect permissions, the full acyclic call graph and
+canonical primitive declarations. The [boot proof inventory](PROOFS.md#boot-static-model-and-core-reader)
+also records designated-tail and ordinary-machine no-normal-return guarantees.
+These results do not execute a device or establish a bootable image.
+
+With the pinned Lean tools on `PATH`, build the static probe from `formal/`:
+
+```sh
+lake build anl_boot_raw_probe
+```
+
+From the repository root, export a checked boot source and check its Core
+independently:
+
+```sh
+./target/release/anl dump-core examples/boot/park.anl > /tmp/anl-boot-core.json
+formal/.lake/build/bin/anl_boot_raw_probe /tmp/anl-boot-core.json
+```
+
+The probe prints `{"raw_valid":true,"reason":""}` and exits 0. It accepts exactly
+one file path. Invalid input exits 1, a reader resource limit exits 3, and an
+argument or I/O failure exits 4. Rejections use `raw_valid:false` and a nonempty
+reason; an output failure may leave an empty or partial report and never retries
+with a second JSON document. Reason contents are bounded to 1,024 UTF-8 bytes
+before JSON escaping. Rust `eval-core` remains a separate route: valid boot Core
+returns unsupported status 7 rather than executing the program.
+
+The probe enforces 1,048,576 original bytes, logical expression depth 128 and
+JSON-container depth 1,024. Rust's separate JSON reader admits 127 containers;
+these transport bounds differ. Successful Lean checking implies the independent
+static judgment for the returned raw program. UTF-8/JSON parsing, I/O, compiled
+probe execution and production source checking remain trust boundaries. There
+is no boot pair checker, hardware interpreter or native boot backend in this slice.

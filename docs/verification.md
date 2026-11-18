@@ -9,6 +9,17 @@ Tuple clauses use the same value syntax as executable code, with mathematical
 integer fields. Every clause must return `bool`. The [tuple specification](../spec/flat-products.md#verification-boundary)
 defines their evaluation, reports and limits.
 
+## Boot programs
+
+A valid [boot-profile program](book/boot-profile.md) returns exit 7 before solver
+or native tools. `verify --json` uses `anl-boot-verify-v1`, status `unsupported`,
+reason `unsupported_boot_operation` and trust `not_established`. It reports full
+static type/profile checking and erased contracts, with empty obligations, null
+compiler/solver identities, and false arithmetic-safety, partial-correctness,
+termination, native and hardware proof flags. Invalid source still returns its
+ordinary source/resource error. The boot model's static proofs do not prove
+user contracts, device behavior or Rust/native correctness.
+
 ## Word and buffer boundaries
 
 Words do not yet have specification arithmetic or SMT support. A clause cannot

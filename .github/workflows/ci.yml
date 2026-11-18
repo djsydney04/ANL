@@ -220,6 +220,27 @@ jobs:
             --tools "$RUNNER_TEMP/anl-memory-ci/word-tools.json" \
             --out "$RUNNER_TEMP/anl-memory-ci/words" \
             2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/word-gate.log"
+      - name: Validate boot source and Core admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PYTHON'
+          import hashlib, json, os, pathlib
+          root=pathlib.Path(os.environ['GITHUB_WORKSPACE'])
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'anl-memory-ci'
+          words=json.loads((out/'word-tools.json').read_text())
+          probe=(root/'formal/.lake/build/bin/anl_boot_raw_probe').resolve(strict=True)
+          raw=dict(path=str(probe),bytes=probe.stat().st_size,sha256=hashlib.sha256(probe.read_bytes()).hexdigest(),
+              configuration='formal',source_manifest=words['tools']['raw']['source_manifest'])
+          tools=dict(rust=words['tools']['rust'],evidence=words['tools']['evidence'],raw=raw)
+          (out/'boot-tools.json').write_text(json.dumps(dict(schema='anl-boot-validation-tools-v1',tools=tools),sort_keys=True,indent=2)+'\n')
+          PYTHON
+          python3 validation/boot/run.py audit \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/boot-audit.log"
+          python3 validation/boot/run.py gate \
+            --tools "$RUNNER_TEMP/anl-memory-ci/boot-tools.json" \
+            --out "$RUNNER_TEMP/anl-memory-ci/boot" \
+            2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/boot-gate.log"
       - name: Audit recorded memory performance evidence
         shell: bash
         run: |

@@ -1,9 +1,12 @@
 # ANL-authored operating system
 
-Status: required product architecture, entirely planned. No bootable ANL OS,
-freestanding entry or hardware intrinsics exist. No target architecture, ISA,
-boot protocol or kernel structure has been selected. The working compiler is a
-Rust toolchain that emits C11 hosted executables with libc output/failure helpers.
+Status: the required OS is not bootable. The first selected bring-up profile is
+RV64 supervisor mode on `rv64-virt-sbi-v1`, with one hart and external OpenSBI
+firmware. [Boot source checking and Core interchange](../book/boot-profile.md)
+are implemented, including explicit stacks, UART authority and terminal roles.
+Native entry/trap ABI generation, hardware execution and image building remain
+unfinished. No kernel structure has been selected. Hosted compilation still uses
+a Rust compiler that emits C11 with libc output/failure helpers.
 
 The [OS authorship and expressibility gate](../requirements.md#os-authorship-and-expressibility-gate)
 is mandatory for completion and final release. Missing OS expressibility requires
@@ -36,8 +39,10 @@ implement OS behavior are subject to the same ANL authorship requirement.
 
 ## Hardware operations (planned)
 
-ANL needs source-level features or compiler intrinsics for the operations below.
-Names and syntax remain undecided. Each feature requires a versioned language
+The [first boot profile](../../spec/boot-profile.md) defines a narrow set of
+statically checked UART byte, fence and machine-initialization forms. Their native
+lowering and hardware execution are not yet available. The broader operations
+below remain language/compiler work; their general interfaces are undecided. Each feature requires a versioned language
 contract, target profile, typed IR representation, validated lowering and
 executable conformance evidence before exposure. Unsupported targets and invalid
 static operands must be rejected; dynamic preconditions must be checked or stated
@@ -66,7 +71,7 @@ remain traceable to ANL source or a documented primitive lowering.
 
 ## Boot and external trust boundary
 
-Initial bring-up may use firmware and an external bootloader. The target contract
+The selected initial bring-up uses external OpenSBI firmware. Its target contract
 must identify their supplied state and services, entry ABI, memory map, reserved
 regions, device state, and the point where ANL takes ownership. Continued firmware
 calls require explicit lifetime, privilege and trust assumptions. Hardware and

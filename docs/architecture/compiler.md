@@ -4,8 +4,10 @@ Status: the Rust frontend, typed interpreter, file modules, strict core JSON
 adapters, unsigned words, flat tuples, initialized local state and loops, validated structured MIR, C11 native
 backend, scoped `i64` buffer owners/read-edit call views, and word-free scalar/flat-tuple
 contract verification with loop invariants and acyclic calls are implemented.
-General movable ownership, effects and language-server integration remain
-planned. [Getting started](../getting-started.md) documents the working commands;
+A separate [boot profile](../../spec/boot-profile.md) checks platform metadata,
+closed hardware effects and role boundaries, and imports/exports boot Core.
+Boot execution/native emission, general movable ownership and effects, and
+language-server integration remain planned. [Getting started](../getting-started.md) documents the working commands;
 the [proof inventory](../../formal/PROOFS.md) covers the Lean expression and
 recursive-function, local-state, flat-tuple and owned-buffer models. It does not
 prove Rust implementation correctness.
@@ -34,6 +36,28 @@ M1 ends at typed core execution and formal comparison; the current M2 increment 
 general moves, escaping borrows and effects remain extension points. Verifier results annotate obligations; ordinary compilation does not silently certify contracts. A strict verified build mode eventually requires a configured set of proved obligations.
 
 The compiler is a Rust library called by the CLI, with language-server integration planned. The implementation toolchain is pinned to Rust 1.99.1. Each pass returns a result or structured diagnostics. No pass parses a preceding pass's displayed text.
+
+## Boot target boundary
+
+`compile_target_file(path, TargetSelection)` selects hosted or boot source after
+bounded parsing. Boot selection rejects imports before child reads and checks
+all definitions against the closed profile. `CheckedSource::Boot` owns a distinct
+opaque boot program; it has no conversion to an executable hosted Program. The
+compiler shares ordinary type checking and expression serialization without
+inserting dummy primitive bodies.
+
+The hosted variant carries opaque source provenance. Its consuming `verify`
+method checks the retained source graph; `into_program` yields the ordinary
+hosted program for existing evaluators/backends. `compile` and `compile_file`
+keep their existing hosted return types and reject boot syntax. Core import does
+not manufacture source-contract provenance.
+
+The CLI dispatches checked boot input before hosted entry selection, interpreter,
+solver, evidence settings or C generation. Only static checking and Core
+interchange are available; all execution and native boot routes fail closed with
+exit 7. See the [boot chapter](../book/boot-profile.md) for exact options and
+outcomes. The pipeline diagram above includes planned general capabilities and
+does not establish an implemented boot backend or LLVM backend.
 
 ## M1 caller contract
 

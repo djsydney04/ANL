@@ -162,7 +162,22 @@ run_elab do
     `ANL.WordsSimulationReturnStep,
     `ANL.WordsLoweringSoundness,
     `ANL.WordsPairSemantics,
-    `ANL.WordsWireSemantics]
+    `ANL.WordsWireSemantics,
+    `ANL.BootCore,
+    `ANL.BootSyntax,
+    `ANL.BootPolicy,
+    `ANL.BootGraph,
+    `ANL.BootCheck,
+    `ANL.BootTail,
+    `ANL.BootPolicyProofs,
+    `ANL.BootCheckProofs,
+    `ANL.BootCarrier,
+    `ANL.BootGraphProofs,
+    `ANL.BootNoReturn,
+    `ANL.BootTableProofs,
+    `ANL.BootWire,
+    `ANL.BootWireSafety,
+    `ANL.BootWireIO]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -233,7 +248,10 @@ run_elab do
     `ANL.Words.Reference.RunError.ctorIdx._impl,
     `ANL.Words.Reference.Status.ctorIdx._impl,
     `ANL.Words.Reference.Completion.ctorIdx._impl,
-    `ANL.Words.Wire.IOBoundary.Status.ctorIdx._impl]
+    `ANL.Words.Wire.IOBoundary.Status.ctorIdx._impl,
+    `ANL.Boot.Operation.ctorIdx._impl,
+    `ANL.Boot.Declaration.ctorIdx._impl,
+    `ANL.Boot.TailEdge.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

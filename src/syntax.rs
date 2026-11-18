@@ -245,6 +245,7 @@ pub struct Function {
     pub params: Vec<Parameter>,
     pub result: Type,
     pub result_span: Span,
+    pub effects: Option<Vec<(String, Span)>>,
     pub requires: Vec<Clause>,
     pub ensures: Vec<Postcondition>,
     pub body: Expr,
@@ -267,7 +268,13 @@ pub struct Module {
     pub span: Span,
 }
 #[derive(Debug)]
+pub struct Platform {
+    pub span: Span,
+    pub entries: [String; 3],
+}
+#[derive(Debug)]
 pub struct File {
+    pub platform: Option<Platform>,
     pub functions: Vec<Function>,
     pub modules: Vec<Module>,
 }
@@ -513,9 +520,20 @@ impl Parser {
         }
     }
     fn program(mut self) -> Result<File, Diagnostic> {
+        let mut platform = None;
         let mut functions = Vec::new();
         let mut modules = Vec::new();
         while !self.at(&TokenKind::Eof) {
+            if matches!(&self.current().kind, TokenKind::Ident(name) if name == "platform") {
+                if platform.is_some() || !functions.is_empty() || !modules.is_empty() {
+                    return Err(Diagnostic::new(
+                        self.current().span,
+                        "platform must be the first and only root platform declaration",
+                    ));
+                }
+                platform = Some(self.platform()?);
+                continue;
+            }
             let public = if matches!(&self.current().kind, TokenKind::Ident(name) if name == "pub")
             {
                 self.bump();
@@ -574,6 +592,24 @@ impl Parser {
             self.expect(TokenKind::RParen, ")")?;
             self.expect(TokenKind::Arrow, "->")?;
             let (result, result_span) = self.ty()?;
+            let effects = if matches!(&self.current().kind, TokenKind::Ident(name) if name == "effects")
+            {
+                self.bump();
+                self.expect(TokenKind::LParen, "(")?;
+                let mut effects = Vec::new();
+                if !self.at(&TokenKind::RParen) {
+                    loop {
+                        effects.push(self.name()?);
+                        if !self.eat(&TokenKind::Comma) {
+                            break;
+                        }
+                    }
+                }
+                self.expect(TokenKind::RParen, ")")?;
+                Some(effects)
+            } else {
+                None
+            };
             let mut requires = Vec::new();
             let mut ensures = Vec::new();
             while matches!(&self.current().kind, TokenKind::Ident(name) if name == "requires" || name == "ensures")
@@ -619,12 +655,165 @@ impl Parser {
                 params,
                 result,
                 result_span,
+                effects,
                 requires,
                 ensures,
                 body,
             });
         }
-        Ok(File { functions, modules })
+        Ok(File {
+            platform,
+            functions,
+            modules,
+        })
+    }
+    fn keyword(&mut self, expected: &str) -> Result<(), Diagnostic> {
+        let (name, span) = self.name()?;
+        if name == expected {
+            Ok(())
+        } else {
+            Err(Diagnostic::new(span, format!("expected {expected}")))
+        }
+    }
+    fn static_number(&mut self, word: bool) -> Result<u64, Diagnostic> {
+        let token = self.bump();
+        let text = match token.kind {
+            TokenKind::Integer(text) if !word => text,
+            TokenKind::Word(text, WordWidth::U64) if word => text,
+            _ => {
+                return Err(Diagnostic::new(
+                    token.span,
+                    if word {
+                        "expected u64 literal"
+                    } else {
+                        "expected canonical natural literal"
+                    },
+                ));
+            }
+        };
+        let value = text
+            .parse::<u64>()
+            .map_err(|_| Diagnostic::new(token.span, "static number exceeds uint64"))?;
+        if !word && value.to_string() != text {
+            return Err(Diagnostic::new(
+                token.span,
+                "static natural must use canonical decimal spelling",
+            ));
+        }
+        Ok(value)
+    }
+    fn fixed_number(&mut self, expected: u64, word: bool) -> Result<(), Diagnostic> {
+        let span = self.current().span;
+        if self.static_number(word)? != expected {
+            return Err(Diagnostic::new(
+                span,
+                "value does not match rv64-virt-sbi-v1 profile",
+            ));
+        }
+        Ok(())
+    }
+    fn platform(&mut self) -> Result<Platform, Diagnostic> {
+        let start = self.bump().span;
+        self.keyword("rv64_virt_sbi_v1")?;
+        self.expect(TokenKind::LBrace, "{")?;
+        let mut seen = std::collections::HashSet::new();
+        let mut entries = [String::new(), String::new(), String::new()];
+        while !self.at(&TokenKind::RBrace) {
+            let (kind, span) = self.name()?;
+            let key = match kind.as_str() {
+                "image_base" => {
+                    self.fixed_number(2149580800, true)?;
+                    kind
+                }
+                "image_limit" => {
+                    self.fixed_number(1048576, false)?;
+                    kind
+                }
+                "stack" => {
+                    let (name, ns) = self.name()?;
+                    let size = match name.as_str() {
+                        "boot_stack" => 16384,
+                        "terminal_stack" => 4096,
+                        _ => return Err(Diagnostic::new(ns, "unknown boot stack")),
+                    };
+                    self.expect(TokenKind::LBracket, "[")?;
+                    self.fixed_number(size, false)?;
+                    self.expect(TokenKind::RBracket, "]")?;
+                    self.keyword("align")?;
+                    self.fixed_number(16, false)?;
+                    format!("stack:{name}")
+                }
+                "device" => {
+                    self.keyword("uart0")?;
+                    self.keyword("at")?;
+                    self.fixed_number(268435456, true)?;
+                    self.keyword("size")?;
+                    self.fixed_number(256, false)?;
+                    self.expect(TokenKind::LBrace, "{")?;
+                    let mut permissions = std::collections::HashSet::new();
+                    while !self.at(&TokenKind::RBrace) {
+                        let (permission, ps) = self.name()?;
+                        if !permissions.insert(permission.clone()) {
+                            return Err(Diagnostic::new(ps, "duplicate device permission"));
+                        }
+                        match permission.as_str() {
+                            "read8" => self.fixed_number(5, false)?,
+                            "write8" => {
+                                for n in 0..5 {
+                                    if n != 0 {
+                                        self.expect(TokenKind::Comma, ",")?;
+                                    }
+                                    self.fixed_number(n, false)?;
+                                }
+                            }
+                            _ => return Err(Diagnostic::new(ps, "unknown device permission")),
+                        }
+                        self.expect(TokenKind::Semi, ";")?;
+                    }
+                    self.expect(TokenKind::RBrace, "}")?;
+                    if permissions.len() != 2 {
+                        return Err(Diagnostic::new(span, "missing device permission"));
+                    }
+                    if !seen.insert(kind) {
+                        return Err(Diagnostic::new(span, "duplicate platform declaration"));
+                    }
+                    continue;
+                }
+                "entry" | "hardware_trap" | "language_trap" => {
+                    let i = if kind == "entry" {
+                        0
+                    } else if kind == "hardware_trap" {
+                        1
+                    } else {
+                        2
+                    };
+                    entries[i] = self.name()?.0;
+                    self.keyword("using")?;
+                    self.keyword(if i == 0 {
+                        "boot_stack"
+                    } else {
+                        "terminal_stack"
+                    })?;
+                    kind
+                }
+                _ => return Err(Diagnostic::new(span, "unknown platform declaration")),
+            };
+            if !seen.insert(key) {
+                return Err(Diagnostic::new(span, "duplicate platform declaration"));
+            }
+            self.expect(TokenKind::Semi, ";")?;
+        }
+        let end = self.expect(TokenKind::RBrace, "}")?.span;
+        if seen.len() != 8 {
+            return Err(Diagnostic::new(
+                start,
+                "platform must declare image, both stacks, UART and all three roles",
+            ));
+        }
+        Ok(Platform {
+            span: start.join(end),
+            entries,
+        })
     }
     fn block(&mut self) -> Result<Expr, Diagnostic> {
         self.enter()?;
