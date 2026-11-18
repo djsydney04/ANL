@@ -5,8 +5,8 @@
       "sha256": "b1fe5deaf9dd118d6dfa9a2936c67d0a295105fb6ab8e2daea2fb4ea40c348d1"
     },
     "expected-link.ld": {
-      "bytes": 1674,
-      "sha256": "e83aa203c62a61c2bfafd6b60b41339a37dfbd6fe365cdd6cf498110cc0f26fb"
+      "bytes": 2795,
+      "sha256": "7863291e17482372d1b311945c646a88214b4f74d0df66ae2f7f2273f7ed8c8c"
     },
     "manifest.json": {
       "bytes": 6533,
