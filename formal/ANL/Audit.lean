@@ -244,7 +244,19 @@ run_elab do
     `ANL.BootReferenceRequest,
     `ANL.BootReferenceRequestWire,
     `ANL.BootReferenceInputProofs,
-    `ANL.BootReferenceInputBounds]
+    `ANL.BootReferenceInputBounds,
+    `ANL.BootRuntimeSavedPhase,
+    `ANL.BootReferenceProjectionCore,
+    `ANL.BootReferenceProjectionGuards,
+    `ANL.BootReferenceProjection,
+    `ANL.BootReferenceProjectionValues,
+    `ANL.BootReferenceProjectionProofs,
+    `ANL.BootReferenceProjectionContext,
+    `ANL.BootReferenceProjectionSession,
+    `ANL.BootReferenceOutputJson,
+    `ANL.BootReferenceOutput,
+    `ANL.BootReferenceOutputMinimal,
+    `ANL.BootReferenceOutputBounds]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -334,7 +346,13 @@ run_elab do
     `ANL.Boot.Runtime.Session.ActionKind.ctorIdx._impl,
     `ANL.Boot.Runtime.Session.DeliveryView.ctorIdx._impl,
     `ANL.Boot.Runtime.Session.Ending.ctorIdx._impl,
-    `ANL.Boot.Runtime.Session.StartResult.ctorIdx._impl]
+    `ANL.Boot.Runtime.Session.StartResult.ctorIdx._impl,
+    `ANL.Boot.Reference.Projection.Value.ctorIdx._impl,
+    `ANL.Boot.Reference.Projection.PhaseView.ctorIdx._impl,
+    `ANL.Boot.Reference.Projection.Status.ctorIdx._impl,
+    `ANL.Boot.Reference.Output.PrestartFailure.ctorIdx._impl,
+    `ANL.Boot.Reference.Output.ExportError.ctorIdx._impl,
+    `ANL.Boot.Reference.Output.MinimalReason.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

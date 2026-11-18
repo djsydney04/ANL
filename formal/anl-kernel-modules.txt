@@ -242,4 +242,16 @@ ANL.BootReferenceRequest
 ANL.BootReferenceRequestWire
 ANL.BootReferenceInputProofs
 ANL.BootReferenceInputBounds
+ANL.BootRuntimeSavedPhase
+ANL.BootReferenceProjectionCore
+ANL.BootReferenceProjectionGuards
+ANL.BootReferenceProjection
+ANL.BootReferenceProjectionValues
+ANL.BootReferenceProjectionProofs
+ANL.BootReferenceProjectionContext
+ANL.BootReferenceProjectionSession
+ANL.BootReferenceOutputJson
+ANL.BootReferenceOutput
+ANL.BootReferenceOutputMinimal
+ANL.BootReferenceOutputBounds
 BootRawProbe

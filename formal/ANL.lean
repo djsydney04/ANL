@@ -235,3 +235,15 @@ import ANL.BootReferenceRequest
 import ANL.BootReferenceRequestWire
 import ANL.BootReferenceInputProofs
 import ANL.BootReferenceInputBounds
+import ANL.BootRuntimeSavedPhase
+import ANL.BootReferenceProjectionCore
+import ANL.BootReferenceProjectionGuards
+import ANL.BootReferenceProjection
+import ANL.BootReferenceProjectionValues
+import ANL.BootReferenceProjectionProofs
+import ANL.BootReferenceProjectionContext
+import ANL.BootReferenceProjectionSession
+import ANL.BootReferenceOutputJson
+import ANL.BootReferenceOutput
+import ANL.BootReferenceOutputMinimal
+import ANL.BootReferenceOutputBounds

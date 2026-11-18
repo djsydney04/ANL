@@ -1521,9 +1521,9 @@ classifier or tick calls and are outside the nonempty-row formula.
 
 These counts describe source call sites, not elapsed time, allocation or native
 instructions. The pure input domain remains `Nat`; delivery ordinals are not
-restricted by action budgets. The reference input layer below supplies parser limits. Wire encoding, host
-stack/resource qualification, a session CLI and native correspondence remain
-separate work.
+restricted by action budgets. The reference layers below supply input limits and pure bounded result encoding.
+Host stack/resource qualification, a session CLI and native correspondence
+remain separate work.
 
 
 ### Reference input admission
@@ -1569,3 +1569,37 @@ qualification boundary. The depth theorem proves that the concrete guard
 succeeded, without an independent JSON-depth semantics theorem. These modules
 provide no result encoder, IO/CLI, host allocation or stack bound, native
 correspondence, or guest execution claim.
+
+
+### Reference result projection and encoding
+
+The pure result exporter projects a completed reference session without running
+another transition or classifier. Independent relations describe values,
+pending operations, phases, saved interruptions, action rows, final state and
+unused input. Rows refer to offsets in one final event sequence. Checked-session
+theorems connect them to actual finite runtime prefixes and read consumption.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootRuntimeSavedPhase](ANL/BootRuntimeSavedPhase.lean), `checked_prefix_interrupted_source` | A retained interruption comes from an actual earlier reset source, with a finite-prefix split. |
+| [BootReferenceProjectionCore](ANL/BootReferenceProjectionCore.lean), [BootReferenceProjectionGuards](ANL/BootReferenceProjectionGuards.lean), [BootReferenceProjection](ANL/BootReferenceProjection.lean), [BootReferenceProjectionValues](ANL/BootReferenceProjectionValues.lean), [BootReferenceProjectionProofs](ANL/BootReferenceProjectionProofs.lean) | Independent view relations, conversion equivalences and exact recovery when a summary or final view cannot be exported. |
+| [BootReferenceProjectionContext](ANL/BootReferenceProjectionContext.lean), [BootReferenceProjectionSession](ANL/BootReferenceProjectionSession.lean) | Checked identity and role bounds, actual prefix/count/row/read conservation, stored-frontier next actions and status meaning. |
+| [BootReferenceOutputJson](ANL/BootReferenceOutputJson.lean), [BootReferenceOutput](ANL/BootReferenceOutput.lean) | Guarded pure encoding, bounded event count and streaming fragments, with explicit trace omission on error. |
+| [BootReferenceOutputMinimal](ANL/BootReferenceOutputMinimal.lean), [BootReferenceOutputBounds](ANL/BootReferenceOutputBounds.lean), `encodeResult_bound`, `encodePrestart_bound`, `encodeResult_nonerror` | Every result's actual ByteArray is at most 8,388,608 bytes including LF. Non-error result encoding requires a valid context, full projection and a successful bounded buffer. |
+
+The encoder bounds the event count at 65,536 before reversing and streaming it.
+Each event is validated before its fragment. The first shape or byte failure
+produces an explicit error and a trace-free retry retaining the validated
+summary and final state. A further failure uses a fixed unavailable-summary
+envelope. Its actual UTF-8 byte bound is checked by kernel reduction; equality
+with the structured JSON renderer is separately qualified for all four fixed
+variants. Missing counters mean unavailable information, never fabricated zero
+execution. JSON object-key order is non-normative; array order is preserved.
+
+The output origin-path limit of 128 remains an explicit guard: these proofs do
+not derive it from the input logical-depth limit. A universal renderer-specific
+summary-size bound also remains open; the fixed fallback is retained. JSON
+parser/renderer correctness, UTF-8/ByteArray runtime behavior, peak host memory,
+stack/time bounds, output IO and CLI routing remain separate obligations. These
+modules do not establish native correspondence, guest execution or hardware
+behavior.
