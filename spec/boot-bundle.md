@@ -168,6 +168,24 @@ native correctness, and remains unconnected to the build command. Its current
 assembly uses separately linked Rust inspection libraries; integration into the
 compiler's ordinary modules remains a separate boundary.
 
+A third standalone library computes conditional local-frame facts from the same
+instruction inventory. It tracks entry-relative stack offsets, register values
+and saved frame slots, including the effects of loads whose result is discarded.
+Joins lose facts conservatively; a final walk from each function entry removes
+observations reachable only through an earlier, stronger state. Calls, stack
+changes outside the local domain, CSR/fence operations and unresolved memory
+accesses remain explicit boundaries. No state is propagated through a call or its
+possible continuation.
+
+A local return summary requires restored entry SP/RA and preserved registers on
+every covered return, with no unresolved local boundary. It is conditional on
+aligned entry SP/RA, valid nonwrapping frame storage and successful ordinary
+instruction completion. Local loops without return sites do not establish
+termination or selected-park identity. Complete frame/return safety, call-stack
+bounds, emitted role/helper identity, hardware and language reset roots, memory
+and primitive authority, and native correctness remain unestablished. This third
+library is also outside the compiler's ordinary module and build-command paths.
+
 ## Publication
 
 Emission finishes all six bounded payloads before filesystem work. The parent
