@@ -267,3 +267,5 @@ import ANL.BootSummaryEnvelopeSpecs
 import ANL.BootSummarySuccess
 import ANL.BootSummaryOutput
 import ANL.BootSummaryOutputProofs
+import ANL.BootNativeFrame
+import ANL.BootNativeFrameComposition

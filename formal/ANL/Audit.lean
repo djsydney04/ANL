@@ -276,7 +276,9 @@ run_elab do
     `ANL.BootSummaryEnvelopeSpecs,
     `ANL.BootSummarySuccess,
     `ANL.BootSummaryOutput,
-    `ANL.BootSummaryOutputProofs]
+    `ANL.BootSummaryOutputProofs,
+    `ANL.BootNativeFrame,
+    `ANL.BootNativeFrameComposition]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -372,7 +374,9 @@ run_elab do
     `ANL.Boot.Reference.Projection.Status.ctorIdx._impl,
     `ANL.Boot.Reference.Output.PrestartFailure.ctorIdx._impl,
     `ANL.Boot.Reference.Output.ExportError.ctorIdx._impl,
-    `ANL.Boot.Reference.Output.MinimalReason.ctorIdx._impl]
+    `ANL.Boot.Reference.Output.MinimalReason.ctorIdx._impl,
+    `ANL.Boot.NativeFrame.AccessKind.ctorIdx._impl,
+    `ANL.Boot.NativeFrame.RootRole.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

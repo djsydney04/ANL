@@ -217,7 +217,10 @@ fn signature(id: usize, function: &mir::Function, text: &mut Buffer) -> fmt::Res
     }
     text.write_str(")")
 }
-pub(crate) fn emit_boot_helpers(functions: &[mir::Function], text: &mut Buffer) -> fmt::Result {
+pub(crate) fn emit_boot_helpers(
+    functions: &[mir::Function],
+    text: &mut Buffer,
+) -> Result<usize, fmt::Error> {
     fn scan(block: &Block, used: &mut BTreeSet<Helper>) -> fmt::Result {
         for instruction in &block.instructions {
             let helper = match &instruction.kind {
@@ -293,10 +296,11 @@ pub(crate) fn emit_boot_helpers(functions: &[mir::Function], text: &mut Buffer) 
     for function in functions {
         scan(&function.body, &mut used)?;
     }
+    let count = used.len();
     for helper in used {
         helper.emit(true, text)?;
     }
-    Ok(())
+    Ok(count)
 }
 pub(crate) struct BodyEmission {
     pub(crate) boot: bool,

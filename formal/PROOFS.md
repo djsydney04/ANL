@@ -1619,3 +1619,27 @@ Unicode escaping semantics, UTF-8/ByteArray runtime behavior, peak host memory,
 stack/time bounds, output IO and CLI routing remain separate obligations. These
 modules do not establish native correspondence, guest execution or hardware
 behavior.
+
+## Conditional native call-frame algebra
+
+`ANL.Boot.NativeFrame` models 64-bit addresses, byte memory, registers and an
+abstract concrete-step relation. At caller entry SP `E`, a call at depth `d`
+places a callee with bound `h` below `E - d`; its complete access spans are
+separate from caller slots in `[E - d, E)`. Composed prefixes stay within the
+upper bound `max(previous, d + h)`. The bound need not be reached.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootNativeFrame](ANL/BootNativeFrame.lean), `frame_separated`, `frame_preserves_slots`, `write_prefix_noninterference` | Whole-byte caller-slot separation and preservation, conditional on the supplied finite run, frame bounds and complete write-effect contract. |
+| [BootNativeFrameComposition](ANL/BootNativeFrameComposition.lean), `call_prefix_bound`, with `callee_prefix_rebased`, `sequential_peak` | Local and leaf contracts compose at actual caller SP `E - d`, with a maximum of sequential call bounds rather than their sum. |
+| `continuation_aligned`, `return_low_bit_neutral`, `call_return_frame` | From the actual linking instruction at aligned PC `P`, the return is `P + 4`; clearing its low bit is neutral. The supplied return and ownership contracts preserve caller slots and callee-saved registers and identify the owned continuation. |
+| `root_substitution`, `terminal_requirement` | A supplied stackless root contract establishes the declared stack with arbitrary incoming SP/RA. Separately supplied hardware/language root bounds fit a shared terminal reservation exactly when their maximum fits. This does not add either terminal bound to the abandoned boot continuation. |
+
+`LocalPrefixContract`, `LeafContract`, `WriteSound`, `LinkSound`, `ReturnSound`
+and `RootThunkContract` are explicit hypotheses, not facts inferred from a
+binary or observations. Hardware state is separate; no universal fault rollback
+is assumed. Theorems over finite prefixes do not establish termination or exact
+peak reachability. Concrete instruction semantics, decoder/control-flow analysis,
+compiler lowering, source-to-ELF refinement, root-thunk validation and hardware
+entry remain separate obligations. These modules grant no positive native-image
+admission and do not establish an ANL-authored operating system.

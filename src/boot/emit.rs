@@ -1,3 +1,4 @@
+mod setup;
 use super::{BlockChild, CheckedPair, CoreEdge, Origin, templates};
 use crate::{
     bounded::{Buffer, OutputError},
@@ -6,6 +7,10 @@ use crate::{
     types::Type,
 };
 use serde_json::{Value, json};
+pub use setup::{
+    SetupAbi, SetupEmissionView, SetupFunction, SetupOperation, SetupPrimitive,
+    SetupProfileUnsupported, SetupReturn, SetupRole,
+};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -21,8 +26,16 @@ const MAX_MANIFEST: usize = 1_048_576;
 /// Complete checked compiler artifacts. This contains no linked image or runtime result.
 pub struct Bundle {
     pub(super) files: [(&'static str, String); 6],
+    setup: Result<setup::SetupIdentity, SetupProfileUnsupported>,
 }
 impl Bundle {
+    /// Read-only setup identity from the same checked emission; never native admission.
+    pub fn setup_identity(&self) -> Result<SetupEmissionView<'_>, SetupProfileUnsupported> {
+        match &self.setup {
+            Ok(identity) => Ok(setup::view(&self.files, identity)),
+            Err(reason) => Err(*reason),
+        }
+    }
     pub fn files(&self) -> impl Iterator<Item = (&'static str, &str)> {
         self.files
             .iter()
@@ -185,10 +198,11 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let mut function_ranges = Vec::new();
     let mut primitive_ranges = Vec::new();
     let mut instruction_ranges = BTreeMap::new();
+    let mut helper_count = 0;
     let result = (|| {
         c.write_str(templates::HEADER)?;
         codegen::emit_shapes(&pair.functions, &mut c)?;
-        codegen::emit_boot_helpers(&pair.functions, &mut c)?;
+        helper_count = codegen::emit_boot_helpers(&pair.functions, &mut c)?;
         for (id, function) in pair.functions.iter().enumerate() {
             signature(id, function, pair.program.entries.contains(&id), &mut c)?;
             c.write_str(";\n")?;
@@ -241,6 +255,15 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let mut linker = Buffer::new(Some(MAX_LINKER), "boot linker output exceeds 65536 bytes");
     let result = linker.write_str(templates::LINKER);
     let linker = rendered(linker, result)?;
+    let setup = setup::build(
+        pair,
+        helper_count,
+        &function_ranges,
+        &primitive_ranges,
+        &abi_ranges,
+        &c,
+        &assembly,
+    )?;
     let functions: Vec<_> = pair.program.functions.iter().enumerate().map(|(id,f)| Ok(json!({
         "id":id,"name":f.name,"symbol":format!("anl_boot_f{id}"),"source_span":source_span(pair,f.span)?,"c_range":byte_range(function_ranges[id].clone(),&c)?,
     }))).collect::<Result<_,OutputError>>()?;
@@ -298,6 +321,7 @@ pub fn emit(pair: &CheckedPair) -> Result<Bundle, OutputError> {
     let manifest = out.finish()?;
     result.map_err(|e| OutputError::Infrastructure(e.to_string()))?;
     Ok(Bundle {
+        setup,
         files: [
             ("core.json", core),
             ("mir.json", mir),

@@ -16,6 +16,20 @@ is insufficient. `export_pair_core` and `export_mir` export the paired documents
 `emit(&pair)` returns an immutable `Bundle` with `files()` and `publish(path)`.
 There is no hosted-program conversion or standalone boot MIR permit.
 
+`Bundle::setup_identity()` returns a borrowed, read-only view for a narrow setup
+profile: exactly the three declared roles, the three mandatory machine setup
+primitives and no generated scalar helpers. It retains the actual declaration
+IDs, signatures, effects, generated symbols and byte ranges alongside the six
+exact bundle payloads. Each role is identified by its declared entry, including
+when function declarations are reordered. The view and its rows cannot be
+constructed or modified through the public API.
+
+An additional function, scalar helper or other primitive makes this projection
+unsupported; ordinary bundle emission still succeeds. The projection adds no
+serialized fields and changes no generated payloads. Its native return labels
+describe the emitted interfaces; they are not proofs of return behavior, stack
+adequacy, primitive authority or native correctness.
+
 MIR has schema `anl-boot-mir-v1`, semantic revision `anl-boot-rv64-virt-v1` and
 ordinary revision `anl-words-v1`. Its root fields are exactly:
 

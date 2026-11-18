@@ -3,7 +3,10 @@ mod check;
 mod emit;
 mod publish;
 mod templates;
-pub use emit::{Bundle, emit};
+pub use emit::{
+    Bundle, SetupAbi, SetupEmissionView, SetupFunction, SetupOperation, SetupPrimitive,
+    SetupProfileUnsupported, SetupReturn, SetupRole, emit,
+};
 mod mir;
 mod source;
 mod wire;

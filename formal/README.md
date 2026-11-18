@@ -628,3 +628,9 @@ these transport bounds differ. Successful Lean checking implies the independent
 static judgment for the returned raw program. UTF-8/JSON parsing, I/O, compiled
 probe execution and production source checking remain trust boundaries. There
 is no boot pair checker, hardware interpreter or native boot backend in this slice.
+
+The separate [conditional native call-frame algebra](PROOFS.md#conditional-native-call-frame-algebra)
+proves finite-prefix frame separation, byte preservation, call-depth upper bounds,
+aligned return and root-stack substitution from explicit local/leaf execution and
+instruction-effect contracts. It does not discharge those contracts for emitted
+RISC-V code or prove compiler, ELF, firmware or guest correspondence.

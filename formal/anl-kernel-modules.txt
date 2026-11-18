@@ -274,4 +274,6 @@ ANL.BootSummaryEnvelopeSpecs
 ANL.BootSummarySuccess
 ANL.BootSummaryOutput
 ANL.BootSummaryOutputProofs
+ANL.BootNativeFrame
+ANL.BootNativeFrameComposition
 BootRawProbe
