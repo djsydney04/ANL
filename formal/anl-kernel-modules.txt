@@ -217,4 +217,10 @@ ANL.BootRuntimeAuthority
 ANL.BootRuntimeEventPrefixes
 ANL.BootRuntimeSelectedSpin
 ANL.BootRuntimeReachableFacts
+ANL.BootRuntimeObservations
+ANL.BootRuntimeRun
+ANL.BootRuntimeRunAgreement
+ANL.BootRuntimeRunBounds
+ANL.BootRuntimeRunCompleteness
+ANL.BootRuntimeObservationLaws
 BootRawProbe

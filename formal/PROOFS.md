@@ -1439,8 +1439,35 @@ the unused input suffix intact. Ineligible delivery from a safe state occurs
 before handler installation and before any installation event; it is distinct
 from read exhaustion.
 
-These are finite-prefix theorems, not a claim that arbitrary boot code reaches
-its selected park. An ordinary helper may diverge earlier. No finite runner,
-budget policy, runtime CLI, Core/MIR boot correspondence, stack/ELF/ABI
-qualification, firmware mediation or native execution result follows from
-these proofs.
+These are finite-prefix theorems. An ordinary helper may diverge before the
+selected park; no eventual-park result is assumed.
+
+### Finite boot execution and resumption
+
+The boot runner stops at fresh handler entry or the selected park observation.
+It checks for an observation before checking the remaining budget, including
+zero. Without an observation, a zero budget returns the unchanged state as
+exhausted. A successful tick consumes one step; a blocked read, ineligible
+delivery or defensive invalid result consumes none. A supplied but unused
+delivery is reported as `unobserved` only at a covered observation.
+
+`resumeObserved` takes an observation premise and the existing validated input.
+With a positive budget it performs one actual tick before running the remainder.
+With zero it returns exhausted without advancing. Calling `run` again on an
+unchanged observed state can report that same observation; explicit resumption
+counts the transition that leaves it.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootRuntimeObservations](ANL/BootRuntimeObservations.lean), `observe_iff` | The state classifier agrees with independent handler-entry and selected-park relations. Raw shape recognition alone does not prove past execution. |
+| [BootRuntimeRunAgreement](ANL/BootRuntimeRunAgreement.lean), `runRaw_iff`, `resumeRaw_iff` | The executable runner and resumption agree with independent finite relations over actual boot steps and outcomes. |
+| [BootRuntimeRunBounds](ANL/BootRuntimeRunBounds.lean), `runRaw_prefix`, `runRaw_bound`, `run_checked_safety` | Every returned state follows exactly `used` successful steps, with `used` at most the budget. Checked execution preserves safety and excludes invalid results. |
+| [BootRuntimeRunCompleteness](ANL/BootRuntimeRunCompleteness.lean), `runRaw_complete`, `runRaw_extend` | Completeness applies to prefixes with no earlier covered observation. Extending an exhausted run composes the actual prefixes. |
+| [BootRuntimeObservationLaws](ANL/BootRuntimeObservationLaws.lean), `HardwareReset.observation`, `LanguageReset.observation`, `resume_observed_positive` | Actual resets produce handler observations. From a safe observed state, positive resumption performs a successful counted step. |
+| [BootRuntimeObservationLaws](ANL/BootRuntimeObservationLaws.lean), `resume_park_exhausted`, `resume_park_retains` | Resuming an observed park exhausts its positive budget in the existing loop, retaining events, the read cursor and delivery-use state without another observation. |
+
+These bounds count mathematical transitions. They do not bound host recursion,
+memory, lookup cost or elapsed time. The modules do not define a runtime CLI or
+wire protocol, a host resource policy, Core/MIR boot correspondence, native
+stack/ELF/ABI qualification or firmware mediation. No native execution result
+follows from these proofs.

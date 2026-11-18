@@ -219,7 +219,13 @@ run_elab do
     `ANL.BootRuntimeAuthority,
     `ANL.BootRuntimeEventPrefixes,
     `ANL.BootRuntimeSelectedSpin,
-    `ANL.BootRuntimeReachableFacts]
+    `ANL.BootRuntimeReachableFacts,
+    `ANL.BootRuntimeObservations,
+    `ANL.BootRuntimeRun,
+    `ANL.BootRuntimeRunAgreement,
+    `ANL.BootRuntimeRunBounds,
+    `ANL.BootRuntimeRunCompleteness,
+    `ANL.BootRuntimeObservationLaws]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -303,7 +309,9 @@ run_elab do
     `ANL.Boot.Runtime.Event.ctorIdx._impl,
     `ANL.Boot.Runtime.Phase.ctorIdx._impl,
     `ANL.Boot.Runtime.TickResult.ctorIdx._impl,
-    `ANL.Boot.Runtime.Command.ctorIdx._impl]
+    `ANL.Boot.Runtime.Command.ctorIdx._impl,
+    `ANL.Boot.Runtime.ObservationKind.ctorIdx._impl,
+    `ANL.Boot.Runtime.StopReason.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do
