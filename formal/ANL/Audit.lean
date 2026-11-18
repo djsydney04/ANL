@@ -177,7 +177,14 @@ run_elab do
     `ANL.BootTableProofs,
     `ANL.BootWire,
     `ANL.BootWireSafety,
-    `ANL.BootWireIO]
+    `ANL.BootWireIO,
+    `ANL.BootOriginCore,
+    `ANL.BootOriginFrames,
+    `ANL.BootOriginAdvance,
+    `ANL.BootOriginAdvanceProofs,
+    `ANL.BootOriginAlignment,
+    `ANL.BootOriginProgress,
+    `ANL.BootOriginReachable]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,
@@ -251,7 +258,9 @@ run_elab do
     `ANL.Words.Wire.IOBoundary.Status.ctorIdx._impl,
     `ANL.Boot.Operation.ctorIdx._impl,
     `ANL.Boot.Declaration.ctorIdx._impl,
-    `ANL.Boot.TailEdge.ctorIdx._impl]
+    `ANL.Boot.TailEdge.ctorIdx._impl,
+    `ANL.Boot.Origin.Edge.ctorIdx._impl,
+    `ANL.Boot.Origin.Action.ctorIdx._impl]
   let mut inspected : Array Name := #[]
   let mut total : Nat := 0
   for moduleName in modules do

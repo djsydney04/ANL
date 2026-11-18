@@ -1347,3 +1347,30 @@ separately qualified boundaries. Finite actual-export comparisons do not prove
 universal Rust/Lean equivalence. Boot MIR admission/correspondence, device and trap
 execution, ELF/ABI generation, firmware handoff and the complete ANL-authored OS
 remain outside this proof slice.
+
+### Ordinary boot source occurrences
+
+The `ANL.Boot.Origin` model tracks the current defined function and structural
+path through its Core body. Each continuation frame carries its parent occurrence;
+call frames retain the caller's location while execution enters the callee.
+Identical term text at two paths remains two distinct occurrences.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootOriginCore](ANL/BootOriginCore.lean), `lookup_iff`, `designatedTail_located` | Executable lookup agrees with an independent occurrence judgment. The checker-selected tail path locates its actual park loop. Primitive and synthetic bodies have no authored occurrence. |
+| [BootOriginAdvanceProofs](ANL/BootOriginAdvanceProofs.lean), `step_iff`, `Step.erase`, `Step.deterministic` | The guarded executable step agrees with independent metadata transition rules, erases to an actual ordinary Words step, and is deterministic. Primitive invocation stops before entry into a dummy body. |
+| [BootOriginAlignment](ANL/BootOriginAlignment.lean), `preserve`, and [BootOriginProgress](ANL/BootOriginProgress.lean), `lift`, `stopped_iff` | On well-formed, typed, aligned states, admitted ordinary steps preserve location/frame alignment. Every admitted Words step has a metadata step; stopping occurs exactly at a primitive invocation or ordinary terminal state. |
+| [BootOriginReachable](ANL/BootOriginReachable.lean), `root_prefix`, `Steps.deterministic`, `root_prefix_selected`, `park_round` | Finite histories from an actual defined body preserve typing and alignment. A fixed-length history determines its locations, including the exact selected loop occurrence and its silent four-step round. |
+
+Initial roots use the declared body's actual parameter environment, empty
+continuations/resources, and the initial ordinary world. Root typing requires
+the supplied arguments to have the declared types. Roles can be selected as roots;
+ordinary calls still cannot enter roles, primitives or the synthetic adapter.
+Alignment is an independent structural relation, not a claim that every aligned
+raw state is reachable. Causal occurrence identity follows from the fixed root
+and its actual step history, rather than equality of term text.
+
+These theorems stop before hardware primitives. They establish no device effect,
+trap-handler reset, delivery schedule, event history, runtime budget, Core/MIR
+correspondence or native execution. Raw defensive guard failures remain distinct
+from language traps; the typed, aligned theorem domain excludes those failures.

@@ -175,4 +175,11 @@ ANL.BootTableProofs
 ANL.BootWire
 ANL.BootWireSafety
 ANL.BootWireIO
+ANL.BootOriginCore
+ANL.BootOriginFrames
+ANL.BootOriginAdvance
+ANL.BootOriginAdvanceProofs
+ANL.BootOriginAlignment
+ANL.BootOriginProgress
+ANL.BootOriginReachable
 BootRawProbe
