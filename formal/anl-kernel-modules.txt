@@ -223,4 +223,7 @@ ANL.BootRuntimeRunAgreement
 ANL.BootRuntimeRunBounds
 ANL.BootRuntimeRunCompleteness
 ANL.BootRuntimeObservationLaws
+ANL.BootRuntimeTailRun
+ANL.BootRuntimeHistoryCounts
+ANL.BootRuntimeTailLaws
 BootRawProbe

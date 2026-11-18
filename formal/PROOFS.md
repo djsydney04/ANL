@@ -1471,3 +1471,22 @@ memory, lookup cost or elapsed time. The modules do not define a runtime CLI or
 wire protocol, a host resource policy, Core/MIR boot correspondence, native
 stack/ELF/ABI qualification or firmware mediation. No native execution result
 follows from these proofs.
+
+### Tail-position execution and event offsets
+
+`runTailRaw` and `resumeTailRaw` compute exactly the same results as the existing
+runners for arbitrary raw states and budgets. Their accumulator places recursion
+in tail position and counts only successful steps. Observation priority,
+zero-budget behavior, blocking and invalid results remain unchanged.
+
+| Source and theorem | Scope |
+| --- | --- |
+| [BootRuntimeTailRun](ANL/BootRuntimeTailRun.lean), `runAccum_eq`, `runTailRaw_eq`, `resumeTailRaw_eq` | Exact result equality for arbitrary programs, inputs, states and initial counts. |
+| [BootRuntimeHistoryCounts](ANL/BootRuntimeHistoryCounts.lean), `History.event_count`, `BootStepsN.event_offsets` | Under independent History, the ordinal and episode determine event length. Finite prefixes identify the exact appended suffix and its offset. |
+| [BootRuntimeTailLaws](ANL/BootRuntimeTailLaws.lean), `runTailRaw_safety`, `runTailRaw_event_offsets`, `resumeTailRaw_park_exhausted` | Safety, transition bounds, event offsets and selected-loop resumption transfer through exact equality. |
+
+`State.eventCount` reads the ordinal and episode without traversing the event
+list. Its length identity requires History; arbitrary forged summaries are not
+certified. Source-level tail position does not establish native stack usage or
+host resource bounds. Session applicability, protocol encoding and native
+execution remain separate obligations.

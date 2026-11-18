@@ -225,7 +225,10 @@ run_elab do
     `ANL.BootRuntimeRunAgreement,
     `ANL.BootRuntimeRunBounds,
     `ANL.BootRuntimeRunCompleteness,
-    `ANL.BootRuntimeObservationLaws]
+    `ANL.BootRuntimeObservationLaws,
+    `ANL.BootRuntimeTailRun,
+    `ANL.BootRuntimeHistoryCounts,
+    `ANL.BootRuntimeTailLaws]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,

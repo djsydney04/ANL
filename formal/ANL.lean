@@ -216,3 +216,6 @@ import ANL.BootRuntimeRunAgreement
 import ANL.BootRuntimeRunBounds
 import ANL.BootRuntimeRunCompleteness
 import ANL.BootRuntimeObservationLaws
+import ANL.BootRuntimeTailRun
+import ANL.BootRuntimeHistoryCounts
+import ANL.BootRuntimeTailLaws
