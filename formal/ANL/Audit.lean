@@ -256,7 +256,27 @@ run_elab do
     `ANL.BootReferenceOutputJson,
     `ANL.BootReferenceOutput,
     `ANL.BootReferenceOutputMinimal,
-    `ANL.BootReferenceOutputBounds]
+    `ANL.BootReferenceOutputBounds,
+    `ANL.BootReferenceDecimalText,
+    `ANL.BootReferenceUtf8,
+    `ANL.BootReferenceJsonString,
+    `ANL.BootReferenceStringBytes,
+    `ANL.BootSummaryWriterCore,
+    `ANL.BootSummaryWire,
+    `ANL.BootSummaryComponents,
+    `ANL.BootSummaryEnvelope,
+    `ANL.BootSummaryCombinators,
+    `ANL.BootSummaryReadyProofs,
+    `ANL.BootSummaryDataBounds,
+    `ANL.BootSummaryComponentSupport,
+    `ANL.BootSummaryOriginSpecs,
+    `ANL.BootSummaryPhaseSpecs,
+    `ANL.BootSummaryRowSpecs,
+    `ANL.BootSummaryHeaderSpecs,
+    `ANL.BootSummaryEnvelopeSpecs,
+    `ANL.BootSummarySuccess,
+    `ANL.BootSummaryOutput,
+    `ANL.BootSummaryOutputProofs]
   let allowedAxioms := #[``propext, ``Classical.choice, ``Quot.sound]
   let expectedShims := #[
     `ANL.Memory.ViewMode.ctorIdx._impl,

@@ -1596,10 +1596,26 @@ with the structured JSON renderer is separately qualified for all four fixed
 variants. Missing counters mean unavailable information, never fabricated zero
 execution. JSON object-key order is non-normative; array order is preserved.
 
+The additive `Output.Total` entrypoints preserve the original full-output
+attempt and its first error. Their trace-free recovery has a successful-write
+proof for every guarded projected report, with at most 630,041 actual bytes
+including LF. Prestart errors likewise serialize successfully within 12,289
+bytes, retaining their original status and bounded reason. Neither path relies
+on a successful opaque JSON compression result. The defensive fixed envelope
+remains for internal raw misuse; guarded recovery cannot reach it.
+
+| Sources and theorems | Scope |
+| --- | --- |
+| [BootReferenceDecimalText](ANL/BootReferenceDecimalText.lean), [BootReferenceUtf8](ANL/BootReferenceUtf8.lean), [BootReferenceJsonString](ANL/BootReferenceJsonString.lean), [BootReferenceStringBytes](ANL/BootReferenceStringBytes.lean) | Canonical decimal values, actual UTF-8 byte counts, reason truncation and total string-escaping expansion bounds. |
+| [BootSummaryWriterCore](ANL/BootSummaryWriterCore.lean), [BootSummaryWire](ANL/BootSummaryWire.lean), [BootSummaryCombinators](ANL/BootSummaryCombinators.lean) | Successful extension of every sufficient buffer prefix, with independent scalar, array and uniquely named object-field meaning. |
+| [BootSummaryEnvelopeSpecs](ANL/BootSummaryEnvelopeSpecs.lean), [BootSummarySuccess](ANL/BootSummarySuccess.lean), `recovery_success`, `projected_recovery_success`, `prestart_success` | Concrete component bounds compose into actual successful trace-free summary and prestart writes, both below 1 MiB including LF. |
+| [BootSummaryOutput](ANL/BootSummaryOutput.lean), [BootSummaryOutputProofs](ANL/BootSummaryOutputProofs.lean), `first_success_unchanged`, `projected_first_failure`, `encodeResult_nonerror` | The first full encoder and first error are preserved. Non-error results still require full projection; every result retains the 8 MiB output bound. These are pure entrypoints, with no hosted CLI activation. |
+
 The output origin-path limit of 128 remains an explicit guard: these proofs do
-not derive it from the input logical-depth limit. A universal renderer-specific
-summary-size bound also remains open; the fixed fallback is retained. JSON
-parser/renderer correctness, UTF-8/ByteArray runtime behavior, peak host memory,
+not derive it from the input logical-depth limit. `Wire` uses the existing total
+`Json.renderString` as an explicit diagnostic-string leaf; it is not a general
+JSON parser theorem or an equivalence with opaque `Json.compress`. JSON parsing,
+Unicode escaping semantics, UTF-8/ByteArray runtime behavior, peak host memory,
 stack/time bounds, output IO and CLI routing remain separate obligations. These
 modules do not establish native correspondence, guest execution or hardware
 behavior.
