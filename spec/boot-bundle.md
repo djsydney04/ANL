@@ -139,11 +139,19 @@ interrupted frame, return from a trap, or implement a scheduler.
 
 The linker description starts at `0x80200000`, retains boot entry first and
 reserves the declared 16,384-byte boot and 4,096-byte terminal stacks with
-16-byte alignment. Assertions constrain layout to the one-MiB image range and
-reject known writable, BSS, TLS, dynamic-linking and initialization sections.
-Actual ELF section/orphan checks, unresolved-helper exclusion, stack adequacy,
-ISA/ABI conformance and linked-loop preservation remain unqualified. Generated
-source alone is not evidence that a target toolchain preserves these properties.
+16-byte alignment. Explicit program headers separate executable text, optional
+read-only data and writable stack reservations at page boundaries, and declare
+a non-executable stack. Nonallocated debug information and stack-size records
+are retained for later inspection. Assertions constrain layout to the one-MiB
+image range and reject known writable-data, BSS, TLS, dynamic-linking and
+initialization sections.
+
+The internal bounded ELF reader checks raw structural ranges, symbol extents,
+relocation descriptors and selected image-layout predicates. It is not connected
+to the build command and does not admit an executable. Instruction and relocation
+semantics, helper ownership, stack adequacy, source-location correspondence,
+ISA/ABI conformance and linked-loop preservation remain open. Generated source
+and structural inspection alone do not establish native correctness.
 
 ## Publication
 
