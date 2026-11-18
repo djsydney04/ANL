@@ -7,6 +7,12 @@ use crate::machine::text::elf::ErrorClass;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
+mod setup;
+pub use setup::{
+    CallUse, ConditionalSetupStackBounds, IdentityJoin, ReturningSetupLeaf, RootEntry,
+    SetupStackInspection, StackError, inspect_setup_stacks,
+};
+
 pub const MAX_STATES: usize = 100_000;
 pub const MAX_FACTS: usize = 1_000_000;
 pub const MAX_TRANSFERS: usize = 1_000_000;
@@ -17,6 +23,10 @@ pub enum Stage {
     Index,
     Worklist,
     FinalGraph,
+    SetupBind,
+    SetupLeaf,
+    SetupResume,
+    SetupRoot,
 }
 #[derive(Debug)]
 pub struct FrameError {
@@ -205,35 +215,40 @@ pub struct Counters {
 /// Private construction retains its exact machine and conditional premises.
 pub struct LocalFrameInspection<'a> {
     machine: MachineInspection<'a>,
-    states: Vec<Option<Box<State>>>,
-    contributions: Vec<ContributionFrames>,
-    frontiers: Vec<Frontier>,
-    memory: Vec<MemoryObservation>,
-    returns: Vec<ReturnEvidence>,
-    counters: Counters,
+    data: FrameData,
 }
 impl<'a> LocalFrameInspection<'a> {
     pub fn machine(&self) -> &MachineInspection<'a> {
         &self.machine
     }
     pub fn state(&self, word: WordId) -> Option<&State> {
-        self.states.get(word).and_then(Option::as_deref)
+        self.data.states.get(word).and_then(Option::as_deref)
     }
     pub fn contributions(&self) -> &[ContributionFrames] {
-        &self.contributions
+        &self.data.contributions
     }
     pub fn frontiers(&self) -> &[Frontier] {
-        &self.frontiers
+        &self.data.frontiers
     }
     pub fn memory(&self) -> &[MemoryObservation] {
-        &self.memory
+        &self.data.memory
     }
     pub fn returns(&self) -> &[ReturnEvidence] {
-        &self.returns
+        &self.data.returns
     }
     pub fn counters(&self) -> Counters {
-        self.counters
+        self.data.counters
     }
+}
+
+struct FrameData {
+    states: Vec<Option<Box<State>>>,
+    contributions: Vec<ContributionFrames>,
+    frontiers: Vec<Frontier>,
+    memory: Vec<MemoryObservation>,
+    returns: Vec<ReturnEvidence>,
+    counters: Counters,
+    calls: Vec<setup::CallUse>,
 }
 
 struct Budget {
@@ -604,9 +619,20 @@ fn return_evidence(word: WordId, state: &State) -> ReturnEvidence {
 }
 // Keep the fixed 32-register result inline; copied() charges its temporary facts
 // before construction. Boxing would add an allocation to every supported transfer.
+#[derive(Clone, Copy)]
+enum Policy<'p> {
+    Local,
+    Leaf(&'p setup::LeafRule),
+    Role(&'p [setup::ReturningSetupLeaf]),
+}
 #[allow(clippy::large_enum_variant)]
 enum Step {
-    Continue(State, Option<MemoryObservation>),
+    Continue(
+        State,
+        Option<MemoryObservation>,
+        [Option<WordId>; 2],
+        Option<setup::CallUse>,
+    ),
     Frontier(FrontierKind, Option<MemoryObservation>),
     Return(ReturnEvidence),
 }
@@ -617,10 +643,17 @@ fn step(
     state: &State,
     budget: &mut Budget,
     stage: Stage,
+    policy: Policy<'_>,
 ) -> Result<Step> {
     budget.evaluation(stage)?;
     let links = graph.links[instruction.id];
     if let Some(id) = links.transfer {
+        if let Policy::Role(leaves) = policy
+            && let Some(resumed) =
+                setup::resume(machine, graph, instruction, state, budget, stage, leaves)?
+        {
+            return Ok(resumed);
+        }
         let transfer = machine.transfers()[id];
         let link_value = if transfer.link_register == 0 {
             None
@@ -644,10 +677,26 @@ fn step(
         ));
     }
     if links.returns {
-        return Ok(Step::Return(return_evidence(instruction.id, state)));
+        let mut evidence = return_evidence(instruction.id, state);
+        if matches!(policy, Policy::Role(_)) {
+            // A root begins with arbitrary RA, never an ordinary aligned return premise.
+            evidence.established = false;
+        }
+        return Ok(Step::Return(evidence));
     }
     match instruction.decoded.effect {
-        Effect::Csr { .. } => return Ok(Step::Frontier(FrontierKind::Csr, None)),
+        Effect::Csr { .. } => {
+            if let Policy::Leaf(rule) = policy {
+                setup::authorize_csr(instruction, state, rule)?;
+                return Ok(Step::Continue(
+                    copied(state, budget, stage)?,
+                    None,
+                    links.local,
+                    None,
+                ));
+            }
+            return Ok(Step::Frontier(FrontierKind::Csr, None));
+        }
         Effect::Fence => return Ok(Step::Frontier(FrontierKind::Fence, None)),
         _ => {}
     }
@@ -742,35 +791,59 @@ fn step(
             budget.release(before - output.slots.len(), stage)?;
         }
     }
-    Ok(Step::Continue(output, memory))
+    Ok(Step::Continue(output, memory, links.local, None))
 }
 
-pub fn inspect_local_frames<'a>(
-    machine: MachineInspection<'a>,
-) -> Result<LocalFrameInspection<'a>> {
-    let graph = graph(&machine)?;
-    let n = machine.instructions().len();
-    let mut budget = Budget {
-        states: 0,
-        facts: 0,
-        peak_facts: 0,
-        evaluations: 0,
-        rows: machine.witness_rows(),
-    };
-    for &root in &graph.entries {
-        budget
-            .row(Stage::Index)
-            .map_err(|e| located(e, Site::of(machine.instructions()[root])))?;
+struct Engine<'m, 'a> {
+    machine: &'m MachineInspection<'a>,
+    graph: Graph,
+    budget: Budget,
+    states: Vec<Option<Box<State>>>,
+    visited: Vec<bool>,
+    contributions: Vec<ContributionFrames>,
+    frontiers: Vec<Frontier>,
+    memory: Vec<MemoryObservation>,
+    returns: Vec<ReturnEvidence>,
+    calls: Vec<setup::CallUse>,
+}
+impl<'m, 'a> Engine<'m, 'a> {
+    fn new(machine: &'m MachineInspection<'a>, budget: Budget) -> Result<Self> {
+        let graph = graph(machine)?;
+        let n = machine.instructions().len();
+        let mut budget = budget;
+        for &root in &graph.entries {
+            budget
+                .row(Stage::Index)
+                .map_err(|e| located(e, Site::of(machine.instructions()[root])))?;
+        }
+        let count = graph.entries.len();
+        Ok(Self {
+            machine,
+            graph,
+            budget,
+            states: (0..n).map(|_| None).collect(),
+            visited: vec![false; n],
+            contributions: Vec::with_capacity(count),
+            frontiers: Vec::new(),
+            memory: Vec::new(),
+            returns: Vec::new(),
+            calls: Vec::new(),
+        })
     }
-    let mut states: Vec<Option<Box<State>>> = (0..n).map(|_| None).collect();
-    for &root in &graph.entries {
+    fn worklist(&mut self, contribution: ContributionId, policy: Policy<'_>) -> Result<()> {
+        let Self {
+            machine,
+            graph,
+            budget,
+            states,
+            ..
+        } = self;
+        let root = graph.entries[contribution];
         let root_site = Site::of(machine.instructions()[root]);
         budget
             .state(Stage::Worklist)
             .map_err(|e| located(e, root_site))?;
-        states[root] = Some(Box::new(
-            entry(&mut budget).map_err(|e| located(e, root_site))?,
-        ));
+        states[root] = Some(Box::new(entry(budget).map_err(|e| located(e, root_site))?));
         let mut queue = BTreeSet::new();
         queued(&mut queue, root, Stage::Worklist).map_err(|e| located(e, root_site))?;
         while let Some(word) = queue.pop_first() {
@@ -783,26 +856,26 @@ pub fn inspect_local_frames<'a>(
                 )
             })?;
             let result = step(
-                &machine,
-                &graph,
+                machine,
+                graph,
                 instruction,
                 state,
-                &mut budget,
+                budget,
                 Stage::Worklist,
+                policy,
             )
             .map_err(|e| located(e, site))?;
-            if let Step::Continue(output, _) = result {
-                for target in graph.links[word].local.into_iter().flatten() {
+            if let Step::Continue(output, _, successors, _) = result {
+                for target in successors.into_iter().flatten() {
                     let target_site = Site::of(machine.instructions()[target]);
                     let changed = if let Some(target_state) = states[target].as_deref_mut() {
-                        join(target_state, &output, &mut budget)
-                            .map_err(|e| located(e, target_site))?
+                        join(target_state, &output, budget).map_err(|e| located(e, target_site))?
                     } else {
                         budget
                             .state(Stage::Worklist)
                             .map_err(|e| located(e, target_site))?;
                         states[target] = Some(Box::new(
-                            copied(&output, &mut budget, Stage::Worklist)
+                            copied(&output, budget, Stage::Worklist)
                                 .map_err(|e| located(e, target_site))?,
                         ));
                         true
@@ -817,13 +890,23 @@ pub fn inspect_local_frames<'a>(
                     .map_err(|e| located(e, site))?;
             }
         }
+
+        Ok(())
     }
-    let mut visited = vec![false; n];
-    let mut contributions = Vec::with_capacity(graph.entries.len());
-    let mut frontiers = Vec::new();
-    let mut memory = Vec::new();
-    let mut returns = Vec::new();
-    for (contribution, &root) in graph.entries.iter().enumerate() {
+    fn finish(&mut self, contribution: ContributionId, policy: Policy<'_>) -> Result<()> {
+        let Self {
+            machine,
+            graph,
+            budget,
+            states,
+            visited,
+            contributions,
+            frontiers,
+            memory,
+            returns,
+            calls,
+        } = self;
+        let root = graph.entries[contribution];
         let first_frontier = frontiers.len();
         let first_memory = memory.len();
         let first_return = returns.len();
@@ -852,17 +935,24 @@ pub fn inspect_local_frames<'a>(
                 _ => None,
             };
             let result = step(
-                &machine,
-                &graph,
+                machine,
+                graph,
                 machine.instructions()[word],
                 state,
-                &mut budget,
+                budget,
                 Stage::FinalGraph,
+                policy,
             )
             .map_err(|e| located(e, site))?;
             let observation = match result {
-                Step::Continue(output, observation) => {
-                    for target in graph.links[word].local.into_iter().flatten() {
+                Step::Continue(output, observation, successors, call) => {
+                    if let Some(call) = call {
+                        budget
+                            .row(Stage::SetupResume)
+                            .map_err(|e| located(e, site))?;
+                        calls.push(call);
+                    }
+                    for target in successors.into_iter().flatten() {
                         let target_site = Site::of(machine.instructions()[target]);
                         let target_state = states[target].as_deref().ok_or_else(|| {
                             located(
@@ -950,32 +1040,73 @@ pub fn inspect_local_frames<'a>(
             return_indices: return_range,
             summary,
         });
+
+        Ok(())
     }
-    let mut retained_states = 0;
-    for (word, cell) in states.iter_mut().enumerate() {
-        if visited[word] {
-            retained_states += 1;
-        } else if let Some(old) = cell.take() {
-            budget
-                .release(old.fact_count(), Stage::FinalGraph)
-                .map_err(|e| located(e, Site::of(machine.instructions()[word])))?;
+    fn into_data(self) -> Result<FrameData> {
+        let Self {
+            machine,
+            mut budget,
+            mut states,
+            visited,
+            contributions,
+            frontiers,
+            memory,
+            returns,
+            calls,
+            ..
+        } = self;
+        let mut retained_states = 0;
+        for (word, cell) in states.iter_mut().enumerate() {
+            if visited[word] {
+                retained_states += 1;
+            } else if let Some(old) = cell.take() {
+                budget
+                    .release(old.fact_count(), Stage::FinalGraph)
+                    .map_err(|e| located(e, Site::of(machine.instructions()[word])))?;
+            }
         }
+        let counters = Counters {
+            created_states: budget.states,
+            retained_states,
+            peak_facts: budget.peak_facts,
+            retained_facts: budget.facts,
+            transfer_evaluations: budget.evaluations,
+            charged_rows: budget.rows,
+        };
+
+        Ok(FrameData {
+            states,
+            contributions,
+            frontiers,
+            memory,
+            returns,
+            counters,
+            calls,
+        })
     }
-    let counters = Counters {
-        created_states: budget.states,
-        retained_states,
-        peak_facts: budget.peak_facts,
-        retained_facts: budget.facts,
-        transfer_evaluations: budget.evaluations,
-        charged_rows: budget.rows,
-    };
-    Ok(LocalFrameInspection {
-        machine,
-        states,
-        contributions,
-        frontiers,
-        memory,
-        returns,
-        counters,
-    })
+}
+fn budget(machine: &MachineInspection<'_>) -> Budget {
+    Budget {
+        states: 0,
+        facts: 0,
+        peak_facts: 0,
+        evaluations: 0,
+        rows: machine.witness_rows(),
+    }
+}
+
+pub fn inspect_local_frames<'a>(
+    machine: MachineInspection<'a>,
+) -> Result<LocalFrameInspection<'a>> {
+    let mut engine = Engine::new(&machine, budget(&machine))?;
+    // Preserve the accepted local scheduling and counter order exactly.
+    for contribution in 0..engine.graph.entries.len() {
+        engine.worklist(contribution, Policy::Local)?;
+    }
+    for contribution in 0..engine.graph.entries.len() {
+        engine.finish(contribution, Policy::Local)?;
+    }
+    let data = engine.into_data()?;
+    Ok(LocalFrameInspection { machine, data })
 }

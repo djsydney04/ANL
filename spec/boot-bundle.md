@@ -166,9 +166,9 @@ text checker reconstructs complete executable contributions from the two objects
 using `CALL_PLT`, `PCREL_HI20` and ADDI `PCREL_LO12_I`, then compares every byte
 with the linked image, including unrelocated bytes. Unsupported symbol-placement,
 binding, padding and relocation forms fail closed. Neither checker is connected
-to the build command or admits an executable. Native semantic correspondence, typed
-helper/primitive authority, ISA/ABI conformance, stack adequacy and exact
-DWARF/source-loop correspondence remain open. Text reconstruction does not
+to the build command or admits an executable. Native semantic correspondence, general
+helper/primitive authority, complete ISA/ABI conformance, general stack adequacy
+and exact DWARF/source-loop correspondence remain open. Text reconstruction does not
 establish native correctness.
 
 A standalone instruction-inspection library consumes the text reconstruction and
@@ -182,8 +182,8 @@ native correctness, and remains unconnected to the build command. Its current
 assembly uses separately linked Rust inspection libraries; integration into the
 compiler's ordinary modules remains a separate boundary.
 
-A third standalone library computes conditional local-frame facts from the same
-instruction inventory. It tracks entry-relative stack offsets, register values
+A third standalone library's `inspect_local_frames` entry point computes
+conditional local-frame facts from the same instruction inventory. It tracks entry-relative stack offsets, register values
 and saved frame slots, including the effects of loads whose result is discarded.
 Joins lose facts conservatively; a final walk from each function entry removes
 observations reachable only through an earlier, stronger state. Calls, stack
@@ -195,10 +195,34 @@ A local return summary requires restored entry SP/RA and preserved registers on
 every covered return, with no unresolved local boundary. It is conditional on
 aligned entry SP/RA, valid nonwrapping frame storage and successful ordinary
 instruction completion. Local loops without return sites do not establish
-termination or selected-park identity. Complete frame/return safety, call-stack
-bounds, emitted role/helper identity, hardware and language reset roots, memory
-and primitive authority, and native correctness remain unestablished. This third
-library is also outside the compiler's ordinary module and build-command paths.
+termination or selected-park identity. This local entry point does not establish
+call-stack bounds, emitted role/helper identity, reset roots or native correctness.
+
+The separate `inspect_setup_stacks(&Bundle, MachineInspection)` entry point accepts
+only the emitted setup profile: three role bodies and the mandatory setup
+primitives, without additional functions or scalar helpers. It consumes the
+opaque `Bundle` identity, checks complete typed privileged sites and stack-reset
+entries, and constructs private summaries for returning setup leaves. The same
+frame engine then resumes checked calls at their actual PC+4 continuation,
+preserving caller frame bytes and forgetting caller-saved register facts. Peak
+stack use is the maximum caller depth plus callee depth, not a sum of sequential
+calls. Hardware and language entries start independent terminal-stack episodes
+without assumptions about inherited SP or RA; their shared reservation uses the
+larger bound.
+
+A conditional setup bound requires complete final rooted coverage and fit within
+the actual ELF stack reservations. A frontier leaves the bound absent; a known
+retained overrun is rejected even if a later frontier prevents completeness.
+These results assume valid nonwrapping storage and normal instruction completion.
+Refinement between the concrete Rust analysis, instruction descriptors, native
+execution and ANL source remains open, as do stack-metadata agreement and exact
+selected-loop/DWARF correspondence. The result's flags for native admission, formal native correspondence, source
+correspondence and stack metadata agreement remain false.
+
+This standalone library also links the compiler's `anl` library to obtain the
+opaque emitted `Bundle`; it accepts no caller-supplied leaf summary or authority
+map. It remains outside the compiler's ordinary module and build-command paths.
+No native build or CLI route is enabled by these analyses.
 
 ## Publication
 
