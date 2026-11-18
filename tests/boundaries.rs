@@ -30,6 +30,7 @@ impl Input {
         fs::create_dir(&directory).unwrap();
         let path = directory.join("case.apl");
         fs::write(&path, bytes).unwrap();
+        fs::write(directory.join("readonly-output"), b"").unwrap();
         Self { directory, path }
     }
     fn command(&self, command: &str) -> Command {
@@ -102,14 +103,37 @@ fn actual_json_recursion_exhaustion_still_reports_resource_limit() {
     );
 }
 
-fn closed_stderr(command: &mut Command) -> Output {
-    let (reader, writer) = std::io::pipe().unwrap();
-    drop(reader);
-    command.stderr(Stdio::from(writer)).output().unwrap()
+#[derive(Clone, Copy, Debug)]
+enum Unwritable {
+    BrokenPipe,
+    ReadOnly,
+}
+impl Unwritable {
+    fn stdio(self, input: &Input) -> Stdio {
+        match self {
+            Self::BrokenPipe => {
+                let (reader, writer) = std::io::pipe().unwrap();
+                drop(reader);
+                Stdio::from(writer)
+            }
+            Self::ReadOnly => {
+                Stdio::from(fs::File::open(input.directory.join("readonly-output")).unwrap())
+            }
+        }
+    }
+}
+
+fn unavailable_stderr(command: &mut Command, mode: Unwritable, input: &Input) -> Output {
+    let output = command.stderr(mode.stdio(input)).output().unwrap();
+    assert_eq!(
+        fs::read(input.directory.join("readonly-output")).unwrap(),
+        b""
+    );
+    output
 }
 
 #[test]
-fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
+fn unavailable_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
     let _guard = PROCESS_LOCK.lock().unwrap();
     for (bytes, command, extra, normal_code) in [
         (
@@ -132,46 +156,104 @@ fn closed_stderr_is_an_infrastructure_failure_across_diagnostic_paths() {
         let input = Input::new(bytes);
         let normal = input.command(command).args(&extra).output().unwrap();
         assert_eq!(normal.status.code(), Some(normal_code));
-        let closed = closed_stderr(input.command(command).args(&extra));
-        assert_eq!(
-            closed.status.code(),
-            Some(4),
-            "command {command}, input {bytes:?}"
-        );
+        for mode in [Unwritable::BrokenPipe, Unwritable::ReadOnly] {
+            let failed = unavailable_stderr(input.command(command).args(&extra), mode, &input);
+            assert_eq!(
+                failed.status.code(),
+                Some(4),
+                "command {command}, input {bytes:?}, descriptor {mode:?}"
+            );
+        }
     }
     let oversized = Input::new(vec![b' '; anl::MAX_SOURCE_BYTES + 1]);
-    assert_eq!(
-        closed_stderr(&mut oversized.command("check")).status.code(),
-        Some(4)
-    );
     let missing = Input::new("");
     fs::remove_file(&missing.path).unwrap();
-    assert_eq!(
-        closed_stderr(&mut missing.command("check")).status.code(),
-        Some(4)
-    );
-    let mut misuse = Command::new(env!("CARGO_BIN_EXE_anl"));
-    misuse.arg("unknown-command");
-    assert_eq!(closed_stderr(&mut misuse).status.code(), Some(4));
+    for mode in [Unwritable::BrokenPipe, Unwritable::ReadOnly] {
+        assert_eq!(
+            unavailable_stderr(&mut oversized.command("check"), mode, &oversized)
+                .status
+                .code(),
+            Some(4)
+        );
+        assert_eq!(
+            unavailable_stderr(&mut missing.command("check"), mode, &missing)
+                .status
+                .code(),
+            Some(4)
+        );
+        let mut misuse = Command::new(env!("CARGO_BIN_EXE_anl"));
+        misuse.arg("unknown-command");
+        assert_eq!(
+            unavailable_stderr(&mut misuse, mode, &missing)
+                .status
+                .code(),
+            Some(4)
+        );
+    }
 }
 
 #[test]
 fn successful_execution_does_not_require_stderr() {
     let _guard = PROCESS_LOCK.lock().unwrap();
     let input = Input::new("fn main()->i64{42}");
-    let output = closed_stderr(&mut input.command("eval"));
-    assert_eq!(output.status.code(), Some(0));
-    assert_eq!(output.stdout, b"42\n");
+    for mode in [Unwritable::BrokenPipe, Unwritable::ReadOnly] {
+        let output = unavailable_stderr(&mut input.command("eval"), mode, &input);
+        assert_eq!(output.status.code(), Some(0));
+        assert_eq!(output.stdout, b"42\n");
+    }
 }
 
 #[test]
-fn closed_stdout_and_stderr_do_not_trigger_a_secondary_panic() {
+fn unavailable_stdout_and_stderr_do_not_trigger_a_secondary_panic() {
     let _guard = PROCESS_LOCK.lock().unwrap();
     let input = Input::new("fn main()->i64{42}");
-    let (reader, writer) = std::io::pipe().unwrap();
-    drop(reader);
-    let mut command = input.command("eval");
-    command.stdout(Stdio::from(writer));
-    let output = closed_stderr(&mut command);
-    assert_eq!(output.status.code(), Some(4));
+    for mode in [Unwritable::BrokenPipe, Unwritable::ReadOnly] {
+        let mut command = input.command("eval");
+        command.stdout(mode.stdio(&input));
+        let output = unavailable_stderr(&mut command, mode, &input);
+        assert_eq!(output.status.code(), Some(4));
+    }
+}
+
+#[test]
+fn required_stdout_failure_is_an_infrastructure_error() {
+    let _guard = PROCESS_LOCK.lock().unwrap();
+    let input = Input::new("fn main()->i64{cast i64(40u8 + 2u8)}");
+    for action in ["--version", "eval", "emit-c"] {
+        let command = || {
+            if action == "--version" {
+                let mut command = Command::new(env!("CARGO_BIN_EXE_anl"));
+                command.arg(action);
+                command
+            } else {
+                input.command(action)
+            }
+        };
+        let normal = command().output().unwrap();
+        assert_eq!(normal.status.code(), Some(0));
+        assert!(normal.stderr.is_empty());
+        match action {
+            "--version" => assert_eq!(
+                normal.stdout,
+                concat!("anl ", env!("CARGO_PKG_VERSION"), "\n").as_bytes()
+            ),
+            "eval" => assert_eq!(normal.stdout, b"42\n"),
+            "emit-c" => assert!(
+                String::from_utf8(normal.stdout)
+                    .unwrap()
+                    .contains("int main(void)")
+            ),
+            _ => unreachable!(),
+        }
+        for mode in [Unwritable::BrokenPipe, Unwritable::ReadOnly] {
+            let failed = command().stdout(mode.stdio(&input)).output().unwrap();
+            assert_eq!(failed.status.code(), Some(4), "{action}: {mode:?}");
+            assert!(failed.stdout.is_empty());
+            assert!(failed.stderr.starts_with(b"anl: cannot write stdout:"));
+            assert_eq!(
+                fs::read(input.directory.join("readonly-output")).unwrap(),
+                b""
+            );
+        }
+    }
 }

@@ -56,12 +56,26 @@ fn main() -> ExitCode {
         ),
     }
 }
-fn output(text: impl std::fmt::Display) -> Result<(), CliError> {
-    writeln!(io::stdout().lock(), "{text}")
+// Rust's standard streams suppress EBADF. Owned duplicates preserve write
+// failures for read-only stdout/stderr instead of reporting silent success.
+fn write_stdout(write: impl FnOnce(&mut File) -> io::Result<()>) -> Result<(), CliError> {
+    let mut stdout = nix::unistd::dup(io::stdout())
+        .map(File::from)
+        .map_err(|error| CliError::Message(format!("cannot write stdout: {error}")))?;
+    write(&mut stdout)
+        .and_then(|()| stdout.flush())
         .map_err(|error| CliError::Message(format!("cannot write stdout: {error}")))
 }
+fn output(text: impl std::fmt::Display) -> Result<(), CliError> {
+    write_stdout(|stdout| writeln!(stdout, "{text}"))
+}
 fn diagnostic(text: impl std::fmt::Display) -> Result<(), CliError> {
-    writeln!(io::stderr().lock(), "{text}").map_err(|_| CliError::StderrUnavailable)
+    let mut stderr = nix::unistd::dup(io::stderr())
+        .map(File::from)
+        .map_err(|_| CliError::StderrUnavailable)?;
+    writeln!(stderr, "{text}")
+        .and_then(|()| stderr.flush())
+        .map_err(|_| CliError::StderrUnavailable)
 }
 fn run(args: Vec<OsString>) -> Result<u8, CliError> {
     if args.len() == 1 && args[0] == "--version" {
@@ -189,10 +203,7 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
             || program.has_flat_products()
             || program.effective_revision() == anl::types::IrRevision::WordsV4
         {
-            io::stdout()
-                .lock()
-                .write_all(c.as_bytes())
-                .map_err(|error| CliError::Message(format!("cannot write stdout: {error}")))?;
+            write_stdout(|stdout| stdout.write_all(c.as_bytes()))?;
         } else {
             output(c)?;
         }
