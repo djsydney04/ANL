@@ -220,7 +220,7 @@ jobs:
             --tools "$RUNNER_TEMP/anl-memory-ci/word-tools.json" \
             --out "$RUNNER_TEMP/anl-memory-ci/words" \
             2>&1 | tee "$RUNNER_TEMP/anl-memory-ci/word-gate.log"
-      - name: Validate boot source and Core admission
+      - name: Validate boot source, Core and bundle emission
         shell: bash
         run: |
           set -euo pipefail

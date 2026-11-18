@@ -35,7 +35,7 @@ fn index(v: &Value, bound: usize) -> Result<usize, ImportError> {
 fn effects(v: &Value) -> Result<Vec<u64>, ImportError> {
     array(v)?.iter().map(natural).collect()
 }
-fn metadata(entries: [usize; 3]) -> Value {
+pub(super) fn metadata(entries: [usize; 3]) -> Value {
     json!({
         "schema": super::SCHEMA, "semantic_revision": super::SEMANTIC_REVISION,
         "ordinary_semantic_revision": "anl-words-v1",
@@ -46,7 +46,7 @@ fn metadata(entries: [usize; 3]) -> Value {
         "entries": {"boot": {"function": entries[0], "stack": 0}, "hardware": {"function": entries[1], "stack": 1}, "language": {"function": entries[2], "stack": 1}}
     })
 }
-fn operation_value(op: &Operation) -> Value {
+pub(super) fn operation_value(op: &Operation) -> Value {
     match op {
         Operation::Read8 { region, offset } => {
             json!({"tag":"mmio_read8", "region":region, "offset":offset})
@@ -124,7 +124,7 @@ fn operation(v: &Value) -> Result<Operation, ImportError> {
 }
 
 // Preserve raw numeric spelling before serde can normalize -0 or an exponent.
-fn numeric_tokens(text: &str) -> Result<(), ImportError> {
+pub(super) fn numeric_tokens(text: &str) -> Result<(), ImportError> {
     let b = text.as_bytes();
     let mut i = 0;
     while i < b.len() {

@@ -2,7 +2,9 @@
 
 The implemented boundary admits and exports boot programs for
 `rv64-virt-sbi-v1`. It provides static checking and strict Core interchange.
-Execution, boot MIR, native emission and image building are unavailable. See the
+Checked canonical Core/MIR pairs and complete generated source bundles are
+specified in [Boot bundles](boot-bundle.md). Execution and image building remain
+unavailable. See the
 [boot chapter](../docs/book/boot-profile.md) for a complete source example and CLI
 outcomes.
 
@@ -151,7 +153,8 @@ The internal mathematical signature adapter is not a serializable boot program.
 Its synthetic entry and dummy bodies supply no device implementation. Neither
 library target selection nor CLI import exposes a hosted executable carrier.
 Old Core/MIR readers keep their old schemas and reject the boot envelope.
-No standalone boot MIR acceptance, pair checker or execution route is provided.
+The separate boot pair API requires checked Core and its exact canonical MIR;
+standalone boot MIR is never an execution or emission permit.
 
 ## Input, output and proof boundaries
 
@@ -202,5 +205,6 @@ records the exact ordinary-machine no-normal-return and static adapter scope.
 
 Future execution must give explicit semantics to device reads/writes, fences,
 CSR operations, trap delivery and handler entry. The selected first bring-up uses
-external OpenSBI firmware. Entry/trap ABI generation, stack adequacy, target
-instruction/link qualification and the complete ANL-authored OS remain open.
+external OpenSBI firmware. Generated entry/trap ABI templates do not establish
+stack adequacy or target instruction/link correctness. Those qualifications and
+the complete ANL-authored OS remain open.

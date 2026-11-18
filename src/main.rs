@@ -13,7 +13,7 @@ use std::{
     process::ExitCode,
 };
 
-const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl emit-boot FILE --out PATH [--target rv64-virt-sbi-v1]\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSource commands accept --target hosted|rv64-virt-sbi-v1.\nBoot source supports check and dump-core; emission, build, execution and\nverification return unsupported (7) after static checking. Boot build requires\n--toolchain LOCK and -o PATH; no lock or external tool is used yet.\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
+const HELP: &str = "ANL 0.1 checker, evaluator, and native compiler\n\nUsage:\n  anl check FILE\n  anl eval FILE [--fuel N]\n  anl build FILE [-o PATH]\n  anl run FILE\n  anl emit-c FILE\n  anl dump-core FILE\n  anl emit-boot FILE --out PATH [--target rv64-virt-sbi-v1]\n  anl eval-core FILE [--fuel N]\n  anl verify FILE [--solver PATH] [--timeout-ms N] [--json]\n  anl --version\n\nSource commands accept --target hosted|rv64-virt-sbi-v1.\nBoot source supports check, dump-core and emit-boot source bundles.\nBuild, execution and verification return unsupported (7) after static checking. Boot build requires\n--toolchain LOCK and -o PATH; no lock or external tool is used yet.\n\nSources prefer .anl; explicit legacy .apl roots retain .apl imports.\n\nBuild uses the host C11 compiler (CC or cc) at -O2. The default output\nis FILE without its extension, or FILE.out when it has no extension.\nRun builds a temporary native executable and executes it without fuel.\nEmit-c writes the validated C11 translation unit to stdout.\n\nInterpreter fuel defaults to 100000; N is decimal in 0..1000000000.\nEach evaluated core expression consumes one unit before execution.\nUnselected branches consume no fuel. Callee bodies count normally.\nEvaluation nesting is limited to 256; source/IR depth is limited to 128.\nSee spec/core-format.md and docs/native-compilation.md for details.\n\nExit codes: 0 success, 1 source/IR error, 2 defined runtime trap,\n3 resource limit, 4 invocation or infrastructure error.\nVerify additionally uses 5 failed, 6 unknown, and 7 unsupported or empty.\n";
 
 enum CliError {
     Message(String),
@@ -240,6 +240,11 @@ fn run(args: Vec<OsString>) -> Result<u8, CliError> {
             if command == "dump-core" {
                 let text = anl::boot::export_core(&program)?;
                 write_stdout(|stdout| stdout.write_all(text.as_bytes()))?;
+                return Ok(0);
+            }
+            if command == "emit-boot" {
+                let pair = anl::boot::lower(program)?;
+                anl::boot::emit(&pair)?.publish(out.as_ref().expect("required boot output"))?;
                 return Ok(0);
             }
             if command == "build" && (toolchain.is_none() || destination_arg.is_none()) {

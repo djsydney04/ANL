@@ -12,9 +12,10 @@ runtime helpers are tested, not formally verified.
 This is hosted compilation. Generated C uses libc for result printing and failure
 handling and runs under the host operating system. The separate [RV64 boot profile](book/boot-profile.md) accepts platform,
 authority and hardware-operation syntax for static checking and Core interchange.
-It does not yet generate freestanding entry, primitive instructions or a bootable
-image. Its `emit-boot` and `build --toolchain` routes return unsupported after
-checking; this page's host C11 build behavior applies to hosted programs.
+Its `emit-boot` route produces checked Core/MIR, freestanding C, entry/trap assembly,
+a linker description and a source-location manifest. It invokes no target tools.
+Boot image building through `build --toolchain` remains unsupported after checking;
+this page's host C11 build behavior applies to hosted programs.
 The required [ANL-authored OS](architecture/operating-system.md) remains unfinished.
 
 Install a host C11 toolchain providing `cc`, then build the ANL CLI with the pinned

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Finite boot source/Core admission checks; no boot execution or native emission."""
+"""Finite boot admission and complete source-bundle checks; no target execution."""
 from pathlib import Path
-import argparse, ast, hashlib, json, os, platform, shlex, sys
+import argparse, ast, hashlib, json, os, platform, shlex, stat, sys
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
 MEMORY = HERE.parent / 'memory'
@@ -9,6 +9,9 @@ WORDS = HERE.parent / 'words'
 sys.path.insert(0, str(MEMORY))
 from capture import Runner, save
 import oracle as O
+sys.path.pop(0)
+sys.path.insert(0, str(HERE))
+from bundle_oracle import check_bundle
 sys.path.pop(0)
 
 
@@ -40,11 +43,23 @@ def audit():
         O.need(value['sha256'] == expected['sha256'] and value['bytes'] == expected['bytes'], 'shared capture helper differs: ' + name)
     m = O.strict(read(HERE / 'manifest.json'))
     O.need(m['schema'] == 'anl-boot-validation-corpus-v1', 'corpus schema')
-    O.need(len(m['source']) == 8 and len(m['raw']) == 8, 'reviewed corpus inventory')
+    O.need(len(m['source']) == 10 and len(m['raw']) == 8, 'reviewed corpus inventory')
     for row in m['source'] + m['raw']:
         O.need(identity(HERE / row['path'])['sha256'] == row['sha256'], 'fixture identity differs')
     ast.parse((HERE / 'run.py').read_text(), filename=str(HERE / 'run.py'))
+    ast.parse((HERE / 'bundle_oracle.py').read_text(), filename=str(HERE / 'bundle_oracle.py'))
     return m
+
+
+def snapshot(path):
+    if not path.exists() and not path.is_symlink(): return None
+    s = path.lstat()
+    row = dict(mode=s.st_mode, device=s.st_dev, inode=s.st_ino, size=s.st_size)
+    if stat.S_ISLNK(s.st_mode): row['link'] = os.readlink(path)
+    elif stat.S_ISREG(s.st_mode): row.update(identity(path))
+    elif stat.S_ISDIR(s.st_mode): row['entries'] = {p.name: snapshot(p) for p in sorted(path.iterdir())}
+    else: raise O.Failure('unexpected output entry type')
+    return row
 
 
 class Gate:
@@ -179,17 +194,16 @@ class Gate:
         path = HERE / 'source/minimal-park.anl'
         report = read(HERE / 'unsupported-verify.json')
         for role in ('rust', 'evidence'):
-            for command in ('eval', 'run', 'emit-c', 'emit-boot', 'build', 'verify'):
+            for command in ('eval', 'run', 'emit-c', 'build', 'verify'):
                 args = [self.tools[role], command, path]
                 if command == 'eval': args += ['--fuel', '0']
-                if command == 'emit-boot': args += ['--out', self.root / 'uncreated-bundle']
                 if command == 'build': args += ['--toolchain', self.root / 'unread-lock', '-o', self.root / 'uncreated-image']
                 if command == 'verify': args += ['--json', '--solver', self.spy]
                 r = self.call(role + '-' + command, args, [path, self.spy, MEMORY / 'tool_spy.py'])
                 O.need(r['exit'] == 7, 'checked unsupported route status')
                 if command == 'verify': O.need(r['stdout'] == report and not r['stderr'], 'exact unsupported report/proof flags')
                 else:
-                    state = 'implemented' if command in ('emit-boot', 'build') else 'supported'
+                    state = 'implemented' if command == 'build' else 'supported'
                     O.need(not r['stdout'] and r['stderr'] == f'unsupported_boot_operation: {command} is not {state} for rv64-virt-sbi-v1\n'.encode(), 'unsupported diagnostic')
                 self.row('control:' + role + ':' + command)
         for name in ('uncreated-bundle', 'uncreated-image', 'unread-lock', 'unread-replay', 'uncreated-trace'):
@@ -201,6 +215,87 @@ class Gate:
                           [helper, readonly, self.tools[role], core])
             O.need(r['exit'] == 4 and not r['stdout'] and bool(r['stderr']) and readonly.read_bytes() == b'unchanged', 'actual readonly stdout failure')
             self.row('control:' + role + ':readonly-stdout')
+
+    def bundles(self):
+        expected = {}
+        for role in ('rust', 'evidence'):
+            for row in self.m['source']:
+                if row['exit'] != 0: continue
+                name = row['name']; source = HERE / row['path']
+                destination = self.root / 'bundles' / (role + '-' + name)
+                destination.parent.mkdir(exist_ok=True)
+                r = self.call(role + '-' + name + '-bundle',
+                    [self.tools[role], 'emit-boot', source, '--out', destination], [source])
+                O.need(r['exit'] == 0 and not r['stdout'] and not r['stderr'], 'bundle emission status')
+                result = check_bundle(destination, read(source), HERE)
+                O.need(read(destination / 'core.json') == read(self.exports[name]), 'bundle Core equals independently checked dump')
+                if name == 'scalar-closure': O.need(len(result['helpers']) == 25, 'all scalar helper guards and trap tags')
+                if role == 'rust': expected[name] = result['files']
+                else: O.need(O.same(result['files'], expected[name]), 'default/evidence complete bundle equality')
+                save(self.root / 'bundle-receipts' / (role + '-' + name + '.json'), result)
+                self.row('bundle:' + role + ':' + name)
+
+    def publication(self):
+        source = HERE / 'source/minimal-park.anl'
+        base = self.root / 'publication'; base.mkdir()
+        cases = ('file', 'empty-directory', 'nonempty-directory', 'valid-symlink', 'dangling-symlink')
+        for role in ('rust', 'evidence'):
+            for case in cases:
+                area = base / (role + '-' + case); area.mkdir()
+                destination = area / 'bundle'; target = area / 'target'
+                if case == 'file': destination.write_bytes(b'preserve file\n')
+                elif case in ('empty-directory', 'nonempty-directory'):
+                    destination.mkdir()
+                    if case == 'nonempty-directory': (destination / 'keep').write_bytes(b'preserve nested\n')
+                elif case == 'valid-symlink':
+                    target.write_bytes(b'preserve target\n'); destination.symlink_to('target')
+                else: destination.symlink_to('absent')
+                before = dict(parent=snapshot(area), destination=snapshot(destination), target=snapshot(target))
+                receipt = self.root / 'publication-receipts' / (role + '-' + case + '.json')
+                save(receipt, dict(before=before))
+                r = self.call(role + '-publish-' + case,
+                    [self.tools[role], 'emit-boot', source, '--out', destination], [source])
+                after = dict(parent=snapshot(area), destination=snapshot(destination), target=snapshot(target))
+                save(receipt, dict(before=before, after=after))
+                O.need(r['exit'] == 4 and not r['stdout'] and bool(r['stderr']), 'existing output rejected')
+                O.need(before['destination'] == after['destination'] and before['target'] == after['target'], 'destination and target preserved')
+                O.need(all(before['parent'][k] == after['parent'][k] for k in ('mode', 'device', 'inode')), 'parent identity preserved')
+                stages = [p for p in area.iterdir() if p.name.startswith('.anl-boot-')]
+                O.need(len(stages) == 1 and stages[0].name.encode() in r['stderr'], 'complete staging retained and identified')
+                O.need(set(after['parent']['entries']) == set(before['parent']['entries']) | {stages[0].name}, 'only owned staging added')
+                result = check_bundle(stages[0], read(source), HERE)
+                save(receipt, dict(before=before, after=after, staging=result))
+                self.row('publication:' + role + ':' + case)
+            for case in ('missing-parent', 'parent-file', 'dot', 'dotdot', 'trailing-separator'):
+                area = base / (role + '-' + case); area.mkdir()
+                if case == 'missing-parent': destination = str(area / 'missing' / 'bundle')
+                elif case == 'parent-file':
+                    (area / 'file').write_bytes(b'parent file\n'); destination = str(area / 'file' / 'bundle')
+                else: destination = str(area) + {'dot': '/.', 'dotdot': '/..', 'trailing-separator': '/bundle/'}[case]
+                before = snapshot(area); siblings = sorted(p.name for p in base.iterdir())
+                receipt = self.root / 'publication-receipts' / (role + '-' + case + '.json')
+                save(receipt, dict(before=before, sibling_names=siblings, requested_destination=destination))
+                r = self.call(role + '-publish-' + case,
+                    [self.tools[role], 'emit-boot', source, '--out', destination], [source])
+                after = snapshot(area)
+                save(receipt, dict(before=before, after=after, sibling_names=siblings, requested_destination=destination))
+                O.need(r['exit'] == 4 and not r['stdout'] and bool(r['stderr']), 'invalid destination rejected')
+                O.need(before == after and siblings == sorted(p.name for p in base.iterdir()), 'invalid destination had no filesystem effect')
+                self.row('publication:' + role + ':' + case)
+
+    def resources(self):
+        base = self.root / 'bundle-limits'; base.mkdir()
+        minimal = read(HERE / 'source/minimal-park.anl')
+        for count, reason in [(6000, b'boot manifest output exceeds 1048576 bytes'), (8000, b'boot Core output exceeds 1048576 bytes')]:
+            source = base / ('helpers-' + str(count) + '.anl')
+            source.write_bytes(minimal + ''.join(f'fn extra_{i}() -> unit {{}}\n' for i in range(count)).encode())
+            for role in ('rust', 'evidence'):
+                parent = base / (role + '-' + str(count)); parent.mkdir()
+                r = self.call(role + '-bundle-limit-' + str(count),
+                    [self.tools[role], 'emit-boot', source, '--out', parent / 'bundle'], [source])
+                O.need(r['exit'] == 3 and not r['stdout'] and reason in r['stderr'], 'specific production output cutoff')
+                O.need(not list(parent.iterdir()), 'resource cutoff before any publication')
+                self.row('bundle-limit:' + role + ':' + str(count))
 
     def check_identities(self):
         checks = []
@@ -226,11 +321,11 @@ def main():
         if args.mode == 'audit': print('boot corpus integrity: PASS (no external tools executed)'); return 0
         O.need(args.tools is not None and args.out is not None, '--tools and --out required')
         gate = Gate(args, manifest)
-        gate.source(); gate.raw(); gate.controls()
+        gate.source(); gate.raw(); gate.controls(); gate.bundles(); gate.publication(); gate.resources()
         O.need(gate.check_identities()['status'] == 'PASS', 'final identity checks failed')
         save(gate.root / 'RESULT.json', dict(status='PASS', rows=gate.rows, commands=gate.runner.records,
             exclusions=manifest['exclusions'], performance_metrics_collected=False))
-        print('boot source/Core conformance: PASS'); return 0
+        print('boot source/Core/bundle conformance: PASS'); return 0
     except (O.Failure, OSError, ValueError, KeyError, TypeError) as error:
         if gate is not None:
             save(gate.root / 'RESULT.json', dict(status='INCONCLUSIVE' if isinstance(error, O.Inconclusive) else 'FAIL',

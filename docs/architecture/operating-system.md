@@ -2,9 +2,10 @@
 
 Status: the required OS is not bootable. The first selected bring-up profile is
 RV64 supervisor mode on `rv64-virt-sbi-v1`, with one hart and external OpenSBI
-firmware. [Boot source checking and Core interchange](../book/boot-profile.md)
+firmware. [Boot source checking and bundle emission](../book/boot-profile.md)
 are implemented, including explicit stacks, UART authority and terminal roles.
-Native entry/trap ABI generation, hardware execution and image building remain
+Bundles contain generated entry/trap assembly and individual primitive lowerings;
+target instruction/ABI qualification, hardware execution and image building remain
 unfinished. No kernel structure has been selected. Hosted compilation still uses
 a Rust compiler that emits C11 with libc output/failure helpers.
 
@@ -40,8 +41,9 @@ implement OS behavior are subject to the same ANL authorship requirement.
 ## Hardware operations (planned)
 
 The [first boot profile](../../spec/boot-profile.md) defines a narrow set of
-statically checked UART byte, fence and machine-initialization forms. Their native
-lowering and hardware execution are not yet available. The broader operations
+statically checked UART byte, fence and machine-initialization forms. Their generated
+instruction templates are described in the [bundle format](../../spec/boot-bundle.md);
+linked-code and hardware qualification remain open. The broader operations
 below remain language/compiler work; their general interfaces are undecided. Each feature requires a versioned language
 contract, target profile, typed IR representation, validated lowering and
 executable conformance evidence before exposure. Unsupported targets and invalid

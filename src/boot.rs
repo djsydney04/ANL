@@ -1,7 +1,16 @@
-//! Checked boot source and Core admission. Execution and native emission are unavailable.
+//! Checked boot source and Core admission. Freestanding source emission does not invoke a target compiler.
 mod check;
+mod emit;
+mod publish;
+mod templates;
+pub use emit::{Bundle, emit};
+mod mir;
 mod source;
 mod wire;
+pub use mir::{
+    BlockChild, BlockEdge, CheckedPair, CoreEdge, MIR_SCHEMA, MirPath, Origin, PairError,
+    export_mir, export_pair_core, import_pair, lower,
+};
 
 use crate::{
     diagnostic::Sources,

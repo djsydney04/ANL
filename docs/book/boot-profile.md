@@ -1,9 +1,9 @@
-# Check an ANL boot program
+# Check and emit an ANL boot program
 
 ANL can check a boot program for the `rv64-virt-sbi-v1` profile and export its
-checked Core representation. This first profile selects one RV64 hart,
-supervisor mode, explicit stacks and a UART device. It is a static compiler
-boundary: the compiler does not yet emit or run a boot image.
+checked Core representation or a complete freestanding source bundle. This first
+profile selects one RV64 hart, supervisor mode, explicit stacks and a UART device.
+The compiler does not yet link or run a boot image.
 
 From the repository root, build the CLI as described in
 [Getting started](../getting-started.md), then run:
@@ -22,12 +22,27 @@ the terminal loop or access hardware.
 The [UART example](../../examples/boot/uart.anl) also checks and exports. It
 expresses polling, byte writes and fences in ANL, with an intended `ANL` plus
 newline byte sequence. Those device effects have not been executed by the boot
-toolchain; the example currently demonstrates static admission only.
+toolchain; checking and source emission do not establish device behavior.
 
 ```sh
 ./target/release/anl check examples/boot/uart.anl
 ./target/release/anl dump-core examples/boot/uart.anl > /tmp/anl-uart-core.json
+./target/release/anl emit-boot examples/boot/uart.anl --out /tmp/anl-uart-bundle
 ```
+
+`emit-boot` succeeds silently and creates a directory containing `core.json`,
+`mir.json`, `program.c`, `entry.S`, `link.ld` and `manifest.json`. The parent
+directory must already exist and the destination must be absent. Choose a fresh
+destination on subsequent runs. An existing file, directory or symbolic link is
+preserved; publication fails with exit 4 and identifies the retained staging
+directory. Output construction limits fail with exit 3 before creating staging.
+
+The manifest records payload hashes, source spans, structural Core/MIR locations,
+generated code ranges and the three selected terminal loops. All polling, byte
+sequences and terminal-loop policy come from ANL source. Generated code supplies
+individual primitive instructions, checked arithmetic and entry ABI adaptation.
+The [bundle specification](../../spec/boot-bundle.md) defines these boundaries.
+This command invokes no C compiler, assembler, linker or emulator.
 
 ## Declare the platform and roles
 
@@ -115,8 +130,8 @@ The accepted hardware forms are deliberately narrow:
 
 `OFFSET` is a literal from 0 through 4; `byte` is an ordinary `u8` expression.
 The install selector must name the declared hardware handler. These forms are
-statically admitted operations; no hosted evaluation or device implementation
-is supplied for them yet.
+statically admitted operations with generated instruction templates. Hosted
+evaluation and device execution are unavailable.
 
 Names `hw`, `machine`, `uart0`, `boot_stack`, and `terminal_stack` cannot be
 redeclared in boot source. Prefixes `__hw_` and `__carrier_` are reserved,
@@ -138,7 +153,7 @@ conflicts with a boot platform; explicit boot selection requires one.
 | `eval`, `run`, `emit-c` | Unsupported diagnostic, exit 7 |
 | `verify FILE [--json]` | Unsupported report, exit 7, `trust=not_established` |
 | `eval-core CORE_JSON` | Unsupported JSON outcome, exit 7 |
-| `emit-boot FILE --out PATH` | Not implemented, exit 7 |
+| `emit-boot FILE --out PATH` | Complete source bundle, silent success, exit 0 |
 | `build FILE --toolchain LOCK -o PATH` | Not implemented, exit 7 |
 
 Unsupported routes still check the whole source or Core document. Missing
@@ -155,10 +170,12 @@ hardware proof. Static acceptance is not a user-contract verification result.
 
 The selected bring-up boundary uses external OpenSBI firmware. ANL-authored boot
 policy, initialization, drivers and the rest of the OS remain the objective;
-firmware is an explicit external dependency. Native entry/trap ABI generation,
-boot MIR, hardware execution and interrupt delivery, image linking, emulator and
-physical-device qualification remain unfinished. No bootable ANL OS is provided.
+firmware is an explicit external dependency. Generated entry/trap ABI and
+primitive instructions still need target qualification. Hardware execution,
+interrupt delivery, image linking, emulator and physical-device qualification
+remain unfinished. No bootable ANL OS is provided.
 
 The [boot specification](../../spec/boot-profile.md) records the exact static and
-Core boundary. The [OS architecture](../architecture/operating-system.md) tracks
+Core boundary; the [bundle specification](../../spec/boot-bundle.md) covers paired
+MIR and generated sources. The [OS architecture](../architecture/operating-system.md) tracks
 the wider language capabilities needed to author the complete OS in ANL.

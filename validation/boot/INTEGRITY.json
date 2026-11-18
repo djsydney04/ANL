@@ -1,8 +1,16 @@
 {
   "files": {
+    "bundle_oracle.py": {
+      "bytes": 12740,
+      "sha256": "0fd42f533f96bec5c76d920485b90c75e7d25dcd315f04c69898f5878901467f"
+    },
+    "expected-link.ld": {
+      "bytes": 1674,
+      "sha256": "e83aa203c62a61c2bfafd6b60b41339a37dfbd6fe365cdd6cf498110cc0f26fb"
+    },
     "manifest.json": {
-      "bytes": 5498,
-      "sha256": "54da235706e0c430ec27bccbd9357e33a13444c0141425e1670bae0e56fe82db"
+      "bytes": 6533,
+      "sha256": "e2fd6a0958f366ac7fc1cc96e9f7c32ee9583cb4ed3fc4b4f908a815e7e87ac7"
     },
     "normal-primitives.json": {
       "bytes": 2440,
@@ -41,8 +49,12 @@
       "sha256": "0464dae3795191ce304666a1a8f66f84003aaa3faf9acd30014de13d356e8b82"
     },
     "run.py": {
-      "bytes": 15493,
-      "sha256": "ad27e68315b05fbfc9cf73e82042d5f197587c815c22b539dd6580e032a01eda"
+      "bytes": 22354,
+      "sha256": "1f6fb4b4f1a3252832730a6df3a180a43f04736dd15d95848025a24a3afe3bbd"
+    },
+    "scalar-helpers.json": {
+      "bytes": 4641,
+      "sha256": "86555ad3e9ed8bf1b8a66d5338a7e6beaa25c08fc65208c9bdc857388e60aeed"
     },
     "source/call-role-dead-branch.anl": {
       "bytes": 873,
@@ -56,6 +68,10 @@
       "bytes": 810,
       "sha256": "4b4a1b71770068a1057dd71d6424bbb8ebc4557d16d8ba54df1b65b002828e43"
     },
+    "source/language-trap.anl": {
+      "bytes": 1742,
+      "sha256": "6445ce950b448b8489d926cae20034c91aa3d088813f2cf03e9fd93859511eec"
+    },
     "source/minimal-park.anl": {
       "bytes": 796,
       "sha256": "03b047d91e43ed264940b744d4516a8cd8e5f6dbf6e5f5336ecca8a17be7fcb6"
@@ -67,6 +83,10 @@
     "source/platform-first-import.anl": {
       "bytes": 833,
       "sha256": "c58cdb3efaa60ec8945c7234ec4b318f4f3f30006e83d67d949c141d435bec96"
+    },
+    "source/scalar-closure.anl": {
+      "bytes": 1647,
+      "sha256": "5a8f70b24832d19a1212f97ecf41937b793524a002297a3fa1e8b1f32e70acf5"
     },
     "source/uart-normal.anl": {
       "bytes": 1734,

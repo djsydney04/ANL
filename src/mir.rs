@@ -1,5 +1,8 @@
+mod body_wire;
+pub(crate) mod origin;
 #[cfg(feature = "memory-evidence")]
 pub(crate) mod wire;
+use origin::CoreEdge;
 // Structured scalar MIR. Blocks sequence instructions and yield one value.
 // Checked arithmetic operations include their trap behavior, never raw partial
 // arithmetic. Branch-local temporaries cannot escape except through the yield.
@@ -9,13 +12,13 @@ use crate::types::{
 use crate::word::{ConvertMode, WordValue};
 use std::fmt;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Temp {
     pub id: usize,
     pub ty: Type,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Slot {
     pub id: usize,
     pub ty: Type,
@@ -29,7 +32,7 @@ pub(crate) struct Program {
     pub entry: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Function {
     pub view: Option<(ViewMode, usize)>,
     pub resource_count: usize,
@@ -40,19 +43,19 @@ pub(crate) struct Function {
     pub slot_count: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Block {
     pub instructions: Vec<Instruction>,
     pub yield_value: Temp,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Instruction {
     pub destination: Temp,
     pub kind: Operation,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum MemoryOperation {
     HeapScope {
         site: usize,
@@ -81,7 +84,7 @@ pub(crate) enum MemoryOperation {
         arguments: Vec<Temp>,
     },
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Operation {
     Word(WordValue),
     Convert {
@@ -149,28 +152,11 @@ impl std::error::Error for InvalidMir {}
 type Result<T> = std::result::Result<T, InvalidMir>;
 
 pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
-    let mut functions = Vec::with_capacity(source.functions.len());
-    for function in &source.functions {
-        let mut builder = Builder {
-            next: 0,
-            next_slot: 0,
-            resources: function.view.into_iter().map(|_| 0).collect(),
-            view_offset: usize::from(function.view.is_some()),
-            resource_count: usize::from(function.view.is_some()),
-        };
-        let params: Vec<_> = function.params.iter().map(|ty| builder.temp(*ty)).collect();
-        let mut locals = params.iter().copied().map(Binding::Value).collect();
-        let body = builder.block(&function.body, &mut locals)?;
-        functions.push(Function {
-            view: function.view.map(|m| (m, 0)),
-            resource_count: builder.resource_count,
-            params,
-            result: function.result,
-            body,
-            temp_count: builder.next,
-            slot_count: builder.next_slot,
-        });
-    }
+    let functions = source
+        .functions
+        .iter()
+        .map(|function| lower_function(function, false).map(|(f, _)| f))
+        .collect::<Result<Vec<_>>>()?;
     let program = Program {
         revision: source.effective_revision(),
         allocation_profile: source.allocation_profile,
@@ -181,6 +167,44 @@ pub(crate) fn lower(source: &types::Program, entry: usize) -> Result<Program> {
     Ok(program)
 }
 
+pub(crate) type EmissionOrigins = Vec<(Temp, Vec<CoreEdge>)>;
+pub(crate) fn lower_function(
+    function: &types::Function,
+    record_origins: bool,
+) -> Result<(Function, EmissionOrigins)> {
+    let mut builder = Builder {
+        next: 0,
+        next_slot: 0,
+        resources: function.view.into_iter().map(|_| 0).collect(),
+        view_offset: usize::from(function.view.is_some()),
+        resource_count: usize::from(function.view.is_some()),
+        origins: record_origins.then(Vec::new),
+        path: Vec::new(),
+    };
+    let params: Vec<_> = function.params.iter().map(|ty| builder.temp(*ty)).collect();
+    let mut locals = params.iter().copied().map(Binding::Value).collect();
+    let body = builder.block(&function.body, &mut locals)?;
+    Ok((
+        Function {
+            view: function.view.map(|m| (m, 0)),
+            resource_count: builder.resource_count,
+            params,
+            result: function.result,
+            body,
+            temp_count: builder.next,
+            slot_count: builder.next_slot,
+        },
+        builder.origins.unwrap_or_default(),
+    ))
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct Signature {
+    pub view: Option<ViewMode>,
+    pub params: Vec<Type>,
+    pub result: Type,
+}
+
 #[derive(Clone, Copy)]
 enum Binding {
     Value(Temp),
@@ -188,6 +212,8 @@ enum Binding {
 }
 
 struct Builder {
+    origins: Option<EmissionOrigins>,
+    path: Vec<CoreEdge>,
     resources: Vec<usize>,
     view_offset: usize,
     resource_count: usize,
@@ -195,6 +221,37 @@ struct Builder {
     next_slot: usize,
 }
 impl Builder {
+    fn child(
+        &mut self,
+        edge: CoreEdge,
+        expr: &Expr,
+        locals: &mut Vec<Binding>,
+        instructions: &mut Vec<Instruction>,
+    ) -> Result<Temp> {
+        if self.origins.is_some() {
+            self.path.push(edge);
+        }
+        let result = self.expr(expr, locals, instructions);
+        if self.origins.is_some() {
+            self.path.pop();
+        }
+        result
+    }
+    fn child_block(
+        &mut self,
+        edge: CoreEdge,
+        expr: &Expr,
+        locals: &mut Vec<Binding>,
+    ) -> Result<Block> {
+        if self.origins.is_some() {
+            self.path.push(edge);
+        }
+        let result = self.block(expr, locals);
+        if self.origins.is_some() {
+            self.path.pop();
+        }
+        result
+    }
     fn resource(&self, index: usize) -> Result<usize> {
         let p = self
             .resources
@@ -317,21 +374,30 @@ impl Builder {
             } => Operation::Convert {
                 mode: *mode,
                 target: *target,
-                operand: self.expr(operand, locals, instructions)?,
+                operand: self.child(CoreEdge::ConvertOperand, operand, locals, instructions)?,
             },
             ExprKind::Memory(memory) => {
+                if self.origins.is_some() {
+                    return Err(InvalidMir("boot origin lowering forbids memory"));
+                }
                 Operation::Memory(Box::new(self.memory(memory, locals, instructions)?))
             }
             ExprKind::Tuple(fields) => {
                 let mut values = Vec::with_capacity(fields.len());
-                for field in fields {
-                    values.push(self.expr(field, locals, instructions)?);
+                for (index, field) in fields.iter().enumerate() {
+                    values.push(self.child(
+                        CoreEdge::TupleField(index),
+                        field,
+                        locals,
+                        instructions,
+                    )?);
                 }
                 Operation::Tuple(values)
             }
-            ExprKind::Project { value, index } => {
-                Operation::Project(self.expr(value, locals, instructions)?, *index)
-            }
+            ExprKind::Project { value, index } => Operation::Project(
+                self.child(CoreEdge::ProjectOperand, value, locals, instructions)?,
+                *index,
+            ),
             ExprKind::Integer(n) => Operation::Integer(*n),
             ExprKind::Boolean(b) => Operation::Boolean(*b),
             ExprKind::Unit => Operation::Unit,
@@ -350,21 +416,21 @@ impl Builder {
                 }
             }
             ExprKind::Let { value, body } => {
-                let value = self.expr(value, locals, instructions)?;
+                let value = self.child(CoreEdge::LetValue, value, locals, instructions)?;
                 locals.push(Binding::Value(value));
-                let result = self.expr(body, locals, instructions);
+                let result = self.child(CoreEdge::LetBody, body, locals, instructions);
                 locals.pop();
                 return result;
             }
             ExprKind::LetMut { value, body } => {
-                let initial = self.expr(value, locals, instructions)?;
+                let initial = self.child(CoreEdge::LetValue, value, locals, instructions)?;
                 let slot = Slot {
                     id: self.next_slot,
                     ty: initial.ty,
                 };
                 self.next_slot += 1;
                 locals.push(Binding::Mutable(slot));
-                let body = self.block(body, locals);
+                let body = self.child_block(CoreEdge::LetBody, body, locals);
                 locals.pop();
                 Operation::MutableScope {
                     slot,
@@ -384,34 +450,36 @@ impl Builder {
                 let Binding::Mutable(slot) = locals[index] else {
                     return Err(InvalidMir("assignment target is immutable"));
                 };
-                let value = self.expr(value, locals, instructions)?;
+                let value = self.child(CoreEdge::AssignValue, value, locals, instructions)?;
                 Operation::Store(slot, value)
             }
             ExprKind::While { condition, body } => Operation::While {
-                condition: self.block(condition, locals)?,
-                body: self.block(body, locals)?,
+                condition: self.child_block(CoreEdge::WhileCondition, condition, locals)?,
+                body: self.child_block(CoreEdge::WhileBody, body, locals)?,
             },
             ExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
             } => {
-                let condition = self.expr(condition, locals, instructions)?;
-                let then_block = self.block(then_branch, locals)?;
-                let else_block = self.block(else_branch, locals)?;
+                let condition =
+                    self.child(CoreEdge::IfCondition, condition, locals, instructions)?;
+                let then_block = self.child_block(CoreEdge::IfThen, then_branch, locals)?;
+                let else_block = self.child_block(CoreEdge::IfElse, else_branch, locals)?;
                 Operation::Branch {
                     condition,
                     then_block,
                     else_block,
                 }
             }
-            ExprKind::Unary { op, operand } => {
-                Operation::Unary(*op, self.expr(operand, locals, instructions)?)
-            }
+            ExprKind::Unary { op, operand } => Operation::Unary(
+                *op,
+                self.child(CoreEdge::UnaryOperand, operand, locals, instructions)?,
+            ),
             ExprKind::Binary { op, left, right } => {
-                let left = self.expr(left, locals, instructions)?;
+                let left = self.child(CoreEdge::BinaryLeft, left, locals, instructions)?;
                 if matches!(op, BinaryOp::And | BinaryOp::Or) {
-                    let right_block = self.block(right, locals)?;
+                    let right_block = self.child_block(CoreEdge::BinaryRight, right, locals)?;
                     let short_block = Block {
                         instructions: Vec::new(),
                         yield_value: left,
@@ -427,7 +495,7 @@ impl Builder {
                         else_block,
                     }
                 } else {
-                    let right = self.expr(right, locals, instructions)?;
+                    let right = self.child(CoreEdge::BinaryRight, right, locals, instructions)?;
                     Operation::Binary(*op, left, right)
                 }
             }
@@ -436,13 +504,21 @@ impl Builder {
                 arguments,
             } => {
                 let mut values = Vec::with_capacity(arguments.len());
-                for argument in arguments {
-                    values.push(self.expr(argument, locals, instructions)?);
+                for (index, argument) in arguments.iter().enumerate() {
+                    values.push(self.child(
+                        CoreEdge::CallArgument(index),
+                        argument,
+                        locals,
+                        instructions,
+                    )?);
                 }
                 Operation::Call(*function, values)
             }
         };
         let destination = self.temp(expr.ty);
+        if let Some(origins) = &mut self.origins {
+            origins.push((destination, self.path.clone()));
+        }
         instructions.push(Instruction { destination, kind });
         Ok(destination)
     }
@@ -456,9 +532,42 @@ fn validate(program: &Program) -> Result<()> {
     if entry.view.is_some() || !entry.params.is_empty() || entry.result != Type::I64 {
         return Err(InvalidMir("entry must be nullary and return i64"));
     }
-    for function in &program.functions {
+    let signatures: Vec<_> = program
+        .functions
+        .iter()
+        .map(|f| Signature {
+            view: f.view.map(|(mode, _)| mode),
+            params: f.params.iter().map(|p| p.ty).collect(),
+            result: f.result,
+        })
+        .collect();
+    validate_functions(&program.functions, &signatures, program.revision, true)
+}
+
+pub(crate) fn validate_functions(
+    functions: &[Function],
+    signatures: &[Signature],
+    revision: IrRevision,
+    allow_memory: bool,
+) -> Result<()> {
+    for (id, function) in functions.iter().enumerate() {
+        let signature = signatures
+            .get(id)
+            .ok_or(InvalidMir("missing function signature"))?;
+        if function.view.map(|(mode, _)| mode) != signature.view
+            || function.params.iter().map(|p| p.ty).collect::<Vec<_>>() != signature.params
+            || function.result != signature.result
+        {
+            return Err(InvalidMir("defined function signature mismatch"));
+        }
+        if !allow_memory && (function.view.is_some() || function.resource_count != 0) {
+            return Err(InvalidMir("boot MIR forbids resources"));
+        }
+
         let mut validator = Validator {
-            program,
+            signatures,
+            revision,
+            allow_memory,
             resources: vec![None; function.resource_count],
             visible_resources: vec![false; function.resource_count],
             definitions: vec![None; function.temp_count],
@@ -491,7 +600,9 @@ fn validate(program: &Program) -> Result<()> {
 struct Validator<'a> {
     resources: Vec<Option<ResourceMode>>,
     visible_resources: Vec<bool>,
-    program: &'a Program,
+    signatures: &'a [Signature],
+    revision: IrRevision,
+    allow_memory: bool,
     definitions: Vec<Option<Type>>,
     visible: Vec<bool>,
     slots: Vec<Option<Type>>,
@@ -576,15 +687,14 @@ impl Validator<'_> {
                     return Err(InvalidMir("view permission escalation"));
                 }
                 let f = self
-                    .program
-                    .functions
+                    .signatures
                     .get(*function)
                     .ok_or(InvalidMir("invalid view callee"))?;
-                if f.view.map(|(m, _)| m) != Some(*mode) || f.params.len() != arguments.len() {
+                if f.view != Some(*mode) || f.params.len() != arguments.len() {
                     return Err(InvalidMir("view call signature mismatch"));
                 }
                 for (a, p) in arguments.iter().zip(&f.params) {
-                    if self.use_temp(*a)? != p.ty {
+                    if self.use_temp(*a)? != *p {
                         return Err(InvalidMir("view argument type mismatch"));
                     }
                 }
@@ -628,7 +738,7 @@ impl Validator<'_> {
         for instruction in &block.instructions {
             let ty = match &instruction.kind {
                 Operation::Word(w) => {
-                    if self.program.revision != IrRevision::WordsV4 {
+                    if self.revision != IrRevision::WordsV4 {
                         return Err(InvalidMir("word operation requires v4"));
                     }
                     Type::Word(w.width())
@@ -638,13 +748,18 @@ impl Validator<'_> {
                     target,
                     operand,
                 } => {
-                    if self.program.revision != IrRevision::WordsV4 {
+                    if self.revision != IrRevision::WordsV4 {
                         return Err(InvalidMir("conversion requires v4"));
                     }
                     mode.result(self.use_temp(*operand)?, *target)
                         .ok_or(InvalidMir("conversion operand type mismatch"))?
                 }
-                Operation::Memory(m) => self.memory(m)?,
+                Operation::Memory(m) => {
+                    if !self.allow_memory {
+                        return Err(InvalidMir("boot MIR forbids memory"));
+                    }
+                    self.memory(m)?
+                }
                 Operation::Tuple(fields) => {
                     if !(1..=types::MAX_TUPLE_FIELDS).contains(&fields.len()) {
                         return Err(InvalidMir("tuple width"));
@@ -675,14 +790,14 @@ impl Validator<'_> {
                 Operation::Boolean(_) => Type::Bool,
                 Operation::Unit => Type::Unit,
                 Operation::Unary(op, input) => {
-                    if op.is_word() && self.program.revision != IrRevision::WordsV4 {
+                    if op.is_word() && self.revision != IrRevision::WordsV4 {
                         return Err(InvalidMir("word operator requires v4"));
                     }
                     op.result(self.use_temp(*input)?)
                         .ok_or(InvalidMir("unary operand type mismatch"))?
                 }
                 Operation::Binary(op, left, right) => {
-                    if op.is_word() && self.program.revision != IrRevision::WordsV4 {
+                    if op.is_word() && self.revision != IrRevision::WordsV4 {
                         return Err(InvalidMir("word operator requires v4"));
                     }
                     if matches!(op, BinaryOp::And | BinaryOp::Or) {
@@ -693,15 +808,14 @@ impl Validator<'_> {
                 }
                 Operation::Call(id, args) => {
                     let function = self
-                        .program
-                        .functions
+                        .signatures
                         .get(*id)
                         .ok_or(InvalidMir("invalid callee"))?;
                     if function.view.is_some() || args.len() != function.params.len() {
                         return Err(InvalidMir("call arity mismatch"));
                     }
                     for (arg, param) in args.iter().zip(&function.params) {
-                        if self.use_temp(*arg)? != param.ty {
+                        if self.use_temp(*arg)? != *param {
                             return Err(InvalidMir("call argument type mismatch"));
                         }
                     }
@@ -771,6 +885,98 @@ impl Validator<'_> {
         }
         Ok(ty)
     }
+}
+
+/// Decode a boot body using actual syntax inventories before allocating validator tables.
+pub(crate) fn decode_boot_function(
+    row: &serde_json::Value,
+    function_count: usize,
+) -> std::result::Result<Function, crate::core::ImportError> {
+    use crate::core::{self, ImportError};
+    use body_wire::{BodyLimits, Counts};
+    use serde_json::Value;
+    fn bad(s: &str) -> ImportError {
+        ImportError::Invalid(s.into())
+    }
+    fn inventory(
+        v: &Value,
+        depth: usize,
+        counts: &mut Counts,
+    ) -> std::result::Result<(), ImportError> {
+        if depth >= crate::MAX_DEPTH {
+            return Err(ImportError::ResourceLimit(
+                "boot MIR block depth exceeded".into(),
+            ));
+        }
+        let b = core::object(v, &["instructions", "yield"])?;
+        for i in core::array(&b["instructions"])? {
+            let i = core::object(i, &["destination", "operation"])?;
+            counts.temps += 1;
+            let o = &i["operation"];
+            let tag = o
+                .get("tag")
+                .and_then(Value::as_str)
+                .ok_or_else(|| bad("missing MIR operation tag"))?;
+            let children: &[&str] = match tag {
+                "mutable_scope" => {
+                    counts.slots += 1;
+                    &["body"]
+                }
+                "while" => &["condition", "body"],
+                "branch" => &["then", "else"],
+                "heap_scope" | "buffer_length" | "buffer_read" | "buffer_write" | "call_view" => {
+                    return Err(bad("boot MIR forbids memory"));
+                }
+                _ => &[],
+            };
+            for child in children {
+                inventory(&o[*child], depth + 1, counts)?;
+            }
+        }
+        Ok(())
+    }
+    let params = core::array(&row["params"])?;
+    let mut observed = Counts {
+        temps: params.len(),
+        ..Counts::default()
+    };
+    inventory(&row["body"], 0, &mut observed)?;
+    for (field, expected) in [
+        ("temp_count", observed.temps),
+        ("slot_count", observed.slots),
+        ("resource_count", 0),
+    ] {
+        if row[field].as_u64() != Some(expected as u64) {
+            return Err(bad("MIR counts do not match actual inventory"));
+        }
+    }
+    if !row["view"].is_null() {
+        return Err(bad("boot MIR forbids views"));
+    }
+    let limits = BodyLimits {
+        temps: observed.temps,
+        slots: observed.slots,
+        functions: function_count,
+    };
+    let params = body_wire::temps(&row["params"], true, Some(observed.temps))?;
+    let mut decoded = Counts {
+        temps: params.len(),
+        ..Counts::default()
+    };
+    let body = body_wire::block(&row["body"], 0, &mut decoded, true, Some(limits))?;
+    if decoded.temps != observed.temps || decoded.slots != observed.slots || decoded.resources != 0
+    {
+        return Err(bad("MIR inventory disagreement"));
+    }
+    Ok(Function {
+        view: None,
+        resource_count: 0,
+        params,
+        result: core::ty_words(&row["result"], true, true)?,
+        body,
+        temp_count: observed.temps,
+        slot_count: observed.slots,
+    })
 }
 
 #[cfg(test)]

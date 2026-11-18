@@ -62,6 +62,9 @@ impl Buffer {
             Ok(self.text)
         }
     }
+    pub(crate) fn len(&self) -> usize {
+        self.text.len()
+    }
     pub(crate) fn exhausted(&self) -> bool {
         self.exhausted
     }

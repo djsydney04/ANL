@@ -31,11 +31,12 @@
   ],
   "command_timeout_seconds": 30,
   "exclusions": [
-    "No boot evaluation, MIR lowering/pair semantics, native emission, firmware, emulator or hardware execution.",
+    "No boot evaluation, Core/MIR semantic correspondence, target C/assembly compilation, linked image, firmware, emulator or hardware execution.",
     "No general parser/compiler correctness theorem or complete source/raw corpus coverage.",
     "Formal JSON container admission differs from Rust:1024 versus127.",
     "Only explicitly completed child statuses establish semantic outcomes; external timeouts/signals/capture exhaustion are INCONCLUSIVE.",
-    "No performance measurements or new unit-test framework."
+    "No performance measurements or new unit-test framework.",
+    "Portable publication checks cover existing destination objects; they do not establish arbitrary concurrent scheduling or crash durability."
   ],
   "raw": [
     {
@@ -144,9 +145,27 @@
       "path": "source/generated-call.anl",
       "reason": "User cannot call generated primitive name",
       "sha256": "4b4a1b71770068a1057dd71d6424bbb8ebc4557d16d8ba54df1b65b002828e43"
+    },
+    {
+      "exit": 0,
+      "name": "language-trap",
+      "path": "source/language-trap.anl",
+      "reason": "Source-bundle discriminator for checked argument conversion and language trap mapping.",
+      "sha256": "6445ce950b448b8489d926cae20034c91aa3d088813f2cf03e9fd93859511eec"
+    },
+    {
+      "exit": 0,
+      "name": "scalar-closure",
+      "path": "source/scalar-closure.anl",
+      "reason": "Source-bundle discriminator for the complete scalar helper closure, products, local state and short circuit lowering.",
+      "sha256": "5a8f70b24832d19a1212f97ecf41937b793524a002297a3fa1e8b1f32e70acf5"
     }
   ],
   "source_oracles": {
+    "language-trap": {
+      "defined": 5,
+      "primitive_file": "normal-primitives.json"
+    },
     "minimal-park": {
       "defined": 3,
       "tags": [
@@ -165,6 +184,14 @@
         "install_trap",
         "mmio_write8",
         "mmio_read8"
+      ]
+    },
+    "scalar-closure": {
+      "defined": 4,
+      "tags": [
+        "csr_clear",
+        "csr_write",
+        "install_trap"
       ]
     },
     "uart-normal": {

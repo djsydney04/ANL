@@ -1,10 +1,12 @@
 //! Validated MIR to portable C11 and a host-native executable.
+mod helpers;
 use crate::{
     bounded::{Buffer, OutputError},
     mir::{self, Block, MemoryOperation, Operation},
     types::{BinaryOp, IrRevision, Program, TupleShape, Type, UnaryOp},
     word::{ConvertMode, WordWidth},
 };
+use helpers::Helper;
 use std::{
     borrow::Cow,
     collections::BTreeSet,
@@ -49,20 +51,73 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
         text.write_str("#include \"runtime.h\"\n")?;
     }
     if memory {
-        text.write_str(&RUNTIME.replace(
+        text.write_str(&RUNTIME_HEADER.replace(
             "static _Noreturn void apl_trap(const char *tag) {\n",
             "static _Noreturn void apl_trap(const char *tag) {\n    anl_memory_trap(tag);\n",
         ))?;
     } else {
-        text.write_str(RUNTIME)?;
+        text.write_str(RUNTIME_HEADER)?;
+    }
+    for helper in helpers::SIGNED {
+        helper.emit(false, text)?;
     }
     if program.revision == IrRevision::WordsV4 {
         emit_word_profile(
             program.allocation_profile.expect("checked word profile"),
             text,
         )?;
-        text.write_str(WORD_RUNTIME)?;
+        text.write_str("\n")?;
+        for helper in helpers::WORD {
+            helper.emit(false, text)?;
+        }
     }
+    emit_shapes(&program.functions, text)?;
+    for (id, function) in program.functions.iter().enumerate() {
+        signature(id, function, text)?;
+        text.write_str(";\n")?;
+    }
+    for (id, function) in program.functions.iter().enumerate() {
+        signature(id, function, text)?;
+        text.write_str(" {\n")?;
+        emit_block(
+            &function.body,
+            text,
+            1,
+            id,
+            program.allocation_profile,
+            &mut BodyEmission::hosted(),
+        )?;
+        writeln!(text, "    return t{};\n}}", function.body.yield_value.id)?;
+    }
+    let begin = if memory {
+        "    anl_memory_begin();\n"
+    } else {
+        ""
+    };
+    let finish = if memory {
+        "    anl_memory_value(result);\n"
+    } else {
+        ""
+    };
+    write!(
+        text,
+        r#"
+int main(void) {{
+#ifdef SIGPIPE
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return 4;
+#endif
+{begin}    int64_t result = apl_f{}();
+{finish}    if (printf("%" PRId64 "\n", result) < 0 || fflush(stdout) == EOF) {{
+        (void)fputs("anl: cannot write stdout\n", stderr);
+        return 4;
+    }}
+    return 0;
+}}
+"#,
+        program.entry
+    )
+}
+pub(crate) fn emit_shapes(functions: &[mir::Function], text: &mut Buffer) -> fmt::Result {
     let mut shapes = BTreeSet::new();
     fn add(ty: Type, shapes: &mut BTreeSet<TupleShape>) {
         if let Type::Tuple(shape) = ty {
@@ -107,7 +162,7 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
             }
         }
     }
-    for function in &program.functions {
+    for function in functions {
         add(function.result, &mut shapes);
         for param in &function.params {
             add(param.ty, &mut shapes);
@@ -121,45 +176,9 @@ fn emit_translation_unit(program: &mir::Program, text: &mut Buffer) -> fmt::Resu
         }
         writeln!(text, " }} {};", c_type(Type::Tuple(shape)))?;
     }
-    for (id, function) in program.functions.iter().enumerate() {
-        signature(id, function, text)?;
-        text.write_str(";\n")?;
-    }
-    for (id, function) in program.functions.iter().enumerate() {
-        signature(id, function, text)?;
-        text.write_str(" {\n")?;
-        emit_block(&function.body, text, 1, id, program.allocation_profile)?;
-        writeln!(text, "    return t{};\n}}", function.body.yield_value.id)?;
-    }
-    let begin = if memory {
-        "    anl_memory_begin();\n"
-    } else {
-        ""
-    };
-    let finish = if memory {
-        "    anl_memory_value(result);\n"
-    } else {
-        ""
-    };
-    write!(
-        text,
-        r#"
-int main(void) {{
-#ifdef SIGPIPE
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) return 4;
-#endif
-{begin}    int64_t result = apl_f{}();
-{finish}    if (printf("%" PRId64 "\n", result) < 0 || fflush(stdout) == EOF) {{
-        (void)fputs("anl: cannot write stdout\n", stderr);
-        return 4;
-    }}
-    return 0;
-}}
-"#,
-        program.entry
-    )
+    Ok(())
 }
-fn c_type(ty: Type) -> Cow<'static, str> {
+pub(crate) fn c_type(ty: Type) -> Cow<'static, str> {
     match ty {
         Type::I64 => "int64_t".into(),
         Type::Word(width) => format!("uint{}_t", width.bits()).into(),
@@ -198,202 +217,329 @@ fn signature(id: usize, function: &mir::Function, text: &mut Buffer) -> fmt::Res
     }
     text.write_str(")")
 }
-fn emit_block(
+pub(crate) fn emit_boot_helpers(functions: &[mir::Function], text: &mut Buffer) -> fmt::Result {
+    fn scan(block: &Block, used: &mut BTreeSet<Helper>) -> fmt::Result {
+        for instruction in &block.instructions {
+            let helper = match &instruction.kind {
+                Operation::Unary(UnaryOp::Neg, _) => Some(Helper::Neg),
+                Operation::Unary(UnaryOp::BitNot, _) => Some(Helper::WordNot),
+                Operation::Binary(op, left, _) => match (op, left.ty) {
+                    (BinaryOp::Add, Type::I64) => Some(Helper::Add),
+                    (BinaryOp::Sub, Type::I64) => Some(Helper::Sub),
+                    (BinaryOp::Mul, Type::I64) => Some(Helper::Mul),
+                    (BinaryOp::Div, Type::I64) => Some(Helper::Div),
+                    (BinaryOp::Rem, Type::I64) => Some(Helper::Rem),
+                    (BinaryOp::Add, Type::Word(_)) => Some(Helper::WordAdd),
+                    (BinaryOp::Sub, Type::Word(_)) => Some(Helper::WordSub),
+                    (BinaryOp::Mul, Type::Word(_)) => Some(Helper::WordMul),
+                    (BinaryOp::Div, Type::Word(_)) => Some(Helper::WordDiv),
+                    (BinaryOp::Rem, Type::Word(_)) => Some(Helper::WordRem),
+                    (BinaryOp::WrapAdd, _) => Some(Helper::WordWrapAdd),
+                    (BinaryOp::WrapSub, _) => Some(Helper::WordWrapSub),
+                    (BinaryOp::WrapMul, _) => Some(Helper::WordWrapMul),
+                    (BinaryOp::BitAnd, _) => Some(Helper::WordBitAnd),
+                    (BinaryOp::BitXor, _) => Some(Helper::WordBitXor),
+                    (BinaryOp::BitOr, _) => Some(Helper::WordBitOr),
+                    (BinaryOp::Shl, _) => Some(Helper::WordShl),
+                    (BinaryOp::Shr, _) => Some(Helper::WordShr),
+                    _ => None,
+                },
+                Operation::Convert {
+                    mode,
+                    target,
+                    operand,
+                } => match (mode, target, operand.ty) {
+                    (ConvertMode::Checked, Type::I64, Type::Word(_)) => Some(Helper::WordToI64),
+                    (ConvertMode::Checked, Type::Word(_), Type::I64) => Some(Helper::WordCastI64),
+                    (ConvertMode::Checked, Type::Word(_), Type::Word(_)) => {
+                        Some(Helper::WordCastWord)
+                    }
+                    (ConvertMode::Truncate, Type::Word(_), Type::I64) => {
+                        Some(Helper::WordTruncateI64)
+                    }
+                    (ConvertMode::Truncate, Type::Word(_), Type::Word(_)) => {
+                        Some(Helper::WordTruncateWord)
+                    }
+                    _ => None,
+                },
+                Operation::MutableScope { body, .. } => {
+                    scan(body, used)?;
+                    None
+                }
+                Operation::Branch {
+                    then_block,
+                    else_block,
+                    ..
+                } => {
+                    scan(then_block, used)?;
+                    scan(else_block, used)?;
+                    None
+                }
+                Operation::While { condition, body } => {
+                    scan(condition, used)?;
+                    scan(body, used)?;
+                    None
+                }
+                Operation::Memory(_) => return Err(fmt::Error),
+                _ => None,
+            };
+            if let Some(helper) = helper {
+                used.insert(helper);
+            }
+        }
+        Ok(())
+    }
+    let mut used = BTreeSet::new();
+    for function in functions {
+        scan(&function.body, &mut used)?;
+    }
+    for helper in used {
+        helper.emit(true, text)?;
+    }
+    Ok(())
+}
+pub(crate) struct BodyEmission {
+    pub(crate) boot: bool,
+    pub(crate) ranges: Vec<(usize, std::ops::Range<usize>)>,
+}
+impl BodyEmission {
+    fn hosted() -> Self {
+        Self {
+            boot: false,
+            ranges: Vec::new(),
+        }
+    }
+    pub(crate) fn boot() -> Self {
+        Self {
+            boot: true,
+            ranges: Vec::new(),
+        }
+    }
+}
+pub(crate) fn emit_block(
     block: &Block,
     text: &mut Buffer,
     indent: usize,
     function: usize,
     profile: Option<crate::memory::AllocationProfile>,
+    emission: &mut BodyEmission,
 ) -> fmt::Result {
-    let padding = "    ".repeat(indent);
     for instruction in &block.instructions {
         let target = instruction.destination;
-        match &instruction.kind {
-            Operation::Memory(memory) => {
-                emit_memory(
-                    memory,
-                    target,
-                    text,
-                    indent,
-                    function,
-                    profile.expect("checked memory profile"),
-                )?;
-                continue;
-            }
-            Operation::Branch {
-                condition,
-                then_block,
-                else_block,
-            } => {
-                write!(
-                    text,
-                    "{padding}{} t{};\n{padding}if (t{}) {{\n",
-                    c_type(target.ty),
-                    target.id,
-                    condition.id
-                )?;
-                emit_block(then_block, text, indent + 1, function, profile)?;
-                write!(
-                    text,
-                    "{padding}    t{} = t{};\n{padding}}} else {{\n",
-                    target.id, then_block.yield_value.id
-                )?;
-                emit_block(else_block, text, indent + 1, function, profile)?;
-                write!(
-                    text,
-                    "{padding}    t{} = t{};\n{padding}}}\n",
-                    target.id, else_block.yield_value.id
-                )?;
-                continue;
-            }
-            Operation::MutableScope {
-                slot,
-                initial,
-                body,
-            } => {
-                write!(
-                    text,
-                    "{padding}{} t{};\n{padding}{{\n{padding}    {} s{} = t{};\n",
-                    c_type(target.ty),
-                    target.id,
-                    c_type(slot.ty),
-                    slot.id,
-                    initial.id
-                )?;
-                emit_block(body, text, indent + 1, function, profile)?;
-                write!(
-                    text,
-                    "{padding}    t{} = t{};\n{padding}}}\n",
-                    target.id, body.yield_value.id
-                )?;
-                continue;
-            }
-            Operation::While { condition, body } => {
-                writeln!(text, "{padding}for (;;) {{")?;
-                emit_block(condition, text, indent + 1, function, profile)?;
-                write!(
-                    text,
-                    "{padding}    if (!t{}) break;\n{padding}    {{\n",
-                    condition.yield_value.id
-                )?;
-                emit_block(body, text, indent + 2, function, profile)?;
-                write!(text, "{padding}    }}\n{padding}}}\n")?;
-            }
-            Operation::Store(slot, value) => {
-                writeln!(text, "{padding}s{} = t{};", slot.id, value.id)?;
-            }
-            _ => {}
+        let row = emission.ranges.len();
+        if emission.boot {
+            emission.ranges.push((target.id, text.len()..text.len()));
         }
-        write!(text, "{padding}{} t{} = ", c_type(target.ty), target.id)?;
-        match &instruction.kind {
-            Operation::Tuple(fields) => {
-                text.write_str("{")?;
-                for (i, field) in fields.iter().enumerate() {
-                    if i > 0 {
-                        text.write_str(", ")?;
-                    }
-                    write!(text, ".f{i} = t{}", field.id)?;
-                }
-                text.write_str("}")?;
+        emit_instruction(instruction, text, indent, function, profile, emission)?;
+        if emission.boot {
+            emission.ranges[row].1.end = text.len();
+        }
+    }
+    Ok(())
+}
+fn emit_instruction(
+    instruction: &mir::Instruction,
+    text: &mut Buffer,
+    indent: usize,
+    function: usize,
+    profile: Option<crate::memory::AllocationProfile>,
+    emission: &mut BodyEmission,
+) -> fmt::Result {
+    let padding = "    ".repeat(indent);
+    let target = instruction.destination;
+    match &instruction.kind {
+        Operation::Memory(memory) => {
+            if emission.boot {
+                return Err(fmt::Error);
             }
-            Operation::Project(value, index) => {
-                write!(text, "t{}.f{index}", value.id)?;
-            }
-            Operation::Integer(n) if *n == i64::MIN => text.write_str("INT64_MIN")?,
-            Operation::Integer(n) if *n < 0 => write!(text, "(-INT64_C({}))", -n)?,
-            Operation::Integer(n) => write!(text, "INT64_C({n})")?,
-            Operation::Word(value) => write!(text, "UINT64_C({})", value.value())?,
-            Operation::Convert {
-                mode,
+            emit_memory(
+                memory,
                 target,
-                operand,
-            } => {
-                emit_conversion(*mode, *target, *operand, text)?;
-            }
-            Operation::Boolean(b) => write!(text, "{b}")?,
-            Operation::Unit => text.write_str("0")?,
-            Operation::Unary(UnaryOp::Neg, input) => write!(text, "apl_neg(t{})", input.id)?,
-            Operation::Unary(UnaryOp::Not, input) => write!(text, "!t{}", input.id)?,
-            Operation::Unary(UnaryOp::BitNot, input) => {
-                let Type::Word(width) = input.ty else {
-                    unreachable!("checked word complement")
-                };
-                write!(
-                    text,
-                    "apl_word_not((uint64_t)t{}, UINT64_C({}))",
-                    input.id,
-                    width.max()
-                )?;
-            }
-            Operation::Binary(op, left, right) => {
-                if let Type::Tuple(shape) = left.ty {
-                    if *op == BinaryOp::Ne {
-                        text.write_str("!")?;
-                    }
-                    text.write_str("(")?;
-                    for i in 0..shape.fields().len() {
-                        if i > 0 {
-                            text.write_str(" && ")?;
-                        }
-                        write!(text, "t{}.f{i} == t{}.f{i}", left.id, right.id)?;
-                    }
-                    text.write_str(")")?;
-                } else {
-                    let symbol = match op {
-                        BinaryOp::Lt => Some("<"),
-                        BinaryOp::Le => Some("<="),
-                        BinaryOp::Gt => Some(">"),
-                        BinaryOp::Ge => Some(">="),
-                        BinaryOp::Eq => Some("=="),
-                        BinaryOp::Ne => Some("!="),
-                        _ => None,
-                    };
-                    if let Some(symbol) = symbol {
-                        write!(text, "t{} {symbol} t{}", left.id, right.id)?;
-                    } else if let Type::Word(width) = left.ty {
-                        if matches!(op, BinaryOp::Shl | BinaryOp::Shr) {
-                            write!(
-                                text,
-                                "apl_word_{}((uint64_t)t{}, t{}, {}, UINT64_C({}))",
-                                op.as_str(),
-                                left.id,
-                                right.id,
-                                width.bits(),
-                                width.max()
-                            )?;
-                        } else {
-                            write!(
-                                text,
-                                "apl_word_{}((uint64_t)t{}, (uint64_t)t{}, UINT64_C({}))",
-                                op.as_str(),
-                                left.id,
-                                right.id,
-                                width.max()
-                            )?;
-                        }
-                    } else {
-                        write!(text, "apl_{}(t{}, t{})", op.as_str(), left.id, right.id)?;
-                    }
+                text,
+                indent,
+                function,
+                profile.expect("checked memory profile"),
+                emission,
+            )?;
+            return Ok(());
+        }
+        Operation::Branch {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            write!(
+                text,
+                "{padding}{} t{};\n{padding}if (t{}) {{\n",
+                c_type(target.ty),
+                target.id,
+                condition.id
+            )?;
+            emit_block(then_block, text, indent + 1, function, profile, emission)?;
+            write!(
+                text,
+                "{padding}    t{} = t{};\n{padding}}} else {{\n",
+                target.id, then_block.yield_value.id
+            )?;
+            emit_block(else_block, text, indent + 1, function, profile, emission)?;
+            write!(
+                text,
+                "{padding}    t{} = t{};\n{padding}}}\n",
+                target.id, else_block.yield_value.id
+            )?;
+            return Ok(());
+        }
+        Operation::MutableScope {
+            slot,
+            initial,
+            body,
+        } => {
+            write!(
+                text,
+                "{padding}{} t{};\n{padding}{{\n{padding}    {} s{} = t{};\n",
+                c_type(target.ty),
+                target.id,
+                c_type(slot.ty),
+                slot.id,
+                initial.id
+            )?;
+            emit_block(body, text, indent + 1, function, profile, emission)?;
+            write!(
+                text,
+                "{padding}    t{} = t{};\n{padding}}}\n",
+                target.id, body.yield_value.id
+            )?;
+            return Ok(());
+        }
+        Operation::While { condition, body } => {
+            writeln!(text, "{padding}for (;;) {{")?;
+            emit_block(condition, text, indent + 1, function, profile, emission)?;
+            write!(
+                text,
+                "{padding}    if (!t{}) break;\n{padding}    {{\n",
+                condition.yield_value.id
+            )?;
+            emit_block(body, text, indent + 2, function, profile, emission)?;
+            write!(text, "{padding}    }}\n{padding}}}\n")?;
+        }
+        Operation::Store(slot, value) => {
+            writeln!(text, "{padding}s{} = t{};", slot.id, value.id)?;
+        }
+        _ => {}
+    }
+    write!(text, "{padding}{} t{} = ", c_type(target.ty), target.id)?;
+    match &instruction.kind {
+        Operation::Tuple(fields) => {
+            text.write_str("{")?;
+            for (i, field) in fields.iter().enumerate() {
+                if i > 0 {
+                    text.write_str(", ")?;
                 }
+                write!(text, ".f{i} = t{}", field.id)?;
             }
-            Operation::Call(id, args) => {
-                write!(text, "apl_f{id}(")?;
-                for (i, arg) in args.iter().enumerate() {
+            text.write_str("}")?;
+        }
+        Operation::Project(value, index) => {
+            write!(text, "t{}.f{index}", value.id)?;
+        }
+        Operation::Integer(n) if *n == i64::MIN => text.write_str("INT64_MIN")?,
+        Operation::Integer(n) if *n < 0 => write!(text, "(-INT64_C({}))", -n)?,
+        Operation::Integer(n) => write!(text, "INT64_C({n})")?,
+        Operation::Word(value) => write!(text, "UINT64_C({})", value.value())?,
+        Operation::Convert {
+            mode,
+            target,
+            operand,
+        } => {
+            emit_conversion(*mode, *target, *operand, text)?;
+        }
+        Operation::Boolean(b) => write!(text, "{b}")?,
+        Operation::Unit => text.write_str("0")?,
+        Operation::Unary(UnaryOp::Neg, input) => write!(text, "apl_neg(t{})", input.id)?,
+        Operation::Unary(UnaryOp::Not, input) => write!(text, "!t{}", input.id)?,
+        Operation::Unary(UnaryOp::BitNot, input) => {
+            let Type::Word(width) = input.ty else {
+                unreachable!("checked word complement")
+            };
+            write!(
+                text,
+                "apl_word_not((uint64_t)t{}, UINT64_C({}))",
+                input.id,
+                width.max()
+            )?;
+        }
+        Operation::Binary(op, left, right) => {
+            if let Type::Tuple(shape) = left.ty {
+                if *op == BinaryOp::Ne {
+                    text.write_str("!")?;
+                }
+                text.write_str("(")?;
+                for i in 0..shape.fields().len() {
                     if i > 0 {
-                        text.write_str(", ")?;
+                        text.write_str(" && ")?;
                     }
-                    write!(text, "t{}", arg.id)?;
+                    write!(text, "t{}.f{i} == t{}.f{i}", left.id, right.id)?;
                 }
                 text.write_str(")")?;
-            }
-            Operation::Load(slot) => write!(text, "s{}", slot.id)?,
-            Operation::Store(..) | Operation::While { .. } => text.write_str("0")?,
-            Operation::Memory(_) | Operation::Branch { .. } | Operation::MutableScope { .. } => {
-                unreachable!("structured result emitted above")
+            } else {
+                let symbol = match op {
+                    BinaryOp::Lt => Some("<"),
+                    BinaryOp::Le => Some("<="),
+                    BinaryOp::Gt => Some(">"),
+                    BinaryOp::Ge => Some(">="),
+                    BinaryOp::Eq => Some("=="),
+                    BinaryOp::Ne => Some("!="),
+                    _ => None,
+                };
+                if let Some(symbol) = symbol {
+                    write!(text, "t{} {symbol} t{}", left.id, right.id)?;
+                } else if let Type::Word(width) = left.ty {
+                    if matches!(op, BinaryOp::Shl | BinaryOp::Shr) {
+                        write!(
+                            text,
+                            "apl_word_{}((uint64_t)t{}, t{}, {}, UINT64_C({}))",
+                            op.as_str(),
+                            left.id,
+                            right.id,
+                            width.bits(),
+                            width.max()
+                        )?;
+                    } else {
+                        write!(
+                            text,
+                            "apl_word_{}((uint64_t)t{}, (uint64_t)t{}, UINT64_C({}))",
+                            op.as_str(),
+                            left.id,
+                            right.id,
+                            width.max()
+                        )?;
+                    }
+                } else {
+                    write!(text, "apl_{}(t{}, t{})", op.as_str(), left.id, right.id)?;
+                }
             }
         }
-        text.write_str(";\n")?;
+        Operation::Call(id, args) => {
+            write!(
+                text,
+                "{}{id}(",
+                if emission.boot { "anl_boot_f" } else { "apl_f" }
+            )?;
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    text.write_str(", ")?;
+                }
+                write!(text, "t{}", arg.id)?;
+            }
+            text.write_str(")")?;
+        }
+        Operation::Load(slot) => write!(text, "s{}", slot.id)?,
+        Operation::Store(..) | Operation::While { .. } => text.write_str("0")?,
+        Operation::Memory(_) | Operation::Branch { .. } | Operation::MutableScope { .. } => {
+            unreachable!("structured result emitted above")
+        }
     }
+    text.write_str(";\n")?;
     Ok(())
 }
 
@@ -457,6 +603,7 @@ fn emit_memory(
     indent: usize,
     function: usize,
     profile: crate::memory::AllocationProfile,
+    emission: &mut BodyEmission,
 ) -> fmt::Result {
     let p = "    ".repeat(indent);
     let t = target.id;
@@ -475,7 +622,7 @@ fn emit_memory(
                 c_type(target.ty),
                 length.id
             )?;
-            emit_block(initial, text, indent + 1, function, Some(profile))?;
+            emit_block(initial, text, indent + 1, function, Some(profile), emission)?;
             writeln!(
                 text,
                 "{p}    anl_buffer r{owner} = {{NULL, t{}}};\n{p}    bool ok{t} = false;\n{p}    if ((uint64_t)t{} <= UINT64_C({})) {{",
@@ -492,13 +639,13 @@ fn emit_memory(
                 "{p}            r{owner}.data = anl_memory_request(r{owner}.length, UINT64_C({function}), UINT64_C({site}));\n{p}            ok{t} = r{owner}.data != NULL;\n{p}            if (ok{t}) for (int64_t i{t} = 0; i{t} < r{owner}.length; ++i{t}) r{owner}.data[(size_t)i{t}] = t{};\n{p}        }}\n{p}    }}\n{p}    if (ok{t}) {{",
                 initial.yield_value.id
             )?;
-            emit_block(success, text, indent + 2, function, Some(profile))?;
+            emit_block(success, text, indent + 2, function, Some(profile), emission)?;
             writeln!(
                 text,
                 "{p}        t{t} = t{};\n{p}        if (r{owner}.length == 0) anl_memory_empty_close(UINT64_C({function}), UINT64_C({site})); else anl_memory_release(r{owner}.data, UINT64_C({function}), UINT64_C({site}));\n{p}    }} else {{",
                 success.yield_value.id
             )?;
-            emit_block(failure, text, indent + 2, function, Some(profile))?;
+            emit_block(failure, text, indent + 2, function, Some(profile), emission)?;
             writeln!(
                 text,
                 "{p}        t{t} = t{};\n{p}    }}\n{p}}}",
@@ -525,7 +672,7 @@ fn emit_memory(
                 "{p}if (t{} < 0 || t{} >= r{resource}.length) apl_trap(\"index_out_of_bounds\");\n{p}{{",
                 index.id, index.id
             )?;
-            emit_block(value, text, indent + 1, function, Some(profile))?;
+            emit_block(value, text, indent + 1, function, Some(profile), emission)?;
             writeln!(
                 text,
                 "{p}    int64_t write{t} = t{};\n{p}    r{resource}.data[(size_t)t{}] = write{t};\n{p}}}\n{p}unsigned char t{t} = 0;",
@@ -835,7 +982,7 @@ impl Drop for TempDir {
     }
 }
 
-const RUNTIME: &str = r#"/* Generated by ANL. Scalar internal ABI; not a stable foreign interface. */
+const RUNTIME_HEADER: &str = r#"/* Generated by ANL. Scalar internal ABI; not a stable foreign interface. */
 #include <stdbool.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -846,113 +993,6 @@ const RUNTIME: &str = r#"/* Generated by ANL. Scalar internal ABI; not a stable 
 static _Noreturn void apl_trap(const char *tag) {
     if (fputs(tag, stderr) == EOF || fputc('\n', stderr) == EOF || fflush(stderr) == EOF) exit(4);
     exit(2);
-}
-static int64_t apl_add(int64_t a, int64_t b) {
-    if ((b > 0 && a > INT64_MAX - b) || (b < 0 && a < INT64_MIN - b)) apl_trap("arithmetic_overflow");
-    return a + b;
-}
-static int64_t apl_sub(int64_t a, int64_t b) {
-    if ((b > 0 && a < INT64_MIN + b) || (b < 0 && a > INT64_MAX + b)) apl_trap("arithmetic_overflow");
-    return a - b;
-}
-static int64_t apl_mul(int64_t a, int64_t b) {
-    if (a > 0) {
-        if ((b > 0 && a > INT64_MAX / b) || (b < 0 && b < INT64_MIN / a)) apl_trap("arithmetic_overflow");
-    } else if (a < 0) {
-        if ((b > 0 && a < INT64_MIN / b) || (b < 0 && a < INT64_MAX / b)) apl_trap("arithmetic_overflow");
-    }
-    return a * b;
-}
-static int64_t apl_neg(int64_t a) {
-    if (a == INT64_MIN) apl_trap("arithmetic_overflow");
-    return -a;
-}
-static int64_t apl_div(int64_t a, int64_t b) {
-    if (b == 0) apl_trap("division_by_zero");
-    if (a == INT64_MIN && b == -1) apl_trap("arithmetic_overflow");
-    return a / b;
-}
-static int64_t apl_rem(int64_t a, int64_t b) {
-    if (b == 0) apl_trap("division_by_zero");
-    if (a == INT64_MIN && b == -1) apl_trap("arithmetic_overflow");
-    return a % b;
-}
-"#;
-
-const WORD_RUNTIME: &str = r#"
-static uint64_t apl_word_add(uint64_t a, uint64_t b, uint64_t maximum) {
-    if (a > maximum - b) apl_trap("arithmetic_overflow");
-    return a + b;
-}
-static uint64_t apl_word_sub(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    if (a < b) apl_trap("arithmetic_overflow");
-    return a - b;
-}
-static uint64_t apl_word_mul(uint64_t a, uint64_t b, uint64_t maximum) {
-    if (b != 0 && a > maximum / b) apl_trap("arithmetic_overflow");
-    return a * b;
-}
-static uint64_t apl_word_div(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    if (b == 0) apl_trap("division_by_zero");
-    return a / b;
-}
-static uint64_t apl_word_rem(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    if (b == 0) apl_trap("division_by_zero");
-    return a % b;
-}
-static uint64_t apl_word_wrap_add(uint64_t a, uint64_t b, uint64_t maximum) {
-    return ((uintmax_t)a + (uintmax_t)b) & maximum;
-}
-static uint64_t apl_word_wrap_sub(uint64_t a, uint64_t b, uint64_t maximum) {
-    return ((uintmax_t)a - (uintmax_t)b) & maximum;
-}
-static uint64_t apl_word_wrap_mul(uint64_t a, uint64_t b, uint64_t maximum) {
-    return ((uintmax_t)a * (uintmax_t)b) & maximum;
-}
-static uint64_t apl_word_bit_and(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    return a & b;
-}
-static uint64_t apl_word_bit_xor(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    return a ^ b;
-}
-static uint64_t apl_word_bit_or(uint64_t a, uint64_t b, uint64_t maximum) {
-    (void)maximum;
-    return a | b;
-}
-static uint64_t apl_word_not(uint64_t a, uint64_t maximum) {
-    return (~(uintmax_t)a) & maximum;
-}
-static uint64_t apl_word_shl(uint64_t a, int64_t count, unsigned width, uint64_t maximum) {
-    if (count < 0 || (uint64_t)count >= width) apl_trap("invalid_shift");
-    return ((uintmax_t)a << (unsigned)count) & maximum;
-}
-static uint64_t apl_word_shr(uint64_t a, int64_t count, unsigned width, uint64_t maximum) {
-    (void)maximum;
-    if (count < 0 || (uint64_t)count >= width) apl_trap("invalid_shift");
-    return a >> (unsigned)count;
-}
-static uint64_t apl_word_cast_i64(int64_t a, uint64_t maximum) {
-    if (a < 0 || (uint64_t)a > maximum) apl_trap("arithmetic_overflow");
-    return (uint64_t)a;
-}
-static uint64_t apl_word_cast_word(uint64_t a, uint64_t maximum) {
-    if (a > maximum) apl_trap("arithmetic_overflow");
-    return a;
-}
-static uint64_t apl_word_truncate_i64(int64_t a, uint64_t maximum) {
-    return (uint64_t)a & maximum;
-}
-static uint64_t apl_word_truncate_word(uint64_t a, uint64_t maximum) {
-    return a & maximum;
-}
-static int64_t apl_word_to_i64(uint64_t a) {
-    if (a > (uint64_t)INT64_MAX) apl_trap("arithmetic_overflow");
-    return (int64_t)a;
 }
 "#;
 
