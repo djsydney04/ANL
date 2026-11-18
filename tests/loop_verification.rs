@@ -520,7 +520,9 @@ fn attempted_queries_are_retained_when_the_attempt_wide_query_limit_is_hit() {
         .arg(path)
         .arg("--solver")
         .arg(solver)
-        .args(["--json", "--timeout-ms", "30000"])
+        // This count-limit case launches 1024 real solver processes. Allow scheduling
+        // headroom so the query budget, rather than the deadline, stops the attempt.
+        .args(["--json", "--timeout-ms", "120000"])
         .output()
         .unwrap();
     let report: Value = serde_json::from_slice(&output.stdout).unwrap();
