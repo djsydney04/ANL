@@ -655,8 +655,17 @@ bytes. The [selected instruction model](PROOFS.md#conditional-selected-native-in
 in `ANL/BootNativeByteWords.lean` and `ANL/BootNativeByteWordsProofs.lean`
 connects eight decoded instruction forms to conditional concrete steps and
 proves low-byte preservation for ordinary/silent steps. Fetch/access/completion
-premises remain explicit; device/fence preservation, complete leaf endpoints,
+premises remain explicit; device/fence preservation, general leaf endpoints,
 Rust correspondence and native refinement remain open.
+
+The separate [native UART fixtures](PROOFS.md#conditional-native-uart-literal-fixtures)
+cover the 92 literal instructions in seven retained leaf bodies. They prove
+conditional pre-return byte results; only the fence leaf also has a saved-range
+restoration theorem and a separate normally completed return theorem. Their
+four source modules keep distinct fixture owners, a dedicated declaration audit
+and replay list. The accompanying byte checker joins published selected bytes,
+literal headers and a report projection; original ELF extraction remains
+offline evidence and is not checked by Lean.
 
 ## Boot v2 Core static checking
 

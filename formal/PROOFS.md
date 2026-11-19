@@ -1768,6 +1768,46 @@ named Op/AddressClass/Action constructor-index wrappers with empty universe
 parameters and exact monomorphic type/body checks; all prior wrapper checks
 remain in force. The three new modules have separate kernel replay entries.
 
+## Conditional native UART literal fixtures
+
+The [fixture sources and data](fixtures/native-uart/fixture.json) preserve seven
+complete selected bodies, totaling 92 little-endian instruction words. The
+`NativeByteWordsLiterals` module checks each exact decoding.
+`NativeUartFenceCertificate` and `NativeUartByteCertificates` derive concrete
+pre-return results from supplied normal-step sequences: one fence and full unit
+zero, a completed device response in the pre-return result's low byte, or the entry argument's
+low byte at the actual device write followed by full unit zero. They also derive
+the instruction PCs, stack addresses and restored SP. Fetch, access permissions,
+classification, normal completion and the stated entry/alignment conditions
+remain explicit premises. These are fixed-artifact results, not a theorem about
+all accepted Rust reports.
+
+`NativeUartFenceRestoration` strengthens only the fence leaf. Agreement across
+its actual fence cut on each of the two saved eight-byte slots yields full x1
+and x8 restoration. An additional completed normal return and aligned entry RA
+yield a return PC equal to that RA. The six read/write leaves permit arbitrary
+post-device memory and have no saved-register restoration or executed-return
+claim. None of these statements proves caller execution, exclusive frame
+ownership, DMA/interrupt safety, fence ordering, progress or a complete ABI.
+
+The `NativeUartFixtures` library uses a separate exact four-module inventory;
+its audit checks every fixture-owned declaration with no unsafe allowance, and
+each fixture has its own kernel replay. The generic ANL model audit and wrapper
+policy are unchanged. Private qualification clients are not included.
+
+The committed ANL source and six generated payloads accompany selected text
+bytes, an extraction manifest and a clearly labeled report projection. The
+read-only fixture checker verifies their public hashes, all 92 literal inputs,
+PC arithmetic and seven identity/effect/return-location/byte-relation joins.
+The projection omits private paths and observer register-restoration tokens;
+its hash differs from the original report. Original whole ELF/image hashes are
+historical provenance: the originals contain private debug paths and are not
+published or reconstructed. Their extraction into the selected byte fixture
+remains retained offline evidence, not a kernel-checked ELF parser, compiler
+correctness theorem or proof that an image was loaded or executed. Generated C
+and assembly are compiler output from ANL. Rust native-admission and
+source-correspondence flags remain false.
+
 ## Boot v2 static model and Core reader
 
 The separate `ANL.Boot.V2.Program` preserves raw metadata, declaration signatures,

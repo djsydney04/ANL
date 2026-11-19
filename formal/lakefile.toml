@@ -1,6 +1,6 @@
 name = "anl_formal"
 version = "0.1.0"
-defaultTargets = ["APL", "ANL", "anl_formal", "anl_formal_v2", "anl_memory_pair_checker", "anl_memory_raw_probe", "anl_memory_reference_runner", "anl_words_pair_checker", "anl_words_raw_probe", "anl_words_reference_runner", "anl_boot_raw_probe", "anl_boot_v2_raw_probe"]
+defaultTargets = ["NativeUartFixtures", "APL", "ANL", "anl_formal", "anl_formal_v2", "anl_memory_pair_checker", "anl_memory_raw_probe", "anl_memory_reference_runner", "anl_words_pair_checker", "anl_words_raw_probe", "anl_words_reference_runner", "anl_boot_raw_probe", "anl_boot_v2_raw_probe"]
 moreLeanArgs = ["-DwarningAsError=true"]
 
 [[lean_lib]]
@@ -48,3 +48,8 @@ root = "BootRawProbe"
 [[lean_exe]]
 name = "anl_boot_v2_raw_probe"
 root = "BootV2RawProbe"
+
+[[lean_lib]]
+name = "NativeUartFixtures"
+srcDir = "fixtures/native-uart"
+roots = ["NativeByteWordsLiterals", "NativeUartFenceCertificate", "NativeUartByteCertificates", "NativeUartFenceRestoration"]

@@ -354,6 +354,14 @@ native admission remain false; the borrowed footprint's limits still apply.
 The [Lean memory algebra](../formal/PROOFS.md#conditional-native-low-byte-memory-algebra)
 proves separate mathematical memory facts, not a simulation of this Rust pass.
 
+Separate [literal UART certificates](../formal/PROOFS.md#conditional-native-uart-literal-fixtures)
+prove conditional pre-return byte relations for seven fixed instruction bodies.
+Only the fence body has an additional saved-byte preservation premise supporting
+full saved-register restoration and a separate completed-return theorem. The
+published selected-byte/report projection joins are offline evidence; these
+fixtures do not verify the Rust pass, original ELF extraction or source-to-native
+compilation, and do not change this API's capability flags.
+
 The frame and byte passes share limits of 100,000 created states, 1,000,000 live
 facts, 1,000,000 transfer evaluations and 100,000 charged witness rows. The byte
 pass composes its charges with the held footprint, exposes input and composed

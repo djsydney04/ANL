@@ -1,0 +1,4 @@
+NativeByteWordsLiterals
+NativeUartFenceCertificate
+NativeUartByteCertificates
+NativeUartFenceRestoration

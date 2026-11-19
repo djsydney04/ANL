@@ -1,0 +1,505 @@
+{
+  "byte_capabilities": {
+    "abi_extension_bits_established": false,
+    "handler_calls_established": false,
+    "native_admitted": false,
+    "source_correspondence_established": false
+  },
+  "byte_relations": [
+    {
+      "contribution": 8,
+      "effect_word": 206,
+      "primitive": 6,
+      "relation": "FenceAndUnitZero",
+      "return_word": 211
+    },
+    {
+      "contribution": 9,
+      "effect_word": 218,
+      "primitive": 7,
+      "relation": "ReadResponseLow8",
+      "return_word": 224
+    },
+    {
+      "contribution": 11,
+      "effect_word": 247,
+      "primitive": 8,
+      "relation": "WriteArgumentLow8AndUnitZero",
+      "return_word": 252
+    },
+    {
+      "contribution": 12,
+      "effect_word": 261,
+      "primitive": 9,
+      "relation": "WriteArgumentLow8AndUnitZero",
+      "return_word": 266
+    },
+    {
+      "contribution": 13,
+      "effect_word": 275,
+      "primitive": 10,
+      "relation": "WriteArgumentLow8AndUnitZero",
+      "return_word": 280
+    },
+    {
+      "contribution": 14,
+      "effect_word": 289,
+      "primitive": 11,
+      "relation": "WriteArgumentLow8AndUnitZero",
+      "return_word": 294
+    },
+    {
+      "contribution": 15,
+      "effect_word": 302,
+      "primitive": 12,
+      "relation": "WriteArgumentLow8AndUnitZero",
+      "return_word": 307
+    }
+  ],
+  "copied_fields": [
+    "footprint.identities",
+    "footprint.leaves",
+    "footprint.io",
+    "byte_provenance.leaves",
+    "footprint capability flags",
+    "byte_provenance capability flags",
+    "footprint.context.source_native_producer_established"
+  ],
+  "footprint_capabilities": {
+    "argument_result_provenance_established": false,
+    "delivery_established": false,
+    "formal_native_correspondence": false,
+    "handler_calls_established": false,
+    "handler_stack_bound_established": false,
+    "native_admitted": false,
+    "nested_fault_safety_established": false,
+    "source_correspondence_established": false
+  },
+  "identities": [
+    {
+      "address": null,
+      "c_range": [
+        1876,
+        1991
+      ],
+      "contribution": 8,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "IoFence"
+      },
+      "params": [],
+      "primitive": 6,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f6"
+    },
+    {
+      "address": 268435461,
+      "c_range": [
+        1991,
+        2169
+      ],
+      "contribution": 9,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Read8"
+      },
+      "params": [],
+      "primitive": 7,
+      "region": 0,
+      "result": "Word(U8)",
+      "symbol": "anl_boot_f7"
+    },
+    {
+      "address": 268435459,
+      "c_range": [
+        2169,
+        2338
+      ],
+      "contribution": 11,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Write8",
+        "offset": 3
+      },
+      "params": [
+        "Word(U8)"
+      ],
+      "primitive": 8,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f8"
+    },
+    {
+      "address": 268435457,
+      "c_range": [
+        2338,
+        2507
+      ],
+      "contribution": 12,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Write8",
+        "offset": 1
+      },
+      "params": [
+        "Word(U8)"
+      ],
+      "primitive": 9,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f9"
+    },
+    {
+      "address": 268435458,
+      "c_range": [
+        2507,
+        2677
+      ],
+      "contribution": 13,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Write8",
+        "offset": 2
+      },
+      "params": [
+        "Word(U8)"
+      ],
+      "primitive": 10,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f10"
+    },
+    {
+      "address": 268435460,
+      "c_range": [
+        2677,
+        2847
+      ],
+      "contribution": 14,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Write8",
+        "offset": 4
+      },
+      "params": [
+        "Word(U8)"
+      ],
+      "primitive": 11,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f11"
+    },
+    {
+      "address": 268435456,
+      "c_range": [
+        2847,
+        3017
+      ],
+      "contribution": 15,
+      "effects": [
+        1
+      ],
+      "operation": {
+        "kind": "Write8",
+        "offset": 0
+      },
+      "params": [
+        "Word(U8)"
+      ],
+      "primitive": 12,
+      "region": 0,
+      "result": "Unit",
+      "symbol": "anl_boot_f12"
+    }
+  ],
+  "io": [
+    {
+      "contribution": 8,
+      "encoding": 267386895,
+      "kind": "Fence",
+      "mode": 0,
+      "pc": 2149581624,
+      "predecessors": 15,
+      "rd": 0,
+      "rs1": 0,
+      "successors": 15,
+      "word": 206
+    },
+    {
+      "address": 268435461,
+      "contribution": 9,
+      "discarded": false,
+      "kind": "ReadByte",
+      "pc": 2149581672,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 218
+    },
+    {
+      "address": 268435459,
+      "contribution": 11,
+      "kind": "WriteByte",
+      "pc": 2149581788,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 247
+    },
+    {
+      "address": 268435457,
+      "contribution": 12,
+      "kind": "WriteByte",
+      "pc": 2149581844,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 261
+    },
+    {
+      "address": 268435458,
+      "contribution": 13,
+      "kind": "WriteByte",
+      "pc": 2149581900,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 275
+    },
+    {
+      "address": 268435460,
+      "contribution": 14,
+      "kind": "WriteByte",
+      "pc": 2149581956,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 289
+    },
+    {
+      "address": 268435456,
+      "contribution": 15,
+      "kind": "WriteByte",
+      "pc": 2149582008,
+      "value": {
+        "kind": "Unknown"
+      },
+      "width": 1,
+      "word": 302
+    }
+  ],
+  "kind": "selected_fields_of_retained_report_not_new_execution",
+  "leaves": [
+    {
+      "contribution": 8,
+      "effect_word": 206,
+      "frame_access_indices": [
+        0,
+        4
+      ],
+      "io_indices": [
+        0,
+        1
+      ],
+      "local_depth": 16,
+      "operation": {
+        "kind": "IoFence"
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 6,
+      "return_word": 211
+    },
+    {
+      "contribution": 9,
+      "effect_word": 218,
+      "frame_access_indices": [
+        4,
+        10
+      ],
+      "io_indices": [
+        1,
+        2
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Read8"
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 7,
+      "return_word": 224
+    },
+    {
+      "contribution": 11,
+      "effect_word": 247,
+      "frame_access_indices": [
+        10,
+        16
+      ],
+      "io_indices": [
+        2,
+        3
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Write8",
+        "offset": 3
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 8,
+      "return_word": 252
+    },
+    {
+      "contribution": 12,
+      "effect_word": 261,
+      "frame_access_indices": [
+        16,
+        22
+      ],
+      "io_indices": [
+        3,
+        4
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Write8",
+        "offset": 1
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 9,
+      "return_word": 266
+    },
+    {
+      "contribution": 13,
+      "effect_word": 275,
+      "frame_access_indices": [
+        22,
+        28
+      ],
+      "io_indices": [
+        4,
+        5
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Write8",
+        "offset": 2
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 10,
+      "return_word": 280
+    },
+    {
+      "contribution": 14,
+      "effect_word": 289,
+      "frame_access_indices": [
+        28,
+        34
+      ],
+      "io_indices": [
+        5,
+        6
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Write8",
+        "offset": 4
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 11,
+      "return_word": 294
+    },
+    {
+      "contribution": 15,
+      "effect_word": 302,
+      "frame_access_indices": [
+        34,
+        40
+      ],
+      "io_indices": [
+        6,
+        7
+      ],
+      "local_depth": 32,
+      "operation": {
+        "kind": "Write8",
+        "offset": 0
+      },
+      "premise_profile": "uart_leaf_normal_instruction_refinement",
+      "primitive": 12,
+      "return_word": 307
+    }
+  ],
+  "omitted_fields": [
+    "original context and filesystem paths",
+    "abstract restored-register masks and register tokens",
+    "all other unselected report fields"
+  ],
+  "original_report": {
+    "bytes": 193447,
+    "sha256": "bcda6d951b6a96920b24acb55797c28f90be87d9a03c2402f1020cda41573928"
+  },
+  "return_locations": [
+    {
+      "contribution": 8,
+      "pc": 2149581644,
+      "word": 211
+    },
+    {
+      "contribution": 9,
+      "pc": 2149581696,
+      "word": 224
+    },
+    {
+      "contribution": 11,
+      "pc": 2149581808,
+      "word": 252
+    },
+    {
+      "contribution": 12,
+      "pc": 2149581864,
+      "word": 266
+    },
+    {
+      "contribution": 13,
+      "pc": 2149581920,
+      "word": 280
+    },
+    {
+      "contribution": 14,
+      "pc": 2149581976,
+      "word": 294
+    },
+    {
+      "contribution": 15,
+      "pc": 2149582028,
+      "word": 307
+    }
+  ],
+  "schema": "anl-native-uart-report-projection-v1",
+  "selected_fields": {
+    "footprint.returns": [
+      "word",
+      "pc",
+      "contribution"
+    ]
+  },
+  "source_native_producer_established": false
+}
