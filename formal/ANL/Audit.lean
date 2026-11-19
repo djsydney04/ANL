@@ -279,6 +279,8 @@ run_elab do
     `ANL.BootSummaryOutputProofs,
     `ANL.BootNativeFrame,
     `ANL.BootNativeByteMemory,
+    `ANL.BootNativeByteRegisters,
+    `ANL.BootNativeByteState,
     `ANL.BootNativeFrameComposition,
     `ANL.BootV2Core,
     `ANL.BootV2Policy,

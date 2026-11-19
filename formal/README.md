@@ -638,6 +638,12 @@ The separate [low-byte memory algebra](PROOFS.md#conditional-native-low-byte-mem
 in `ANL/BootNativeByteMemory.lean` proves little-endian load/store and abstract
 fact preservation under nonwrapping-span and supported-width premises. It does
 not prove the Rust UART inspection, instruction decoder or native execution.
+The [register and state algebra](PROOFS.md#conditional-native-low-byte-register-and-state-algebra)
+in `ANL/BootNativeByteRegisters.lean` and `ANL/BootNativeByteState.lean` extends
+these facts to conditional register transfers, zero-register write suppression,
+combined load/store updates and finite prefixes with a supplied preservation
+premise. Decoded immediates, PCs, effective addresses and device values are not
+connected to these models; Rust analyzer and native refinement remain open.
 
 ## Boot v2 Core static checking
 

@@ -1673,6 +1673,33 @@ audit and separate kernel replay; the audit inspects the exact generated,
 universe-parameterized `Fact` constructor-index wrapper without a general
 unsafe allowance.
 
+## Conditional native low-byte register and state algebra
+
+[BootNativeByteRegisters](ANL/BootNativeByteRegisters.lean) proves preservation
+of low-byte facts for modular addition and bitwise AND with supplied integer
+immediates, supplied LUI values and supplied AUIPC PC/immediate values.
+`addi_writeback`, `andi_writeback`, `lui_writeback` and `auipc_writeback`
+preserve `RegsHold`; `unknown_writeback` safely forgets the destination fact.
+Writes to the zero register are discarded. The separate zero-value lemmas
+preserve an initially zero register; they do not establish its initial value.
+
+[BootNativeByteState](ANL/BootNativeByteState.lean) combines register and memory
+facts under one arbitrary, fixed origin valuation. Register updates, supported
+signed/unsigned loads and stores preserve `Inv`, given its initial validity.
+Memory accesses retain the explicit nonwrapping spans and supported widths.
+Reloading at the store's base preserves the source low byte at a nonzero
+destination, including when source and destination coincide.
+`finite_prefix` transports an initial invariant along supplied finite steps
+whose preservation is separately established; it supplies no instruction-step
+relation, progress or termination theorem.
+
+These models do not connect decoded instructions or the Rust analyzer to the
+mathematical operations. Immediate decoding, PC/effective-address agreement,
+finite-map correspondence, device origins/responses, full-register ABI values,
+caller/handler behavior and source-to-native refinement remain separate.
+Both models participate in the declaration audit and separate kernel replay;
+they add no unsafe-wrapper allowance.
+
 ## Boot v2 static model and Core reader
 
 The separate `ANL.Boot.V2.Program` preserves raw metadata, declaration signatures,
