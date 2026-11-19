@@ -1700,6 +1700,33 @@ caller/handler behavior and source-to-native refinement remain separate.
 Both models participate in the declaration audit and separate kernel replay;
 they add no unsafe-wrapper allowance.
 
+## Conditional native device-origin algebra
+
+[BootNativeByteDevice](ANL/BootNativeByteDevice.lean) connects supplied byte
+responses and origin tags to the combined register/memory invariant.
+`PreservesKnown` requires a supplied memory change to preserve each address
+whose current fact is not unknown; unknown addresses may change.
+`memory_preserves` and `inv_preserves` retain the corresponding facts under
+that premise.
+
+`read_preserves` installs a supplied, zero-extended byte and origin fact through
+the existing register writeback operation, which discards writes to the zero
+register. It requires the fixed origin valuation to interpret that token as the
+supplied response, initial invariant validity and known-memory preservation.
+`write_preserves_and_payload` proves low-byte equality with a supplied entry
+argument when the source register carries its origin tag and that tag has the
+supplied interpretation; it also preserves the invariant under the same memory
+premise. `finite_origin_endpoint` extracts the interpreted byte from a final
+register tag along a supplied finite trace with an initial invariant and
+per-step preservation.
+
+These are conditional equations. They do not establish that a device access
+occurs, that a response arrives, that origin tokens are fresh, or that accesses
+have a particular ordering. The model supplies no UART instruction semantics,
+Rust-map correspondence, caller/handler contract, full-register ABI result or
+source-to-native refinement. Its declarations are included in the complete
+audit and separate kernel replay without adding an unsafe-wrapper allowance.
+
 ## Boot v2 static model and Core reader
 
 The separate `ANL.Boot.V2.Program` preserves raw metadata, declaration signatures,

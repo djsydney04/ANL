@@ -644,6 +644,11 @@ these facts to conditional register transfers, zero-register write suppression,
 combined load/store updates and finite prefixes with a supplied preservation
 premise. Decoded immediates, PCs, effective addresses and device values are not
 connected to these models; Rust analyzer and native refinement remain open.
+The [device-origin algebra](PROOFS.md#conditional-native-device-origin-algebra)
+in `ANL/BootNativeByteDevice.lean` relates supplied read responses and tagged
+write bytes to that invariant under an explicit origin interpretation and
+known-memory preservation premise. It does not prove device occurrence,
+response delivery, access ordering or instruction/native correspondence.
 
 ## Boot v2 Core static checking
 

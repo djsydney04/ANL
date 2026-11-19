@@ -278,6 +278,7 @@ ANL.BootNativeFrame
 ANL.BootNativeByteMemory
 ANL.BootNativeByteRegisters
 ANL.BootNativeByteState
+ANL.BootNativeByteDevice
 ANL.BootNativeFrameComposition
 BootRawProbe
 ANL.BootV2Core

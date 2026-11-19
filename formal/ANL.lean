@@ -271,6 +271,7 @@ import ANL.BootNativeFrame
 import ANL.BootNativeByteMemory
 import ANL.BootNativeByteRegisters
 import ANL.BootNativeByteState
+import ANL.BootNativeByteDevice
 import ANL.BootNativeFrameComposition
 import ANL.BootV2Core
 import ANL.BootV2Policy
