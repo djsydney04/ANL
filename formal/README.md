@@ -649,6 +649,14 @@ in `ANL/BootNativeByteDevice.lean` relates supplied read responses and tagged
 write bytes to that invariant under an explicit origin interpretation and
 known-memory preservation premise. It does not prove device occurrence,
 response delivery, access ordering or instruction/native correspondence.
+`ANL/BootNativeByteMemoryFull.lean` separately proves full 64-bit recovery
+from an eight-byte store/reload and preservation under agreement on the saved
+bytes. The [selected instruction model](PROOFS.md#conditional-selected-native-instruction-model)
+in `ANL/BootNativeByteWords.lean` and `ANL/BootNativeByteWordsProofs.lean`
+connects eight decoded instruction forms to conditional concrete steps and
+proves low-byte preservation for ordinary/silent steps. Fetch/access/completion
+premises remain explicit; device/fence preservation, complete leaf endpoints,
+Rust correspondence and native refinement remain open.
 
 ## Boot v2 Core static checking
 

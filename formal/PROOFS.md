@@ -1673,6 +1673,15 @@ audit and separate kernel replay; the audit inspects the exact generated,
 universe-parameterized `Fact` constructor-index wrapper without a general
 unsafe allowance.
 
+[BootNativeByteMemoryFull](ANL/BootNativeByteMemoryFull.lean) adds full-word
+results. An eight-byte store followed by a signed or unsigned eight-byte load
+at the same nonwrapping address returns the entire stored 64-bit word.
+`AgreesOn` describes byte-for-byte agreement over a supplied span; disjoint
+nonwrapping stores preserve that span, and agreement preserves its loaded
+value. `reload_saved_eight` therefore recovers the stored word after any
+supplied memory change that still agrees on those eight bytes. These statements
+supply no concrete instruction, fault, permission or caller-frame contract.
+
 ## Conditional native low-byte register and state algebra
 
 [BootNativeByteRegisters](ANL/BootNativeByteRegisters.lean) proves preservation
@@ -1726,6 +1735,38 @@ have a particular ordering. The model supplies no UART instruction semantics,
 Rust-map correspondence, caller/handler contract, full-register ABI result or
 source-to-native refinement. Its declarations are included in the complete
 audit and separate kernel replay without adding an unsafe-wrapper allowance.
+
+## Conditional selected native instruction model
+
+[BootNativeByteWords](ANL/BootNativeByteWords.lean) defines a selected 32-bit
+instruction decoder for ADDI, LUI, LD, LBU, SD, SB, the exact
+`fence iorw,iorw` word `0x0ff0000f`, and the exact return word `0x00008067`.
+Other encodings are rejected. Its concrete state contains a PC, registers and
+byte memory. Fetch requires four-byte alignment, a nonwrapping instruction
+span, a supplied fetch relation and execute permission, and an initially zero
+x0 register.
+Ordinary loads/stores additionally require nonwrapping, naturally aligned
+spans, ordinary classification of every byte, access permission and supplied
+completion. These restrictions describe this selected profile.
+
+[BootNativeByteWordsProofs](ANL/BootNativeByteWordsProofs.lean) connects an
+`OrdinaryStep` to an abstract `Lift` with the same concrete register/memory
+result. `ordinary_preserves` and `normal_silent_preserves` preserve the low-byte
+invariant from its initial validity, including the selected decoder result for
+a silent normal step. Writes to x0 are suppressed, but LD/LBU to x0 still
+require the memory-access premises. Return clears the low address bit;
+four-byte return-target alignment is an explicit premise, and a return
+preserves registers and memory. `normal_zero_preserved` retains x0 for every
+normal-step constructor under its fetch premise.
+
+Device and fence steps have separate actions and supplied completion
+predicates. This checkpoint does not prove their memory invariant, occurrence,
+ordering or response behavior. It also does not prove all RISC-V instructions,
+Rust-decoder/map correspondence, complete UART leaf endpoints, caller/full-ABI
+behavior or source-to-native refinement. The audit inspects only the three
+named Op/AddressClass/Action constructor-index wrappers with empty universe
+parameters and exact monomorphic type/body checks; all prior wrapper checks
+remain in force. The three new modules have separate kernel replay entries.
 
 ## Boot v2 static model and Core reader
 

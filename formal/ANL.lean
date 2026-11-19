@@ -269,8 +269,11 @@ import ANL.BootSummaryOutput
 import ANL.BootSummaryOutputProofs
 import ANL.BootNativeFrame
 import ANL.BootNativeByteMemory
+import ANL.BootNativeByteMemoryFull
 import ANL.BootNativeByteRegisters
 import ANL.BootNativeByteState
+import ANL.BootNativeByteWords
+import ANL.BootNativeByteWordsProofs
 import ANL.BootNativeByteDevice
 import ANL.BootNativeFrameComposition
 import ANL.BootV2Core

@@ -279,8 +279,11 @@ run_elab do
     `ANL.BootSummaryOutputProofs,
     `ANL.BootNativeFrame,
     `ANL.BootNativeByteMemory,
+    `ANL.BootNativeByteMemoryFull,
     `ANL.BootNativeByteRegisters,
     `ANL.BootNativeByteState,
+    `ANL.BootNativeByteWords,
+    `ANL.BootNativeByteWordsProofs,
     `ANL.BootNativeByteDevice,
     `ANL.BootNativeFrameComposition,
     `ANL.BootV2Core,
@@ -427,6 +430,9 @@ run_elab do
     `ANL.Boot.NativeFrame.AccessKind.ctorIdx._impl,
     `ANL.Boot.NativeFrame.RootRole.ctorIdx._impl,
     `ANL.Boot.NativeByte.Fact.ctorIdx._impl,
+    `ANL.Boot.NativeByte.Words.Op.ctorIdx._impl,
+    `ANL.Boot.NativeByte.Words.AddressClass.ctorIdx._impl,
+    `ANL.Boot.NativeByte.Words.Action.ctorIdx._impl,
     `ANL.Boot.V2.Operation.ctorIdx._impl,
     `ANL.Boot.V2.Declaration.ctorIdx._impl,
     `ANL.Boot.V2.Fault.Event.ctorIdx._impl,
@@ -446,6 +452,11 @@ run_elab do
         | _ => pure ()
         if info.isUnsafe then
           unless expectedShims.contains name do throwError "Unexpected unsafe declaration {name}"
+          if #[`ANL.Boot.NativeByte.Words.Op.ctorIdx._impl,
+              `ANL.Boot.NativeByte.Words.AddressClass.ctorIdx._impl,
+              `ANL.Boot.NativeByte.Words.Action.ctorIdx._impl].contains name then
+            unless info.levelParams.isEmpty do
+              throwError "Unexpected generated universes {name}"
           let owner := name.getPrefix.getPrefix
           let some value := info.value? | throwError "Missing generated body {name}"
           if name == `ANL.Boot.NativeByte.Fact.ctorIdx._impl then

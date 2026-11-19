@@ -276,8 +276,11 @@ ANL.BootSummaryOutput
 ANL.BootSummaryOutputProofs
 ANL.BootNativeFrame
 ANL.BootNativeByteMemory
+ANL.BootNativeByteMemoryFull
 ANL.BootNativeByteRegisters
 ANL.BootNativeByteState
+ANL.BootNativeByteWords
+ANL.BootNativeByteWordsProofs
 ANL.BootNativeByteDevice
 ANL.BootNativeFrameComposition
 BootRawProbe
